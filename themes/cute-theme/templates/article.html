@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title|striptags }} - {{ SITENAME }}{% endblock %}
+
+{% block description %}{{ article.summary|striptags|escape }}{% endblock %}
+
+{% block content %}
+<article class="article">
+    <header class="article-header">
+        <h1 class="article-title">
+            <a href="{{ SITEURL }}/{{ article.url }}" rel="bookmark" 
+               title="Permalink to {{ article.title|striptags }}">{{ article.title }}</a>
+        </h1>
+        
+        <div class="article-meta">
+            <time class="published" datetime="{{ article.date.isoformat() }}">
+                📅 {{ article.locale_date }}
+            </time>
+            
+            {% if article.author %}
+                <span class="author">👤 By {{ article.author }}</span>
+            {% endif %}
+            
+            {% if article.category %}
+                <span class="category">📂 {{ article.category }}</span>
+            {% endif %}
+        </div>
+        
+        {% if article.tags %}
+            <div class="article-tags">
+                🏷️ 
+                {% for tag in article.tags %}
+                    <a href="{{ SITEURL }}/{{ tag.url }}" class="tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </header>
+
+    <div class="article-content">
+        {{ article.content }}
+    </div>
+
+    {% if article.translations %}
+        <div class="article-translations">
+            <h3>🌍 Available in other languages:</h3>
+            <ul>
+                {% for translation in article.translations %}
+                    <li><a href="{{ SITEURL }}/{{ translation.url }}">{{ translation.lang }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+</article>
+
+{% if DISQUS_SITENAME and SITEURL and article.status != "draft" %}
+    <section class="comments">
+        <h3>💬 Comments</h3>
+        <div id="disqus_thread"></div>
+        <script>
+            var disqus_config = function () {
+                this.page.url = '{{ SITEURL }}/{{ article.url }}';
+                this.page.identifier = '{{ article.slug }}';
+            };
+            (function() {
+                var d = document, s = d.createElement('script');
+                s.src = 'https://{{ DISQUS_SITENAME }}.disqus.com/embed.js';
+                s.setAttribute('data-timestamp', +new Date());
+                (d.head || d.body).appendChild(s);
+            })();
+        </script>
+    </section>
+{% endif %}
+{% endblock %}

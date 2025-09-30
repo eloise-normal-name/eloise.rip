@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="home-page">
+    {% if articles %}
+        <section class="recent-articles">
+            <h2 class="section-title">✨ Recent Posts ✨</h2>
+            
+            {% for article in articles_page.object_list %}
+                <article class="article-summary">
+                    <header class="article-summary-header">
+                        <h3 class="article-summary-title">
+                            <a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a>
+                        </h3>
+                        
+                        <div class="article-summary-meta">
+                            <time class="published" datetime="{{ article.date.isoformat() }}">
+                                📅 {{ article.locale_date }}
+                            </time>
+                            
+                            {% if article.author %}
+                                <span class="author">👤 {{ article.author }}</span>
+                            {% endif %}
+                            
+                            {% if article.category %}
+                                <span class="category">📂 {{ article.category }}</span>
+                            {% endif %}
+                        </div>
+                    </header>
+                    
+                    <div class="article-summary-content">
+                        {% if article.summary %}
+                            {{ article.summary }}
+                            <p><a href="{{ SITEURL }}/{{ article.url }}" class="read-more">Read more... 📖</a></p>
+                        {% else %}
+                            {{ article.content|truncate(200) }}
+                            <p><a href="{{ SITEURL }}/{{ article.url }}" class="read-more">Read full article... 📖</a></p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if article.tags %}
+                        <div class="article-summary-tags">
+                            🏷️ 
+                            {% for tag in article.tags %}
+                                <a href="{{ SITEURL }}/{{ tag.url }}" class="tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </section>
+
+        <!-- Pagination -->
+        {% if articles_page.has_other_pages() %}
+            <nav class="pagination">
+                {% if articles_page.has_previous() %}
+                    <a href="{{ SITEURL }}/{{ articles_previous_page.url }}" class="prev">← Previous</a>
+                {% endif %}
+                
+                <span class="page-number">Page {{ articles_page.number }} of {{ articles_paginator.num_pages }}</span>
+                
+                {% if articles_page.has_next() %}
+                    <a href="{{ SITEURL }}/{{ articles_next_page.url }}" class="next">Next →</a>
+                {% endif %}
+            </nav>
+        {% endif %}
+        
+    {% else %}
+        <section class="no-content">
+            <h2>🌟 Welcome! 🌟</h2>
+            <p>There are no articles yet. Check back soon for awesome content!</p>
+        </section>
+    {% endif %}
+</div>
+{% endblock %}
