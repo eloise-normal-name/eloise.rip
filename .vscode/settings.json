@@ -1,0 +1,19 @@
+{
+  "html.validate": true,
+  "html.trace.server": "off",
+  "emmet.includeLanguages": {
+    "jinja-html": "html"
+  },
+  "files.associations": {
+    "**/templates/**/*.html": "jinja-html",
+    "**/theme/**/*.html": "jinja-html",
+    "**/themes/**/*.html": "jinja-html"
+  },
+  "html.customData": [],
+  "[jinja-html]": {
+    "html.validate": false,
+    "html.suggest.html5": true
+  },
+  "html.format.enable": true,
+  "html.format.preserveNewLines": true
+}

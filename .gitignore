@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+
+# Pelican output
+output/
+
+# Virtual environments
+.env/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db

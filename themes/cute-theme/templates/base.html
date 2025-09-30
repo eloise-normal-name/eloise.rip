@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="{% block html_lang %}{{ DEFAULT_LANG }}{% endblock html_lang %}">
+<head>
+    {% block head %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{{ SITENAME }}{% endblock title %}</title>
+    <meta name="description" content="{% block description %}{{ SITEDESCRIPTION }}{% endblock description %}">
+    <meta name="author" content="{% block author %}{{ AUTHOR }}{% endblock author %}">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="{{ SITEURL }}/theme/css/style.css">
+    
+    <!-- Feeds -->
+    {% if FEED_ALL_ATOM %}
+        <link href="{{ FEED_DOMAIN }}/{{ FEED_ALL_ATOM }}" type="application/atom+xml" rel="alternate" title="{{ SITENAME }} Atom Feed" />
+    {% endif %}
+    {% if FEED_ALL_RSS %}
+        <link href="{{ FEED_DOMAIN }}/{{ FEED_ALL_RSS }}" type="application/rss+xml" rel="alternate" title="{{ SITENAME }} RSS Feed" />
+    {% endif %}
+    
+    <!-- Article meta tags (safe) -->
+    {% if article is defined and article %}
+        {% if article.tags %}
+            {% for tag in article.tags %}
+                <meta name="keywords" content="{{ tag }}">
+            {% endfor %}
+        {% endif %}
+        {% if article.date %}
+            <meta name="date" content="{{ article.date.isoformat() }}">
+        {% endif %}
+    {% endif %}
+    
+    {% block extra_head %}{% endblock extra_head %}
+    {% endblock head %}
+</head>
+
+<body>
+    <header class="site-header">
+        {% block header %}
+        <div class="header-content">
+            <h1 class="site-title">
+                <a href="{{ SITEURL }}/">✨ {{ SITENAME }} ✨</a>
+            </h1>
+            {% if SITESUBTITLE %}
+                <p class="site-subtitle">{{ SITESUBTITLE }}</p>
+            {% endif %}
+            
+            <!-- Navigation -->
+            {% if DISPLAY_PAGES_ON_MENU != False %}
+            <nav class="main-nav">
+                <ul>
+                    {% for title, link in MENUITEMS %}
+                        <li><a href="{{ link }}">{{ title }}</a></li>
+                    {% endfor %}
+                    {% if DISPLAY_PAGES_ON_MENU %}
+                        {% for p in pages %}
+                            <li><a href="{{ SITEURL }}/{{ p.url }}"{% if p == page %} class="active"{% endif %}>{{ p.title }}</a></li>
+                        {% endfor %}
+                    {% endif %}
+                    {% if DISPLAY_CATEGORIES_ON_MENU %}
+                        {% for cat, null in categories %}
+                            <li><a href="{{ SITEURL }}/{{ cat.url }}"{% if cat == category %} class="active"{% endif %}>{{ cat }}</a></li>
+                        {% endfor %}
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+        {% endblock header %}
+    </header>
+
+    <main class="main-content">
+        {% block content %}
+        {% endblock content %}
+    </main>
+
+    <footer class="site-footer">
+        {% block footer %}
+        <div class="footer-content">
+            <p>&copy; {{ CURRENTYEAR }} {{ AUTHOR if AUTHOR else SITENAME }}</p>
+        </div>
+        {% endblock footer %}
+    </footer>
+</body>
+</html>

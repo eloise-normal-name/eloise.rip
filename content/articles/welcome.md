@@ -1,0 +1,8 @@
+Title: Hello, it's me, eloise
+Date: 2025-09-30
+Category: General
+Tags: intro
+Slug: hi
+Summary: I made a blog
+
+I'm using this to post images and thoughts of stuff I do.
