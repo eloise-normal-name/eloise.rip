@@ -31,15 +31,20 @@ IF ERRORLEVEL 1 (
 
 REM Commit (if needed) and push subtree
 echo [INFO] Publishing output/ to %BRANCH% via subtree push...
- git subtree push --prefix %OUTPUT_DIR% origin %BRANCH%
+git subtree push --prefix %OUTPUT_DIR% origin %BRANCH%
 IF ERRORLEVEL 1 (
-  echo [WARN] Subtree push failed. Attempting split fallback...
-  for /f "delims=" %%H in ('git subtree split --prefix %OUTPUT_DIR%') do set TREE_HASH=%%H
-  if not defined TREE_HASH (
-    echo [ERROR] Could not split subtree for %OUTPUT_DIR%.
+  echo [WARN] Subtree push failed. Attempting force-push fallback...
+  REM Temporarily add and commit output/ if not tracked
+  git add -f %OUTPUT_DIR%
+  git commit -m "temp: commit output for gh-pages publish" --allow-empty
+  git subtree split --prefix %OUTPUT_DIR% -b temp-gh-pages
+  git push origin temp-gh-pages:%BRANCH% --force
+  git branch -D temp-gh-pages
+  git reset HEAD~
+  IF ERRORLEVEL 1 (
+    echo [ERROR] Force-push fallback failed.
     exit /b 4
   )
-  git push origin !TREE_HASH!:refs/heads/%BRANCH% || exit /b 4
 )
 
 echo [INFO] Deploy complete.
