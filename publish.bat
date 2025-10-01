@@ -28,19 +28,6 @@ IF ERRORLEVEL 1 (
   exit /b 2
 )
 
-REM Ensure gh-pages branch exists remotely
-for /f "delims=" %%B in ('git ls-remote --heads origin %BRANCH%') do set BRANCH_EXISTS=1
-if not defined BRANCH_EXISTS (
-  echo [INFO] Remote branch %BRANCH% not found. Creating it (orphan)...
-  git checkout --orphan %BRANCH% || exit /b 3
-  del /f /q * >NUL 2>&1
-  for /d %%D in (*) do rd /s /q "%%D" >NUL 2>&1
-  echo Initial %BRANCH% branch > README.md
-  git add README.md
-  git commit -m "chore: init %BRANCH% branch" >NUL || exit /b 3
-  git push origin %BRANCH% || exit /b 3
-  git checkout - >NUL || git checkout main
-)
 
 REM Commit (if needed) and push subtree
 echo [INFO] Publishing output/ to %BRANCH% via subtree push...
