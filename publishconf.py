@@ -1,6 +1,6 @@
 from pelicanconf import *  # noqa
 
-SITEURL = 'https://eloise-normal-name.github.io/eloise.rip'
+SITEURL = 'https://eloise.rip'
 RELATIVE_URLS = False
 
 FEED_ALL_ATOM = 'feeds/all.atom.xml'

@@ -48,6 +48,11 @@ MARKDOWN = {
 
 RELATIVE_URLS = True
 
+# Ensure any extra files (like CNAME) get correct target names
+EXTRA_PATH_METADATA = {
+    'extra/CNAME': {'path': 'CNAME'},
+}
+
 # Theme-specific settings
 DISPLAY_PAGES_ON_MENU = True
 DISPLAY_CATEGORIES_ON_MENU = True
