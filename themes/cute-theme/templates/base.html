@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{{ SITENAME }}{% endblock title %}</title>
     <meta name="description" content="{% block description %}{{ SITEDESCRIPTION }}{% endblock description %}">
-    <meta name="author" content="{% block author %}{{ AUTHOR }}{% endblock author %}">
     
     <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="{{ SITEURL }}/theme/css/style.css">
@@ -40,7 +39,7 @@
         {% block header %}
         <div class="header-content">
             <h1 class="site-title">
-                <a href="{{ SITEURL }}/">✨ {{ SITENAME }} ✨</a>
+                <a href="{{ SITEURL }}/">😈 {{ SITENAME }} 🍔</a>
             </h1>
             {% if SITESUBTITLE %}
                 <p class="site-subtitle">{{ SITESUBTITLE }}</p>
@@ -78,7 +77,7 @@
     <footer class="site-footer">
         {% block footer %}
         <div class="footer-content">
-            <p>&copy; {{ CURRENTYEAR }} {{ AUTHOR if AUTHOR else SITENAME }}</p>
+            <p>&copy; {{ CURRENTYEAR }} {{ SITENAME }}</p>
         </div>
         {% endblock footer %}
     </footer>

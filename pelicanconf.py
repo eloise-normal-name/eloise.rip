@@ -1,4 +1,3 @@
-AUTHOR = 'Eloise'
 SITENAME = 'eloise.rip'
 SITEURL = ''  # During local dev
 
@@ -9,7 +8,7 @@ DEFAULT_LANG = 'en'
 # Content settings
 ARTICLE_PATHS = ['articles']
 PAGE_PATHS = ['pages']
-STATIC_PATHS = ['images']
+STATIC_PATHS = ['images', 'videos', 'extra']  # 'videos' for optimized media; 'extra' if you add custom files
 ARTICLE_SAVE_AS = 'articles/{slug}.html'
 ARTICLE_URL = 'articles/{slug}.html'
 PAGE_SAVE_AS = '{slug}.html'
@@ -26,11 +25,17 @@ DEFAULT_PAGINATION = 10
 
 # Theme configuration
 THEME = 'themes/cute-theme'
-SITESUBTITLE = 'the goblin hole 🕳'
+SITESUBTITLE = 'from the goblin hole 🕳'
 
-# Plugins (none yet)
+# Plugins
 PLUGIN_PATHS = ['pelican-plugins']
-PLUGINS = []
+PLUGINS = [
+    'video_embed',
+]
+
+# Optional plugin settings
+VIDEO_EMBED_CLASS = 'embedded-video'
+VIDEO_EMBED_RELATIVE = True  # use relative /videos/... paths when RELATIVE_URLS is True
 
 # Markdown extensions
 MARKDOWN = {
