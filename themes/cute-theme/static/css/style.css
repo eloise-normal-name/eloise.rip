@@ -237,6 +237,16 @@ figure.embedded-video video {
   font-weight: 500;
 }
 
+/* Article category (small, subtle) */
+.category {
+  font-size: 0.75rem; /* slightly smaller than article text */
+  color: var(--text-light);
+  font-weight: 600;
+  display: inline-block;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}
+
 /* Article tags */
 .article-tags,
 .article-summary-tags {
@@ -248,11 +258,13 @@ figure.embedded-video video {
   display: inline-block;
   background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
   color: white;
-  padding: 0.25rem 0.75rem;
+  padding: 0.18rem 0.6rem;
   border-radius: 15px;
   text-decoration: none;
   font-weight: 500;
   margin: 0.25rem 0.25rem 0.25rem 0;
+  font-size: 0.9rem; /* slightly smaller */
+  line-height: 1;
   transition: all 0.3s ease;
 }
 
@@ -366,6 +378,79 @@ img {
   border-radius: 12px;
   box-shadow: 0 4px 20px var(--shadow);
   margin: 1rem 0;
+}
+
+/* Article summary media (thumbnail / video poster) */
+.article-summary {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 2rem; /* inner spacing so content has room */
+}
+
+.article-summary-media {
+  flex: 0 0 170px; /* slightly narrower media column */
+  max-width: 170px;
+}
+
+.article-summary-media img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 12px;
+  display: block;
+}
+
+.article-summary-body {
+  flex: 1 1 0; /* allow the body to shrink/grow */
+  min-width: 0; /* allow text to wrap inside flex item and prevent overflow */
+  padding-right: 0.5rem;
+}
+
+.media-badge {
+  position: absolute;
+  margin-top: -36px;
+  margin-left: 12px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+}
+
+.media-badge-video {
+  background: linear-gradient(90deg, rgba(255,107,157,0.95), rgba(116,192,252,0.95));
+}
+
+.video-placeholder {
+  width: 100%;
+  height: 120px;
+  background: linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0.12));
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: rgba(0,0,0,0.6);
+}
+
+/* Responsive: stack media above content on small screens */
+@media (max-width: 720px) {
+  .article-summary {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .article-summary-media {
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+
+  .article-summary-media img,
+  .video-placeholder {
+    height: 160px;
+    object-fit: cover;
+  }
 }
 
 /* Pagination */
@@ -519,7 +604,7 @@ img {
   .article,
   .article-summary,
   .page {
-    padding: 1.5rem;
+    padding: 2rem;
     border-radius: 15px;
   }
   
