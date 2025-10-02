@@ -223,28 +223,30 @@ figure.embedded-video video {
 .article-summary-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.9rem;
+  gap: 0.5rem; /* tighter gap */
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem; /* slightly smaller */
   color: var(--text-light);
 }
 
 .article-meta span,
 .article-summary-meta span {
   background: var(--border-color);
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
+  padding: 0.18rem 0.5rem; /* reduced padding */
+  border-radius: 10px; /* smaller radius */
   font-weight: 500;
 }
 
 /* Article category (small, subtle) */
 .category {
-  font-size: 0.75rem; /* slightly smaller than article text */
+  font-size: 0.78rem; /* compact but readable */
   color: var(--text-light);
   font-weight: 600;
   display: inline-block;
-  margin-right: 0.5rem;
+  margin-right: 0.4rem;
   vertical-align: middle;
+  padding: 0.12rem 0.4rem; /* small inner padding to match other meta */
+  border-radius: 10px;
 }
 
 /* Article tags */
@@ -658,5 +660,29 @@ img {
   .page {
     box-shadow: none;
     border: 1px solid #ccc;
+  }
+}
+
+/* Mobile tweaks: slightly larger text for legibility but keep badges compact */
+@media (max-width: 480px) {
+  .article-meta,
+  .article-summary-meta {
+    gap: 0.4rem;
+    font-size: 0.95rem; /* easier to read on small screens */
+    margin-bottom: 0.6rem;
+  }
+
+  .article-meta span,
+  .article-summary-meta span,
+  .category,
+  .article-date {
+    padding: 0.2rem 0.5rem; /* slightly increase touch area */
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+
+  .tag {
+    font-size: 0.95rem;
+    padding: 0.2rem 0.5rem;
   }
 }
