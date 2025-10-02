@@ -58,10 +58,8 @@
                         <div class="article-summary-content">
                         {% if article.summary %}
                             {{ article.summary }}
-                            <p><a href="{{ SITEURL }}/{{ article.url }}" class="read-more">Read more... 📖</a></p>
                         {% else %}
                             {{ article.content|truncate(200) }}
-                            <p><a href="{{ SITEURL }}/{{ article.url }}" class="read-more">Read full article... 📖</a></p>
                         {% endif %}
                     </div>
                     
