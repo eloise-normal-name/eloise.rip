@@ -1,4 +1,4 @@
-Title: Thresher Down
+Title: Thresher
 Date: 2025-09-30
 Summary: Caught thresher shark on Jaws
 Category: Pinball

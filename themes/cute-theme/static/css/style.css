@@ -112,19 +112,7 @@ figure.embedded-video video {
 }
 
 /* Navigation */
-.main-nav ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
 
-.main-nav li {
-  margin: 0;
-}
 
 .main-nav a {
   color: white;
@@ -202,9 +190,7 @@ figure.embedded-video video {
   line-height: 1.2;
 }
 
-.article-summary-title {
-  font-size: 1.8rem;
-}
+.article-summary-title { font-size: 1.8rem; }
 
 .article-title a,
 .article-summary-title a {
@@ -218,35 +204,42 @@ figure.embedded-video video {
   color: var(--accent-color);
 }
 
-/* Article meta */
+/* Badge and meta utility styles */
 .article-meta,
 .article-summary-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem; /* tighter gap */
+  gap: 0.5rem;
   margin-bottom: 0.5rem;
-  font-size: 0.85rem; /* slightly smaller */
+  font-size: 0.85rem;
   color: var(--text-light);
 }
 
 .article-meta span,
-.article-summary-meta span {
+.article-summary-meta span,
+.category,
+.article-date {
   background: var(--border-color);
-  padding: 0.18rem 0.5rem; /* reduced padding */
-  border-radius: 10px; /* smaller radius */
+  padding: 0.18rem 0.5rem;
+  border-radius: 10px;
   font-weight: 500;
 }
 
-/* Article category (small, subtle) */
 .category {
-  font-size: 0.78rem; /* compact but readable */
+  font-size: 0.78rem;
   color: var(--text-light);
   font-weight: 600;
   display: inline-block;
   margin-right: 0.4rem;
   vertical-align: middle;
-  padding: 0.12rem 0.4rem; /* small inner padding to match other meta */
-  border-radius: 10px;
+}
+
+.article-date {
+  background: var(--secondary-color);
+  color: white;
+  font-weight: 600;
+  min-width: 3rem;
+  text-align: center;
 }
 
 /* Article tags */
@@ -283,22 +276,11 @@ figure.embedded-video video {
   line-height: 1.7;
 }
 
-.article-content h1,
-.article-content h2,
-.article-content h3,
-.article-content h4,
-.article-content h5,
-.article-content h6,
-.page-content h1,
-.page-content h2,
-.page-content h3,
-.page-content h4,
-.page-content h5,
-.page-content h6 {
+.article-content h1, .article-content h2, .article-content h3, .article-content h4, .article-content h5, .article-content h6,
+.page-content h1, .page-content h2, .page-content h3, .page-content h4, .page-content h5, .page-content h6 {
   font-family: 'Fredoka', sans-serif;
   color: var(--accent-color);
-  margin-top: 2rem;
-  margin-bottom: 1rem;
+  margin: 2rem 0 1rem 0;
 }
 
 .article-content h2,
@@ -334,8 +316,24 @@ ul, ol {
   margin-bottom: 1.5rem;
 }
 
-li {
-  margin-bottom: 0.5rem;
+li { margin-bottom: 0.5rem; }
+
+/* Lists in navigation */
+.main-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.main-nav li { margin: 0; }
+
+.articles-list {
+  list-style: none;
+  padding: 0;
 }
 
 /* Code blocks */
@@ -385,25 +383,12 @@ img {
 picture {
   display: block;
   margin: 1rem 0;
-}
-
-picture img {
-  margin: 0; /* Reset margin since picture element provides spacing */
-}
-
-/* Ensure responsive images in content maintain aspect ratio */
-.article-content picture,
-.article-summary-content picture,
-.page-content picture {
   max-width: 100%;
   height: auto;
 }
 
-/* Responsive images in article summary media */
-.article-summary-media picture {
-  margin: 0;
-}
-
+picture img,
+.article-summary-media picture,
 .article-summary-media picture img {
   margin: 0;
 }
@@ -532,10 +517,7 @@ picture img {
   margin: 1.5rem 0 0.75rem 0;
 }
 
-.articles-list {
-  list-style: none;
-  padding: 0;
-}
+
 
 .article-item {
   display: flex;
@@ -543,16 +525,6 @@ picture img {
   gap: 1rem;
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-color);
-}
-
-.article-date {
-  background: var(--secondary-color);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 15px;
-  font-weight: 600;
-  min-width: 3rem;
-  text-align: center;
 }
 
 .article-link {
@@ -590,8 +562,9 @@ picture img {
   color: var(--text-light);
 }
 
-/* Section titles */
-.section-title {
+/* Section and page titles */
+.section-title,
+.page-title {
   font-family: 'Fredoka', sans-serif;
   color: var(--primary-color);
   font-size: 2rem;
@@ -599,13 +572,7 @@ picture img {
   margin-bottom: 2rem;
 }
 
-.page-title {
-  font-family: 'Fredoka', sans-serif;
-  color: var(--primary-color);
-  font-size: 2.5rem;
-  text-align: center;
-  margin-bottom: 2rem;
-}
+.page-title { font-size: 2.5rem; }
 
 /* No content state */
 .no-content {
@@ -625,9 +592,7 @@ picture img {
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .site-title {
-    font-size: 2rem;
-  }
+  .site-title { font-size: 2rem; }
   
   .article,
   .article-summary,
@@ -637,17 +602,11 @@ picture img {
   }
   
   .article-title,
-  .page-title {
-    font-size: 1.8rem;
-  }
+  .page-title { font-size: 1.8rem; }
   
-  .article-summary-title {
-    font-size: 1.5rem;
-  }
+  .article-summary-title { font-size: 1.5rem; }
   
-  .main-content {
-    margin: 1rem auto;
-  }
+  .main-content { margin: 1rem auto; }
   
   .main-nav ul {
     flex-direction: column;
@@ -672,6 +631,30 @@ picture img {
   }
 }
 
+/* Mobile-specific enhancements */
+@media (max-width: 480px) {
+  .article-meta,
+  .article-summary-meta {
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .article-meta span,
+  .article-summary-meta span,
+  .category,
+  .article-date {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.9rem;
+    border-radius: 10px;
+  }
+
+  .tag {
+    font-size: 0.95rem;
+    padding: 0.2rem 0.5rem;
+  }
+}
+
 /* Print styles */
 @media print {
   .site-header,
@@ -686,29 +669,5 @@ picture img {
   .page {
     box-shadow: none;
     border: 1px solid #ccc;
-  }
-}
-
-/* Mobile tweaks: slightly larger text for legibility but keep badges compact */
-@media (max-width: 480px) {
-  .article-meta,
-  .article-summary-meta {
-    gap: 0.4rem;
-    font-size: 0.95rem; /* easier to read on small screens */
-    margin-bottom: 0.6rem;
-  }
-
-  .article-meta span,
-  .article-summary-meta span,
-  .category,
-  .article-date {
-    padding: 0.2rem 0.5rem; /* slightly increase touch area */
-    font-size: 0.9rem;
-    border-radius: 10px;
-  }
-
-  .tag {
-    font-size: 0.95rem;
-    padding: 0.2rem 0.5rem;
   }
 }
