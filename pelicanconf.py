@@ -8,7 +8,7 @@ DEFAULT_LANG = 'en'
 # Content settings
 ARTICLE_PATHS = ['articles']
 PAGE_PATHS = ['pages']
-STATIC_PATHS = ['images', 'videos', 'extra']  # 'videos' for optimized media; 'extra' if you add custom files
+STATIC_PATHS = ['media', 'extra']
 ARTICLE_SAVE_AS = 'articles/{slug}.html'
 ARTICLE_URL = 'articles/{slug}.html'
 PAGE_SAVE_AS = '{slug}.html'
@@ -31,11 +31,12 @@ SITESUBTITLE = 'from the goblin hole 🕳'
 PLUGIN_PATHS = ['pelican-plugins']
 PLUGINS = [
     'video_embed',
+    'responsive_images',
 ]
 
 # Optional plugin settings
 VIDEO_EMBED_CLASS = 'embedded-video'
-VIDEO_EMBED_RELATIVE = True  # use relative /videos/... paths when RELATIVE_URLS is True
+VIDEO_EMBED_RELATIVE = True
 
 # Markdown extensions
 MARKDOWN = {

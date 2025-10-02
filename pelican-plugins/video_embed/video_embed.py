@@ -31,7 +31,7 @@ VIDEO_PATTERN = re.compile(r"\[\[video:([a-zA-Z0-9._-]+)]]")
 
 
 def build_video_html(name: str, siteurl: str, relative: bool, css_class: str) -> str:
-    base = f"/videos/{name}" if relative else f"{siteurl}/videos/{name}"
+    base = f"/media/{name}" if relative else f"{siteurl}/media/{name}"
     poster = f"{base}.jpg"
     webm = f"{base}.webm"
     mp4 = f"{base}.mp4"
