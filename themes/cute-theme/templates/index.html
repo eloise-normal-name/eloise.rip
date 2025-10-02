@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "macros.html" import responsive_thumbnail, get_image_stem %}
 
 {% block content %}
 <div class="home-page">
@@ -23,7 +24,8 @@
                                     {% if '://' in media_thumbnail %}
                                         <img src="{{ media_thumbnail }}" alt="{{ article.title|striptags }}" loading="lazy">
                                     {% else %}
-                                        <img src="{{ SITEURL }}/{{ media_thumbnail }}" alt="{{ article.title|striptags }}" loading="lazy">
+                                        {% set image_stem = get_image_stem(media_thumbnail) %}
+                                        {{ responsive_thumbnail(image_stem, article.title|striptags) }}
                                     {% endif %}
                                 {% else %}
                                     <div class="video-placeholder" aria-hidden="true">▶️</div>

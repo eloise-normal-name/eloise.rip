@@ -373,13 +373,39 @@ blockquote {
   font-style: italic;
 }
 
-/* Images */
+/* Images and responsive picture elements */
 img {
   max-width: 100%;
   height: auto;
   border-radius: 12px;
   box-shadow: 0 4px 20px var(--shadow);
   margin: 1rem 0;
+}
+
+picture {
+  display: block;
+  margin: 1rem 0;
+}
+
+picture img {
+  margin: 0; /* Reset margin since picture element provides spacing */
+}
+
+/* Ensure responsive images in content maintain aspect ratio */
+.article-content picture,
+.article-summary-content picture,
+.page-content picture {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive images in article summary media */
+.article-summary-media picture {
+  margin: 0;
+}
+
+.article-summary-media picture img {
+  margin: 0;
 }
 
 /* Article summary media (thumbnail / video poster) */
