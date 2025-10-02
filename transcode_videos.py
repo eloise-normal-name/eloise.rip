@@ -4,7 +4,7 @@ web versions (MP4 + WebM + poster JPG) for Pelican static site.
 Usage:
     python transcode_videos.py                     # default run
     python transcode_videos.py --force             # re-encode even if outputs exist
-    python transcode_videos.py --src media-source --dest content/videos --max-width 640
+    python transcode_videos.py --src media-source --dest content/videos --max-dimension 640
 
 Requirements:
     - Python 3.8+
@@ -42,9 +42,9 @@ def run_ffmpeg(args: List[str]) -> subprocess.CompletedProcess:
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
-def build_scale_filter(max_width: int) -> str:
-    # Equivalent to scale='min(MAX_WIDTH,iw)':-2 with aspect preserved
-    return f"scale='min({max_width},iw)':-2"
+def build_scale_filter(max_dimension: int) -> str:
+    # Scale down if either width or height exceeds max_dimension, preserving aspect ratio
+    return f"scale='if(gt(iw,ih),min({max_dimension},iw),-2)':'if(gt(ih,iw),min({max_dimension},ih),-2)'"
 
 
 def transcode_file(cfg, src_file: Path) -> None:
@@ -58,7 +58,7 @@ def transcode_file(cfg, src_file: Path) -> None:
             print(f"[SKIP] {src_file.name} (all outputs exist)")
         return
 
-    vf_chain = build_scale_filter(cfg.max_width)
+    vf_chain = build_scale_filter(cfg.max_dimension)
 
     # MP4 (H.264)
     if cfg.force or not mp4_out.exists():
@@ -69,7 +69,7 @@ def transcode_file(cfg, src_file: Path) -> None:
             "-c:v", "libx264", "-preset", "veryfast",
             "-crf", str(cfg.crf_mp4),
             "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-            "-an", str(mp4_out)
+            "-c:a", "aac", "-b:a", "128k", str(mp4_out)
         ]
         proc = run_ffmpeg(mp4_cmd)
         if proc.returncode != 0:
@@ -82,7 +82,7 @@ def transcode_file(cfg, src_file: Path) -> None:
             "ffmpeg", "-y", "-i", str(src_file),
             "-vf", f"{vf_chain}",
             "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", str(cfg.crf_webm),
-            "-row-mt", "1", "-an", str(webm_out)
+            "-row-mt", "1", "-c:a", "libopus", "-b:a", "96k", str(webm_out)
         ]
         proc = run_ffmpeg(webm_cmd)
         if proc.returncode != 0:
@@ -114,7 +114,7 @@ def parse_args():
     ap = argparse.ArgumentParser(description="Pelican video transcoder (Python version)")
     ap.add_argument("--src", default="media-source", help="Source directory of master videos")
     ap.add_argument("--dest", default="content/videos", help="Destination directory for optimized outputs")
-    ap.add_argument("--max-width", type=int, default=640, help="Max output width (preserve aspect)")
+    ap.add_argument("--max-dimension", type=int, default=1080, help="Max output dimension (width or height, preserve aspect)")
     ap.add_argument("--crf-mp4", type=int, default=28, help="CRF for H.264 (lower=better quality)")
     ap.add_argument("--crf-webm", type=int, default=34, help="CRF for VP9 (lower=better quality)")
     ap.add_argument("--poster-time", type=float, default=0.5, help="Timestamp (seconds) for poster frame")
