@@ -552,7 +552,6 @@ picture img,
   background: var(--card-bg);
   text-align: center;
   padding: 1rem 1rem;
-  margin-top: 3rem;
   border-top: 2px solid var(--border-color);
   border-radius: 20px 20px 0 0;
 }
@@ -560,6 +559,40 @@ picture img,
 .footer-content p {
   margin: 0.5rem 0;
   color: var(--text-light);
+}
+
+/* Social Media Links */
+.social-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.social-links a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-light);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 15px;
+  background: var(--border-color);
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.social-links a:hover {
+  color: var(--primary-color);
+  background: rgba(255, 107, 157, 0.1);
+  transform: translateY(-2px);
+}
+
+.social-links svg {
+  width: 20px;
+  height: 20px;
+  transition: color 0.3s ease;
 }
 
 /* Section and page titles */
