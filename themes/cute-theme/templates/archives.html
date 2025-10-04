@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="archives-page">
-    <h1 class="page-title">📚 Archives</h1>
+    <h1 class="page-title">📚 Posts</h1>
     
     {% for year, year_group in dates|groupby('date.year')|reverse %}
         <section class="year-section">

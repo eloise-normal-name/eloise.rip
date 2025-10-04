@@ -13,8 +13,8 @@ STATIC_PATHS = ['media', 'extra']
 # --- Content Settings ---
 TIMEZONE = 'UTC'
 DEFAULT_LANG = 'en'
-ARTICLE_SAVE_AS = 'articles/{slug}.html'
-ARTICLE_URL = 'articles/{slug}.html'
+ARTICLE_SAVE_AS = 'blog/{slug}.html'
+ARTICLE_URL = 'blog/{slug}.html'
 PAGE_SAVE_AS = '{slug}.html'
 PAGE_URL = '{slug}.html'
 DELETE_OUTPUT_DIRECTORY = True
@@ -64,5 +64,5 @@ EXTRA_PATH_METADATA = {
 DISPLAY_PAGES_ON_MENU = True
 DISPLAY_CATEGORIES_ON_MENU = True
 MENUITEMS = (
-    ('Archives', '/archives.html'),
+    ('Blog', '/archives.html'),
 )

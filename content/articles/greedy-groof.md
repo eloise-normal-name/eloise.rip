@@ -5,7 +5,15 @@ Category: Crows
 Tags: Groof, Groofriend
 thumbnail: video/groof-grab.jpg
 
+### Groof and Groofriend vying for treats
+
+Groof is the slightly larger one with a rounder beak, and the instigator.
+
 [[video:groof-grab]]
 [[video:groof-caw-at-groofriend]]
 [[video:groofriend-snips-at-groof]]
+
+### Groof wants more
+
+I love the cute groof look.
 [[video:groof-wants-more]]
