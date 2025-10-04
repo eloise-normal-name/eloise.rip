@@ -13,7 +13,6 @@ Usage in Markdown:
 
 Configuration (optional in pelicanconf.py):
     VIDEO_EMBED_CLASS = 'embedded-video'  # outer figure class
-    VIDEO_EMBED_RELATIVE = True           # if True and RELATIVE_URLS, omit SITEURL prefix
 
 If relative disabled (or RELATIVE_URLS False), it prefixes SITEURL.
 
@@ -31,7 +30,7 @@ VIDEO_PATTERN = re.compile(r"\[\[video:([a-zA-Z0-9._-]+)]]")
 
 
 def build_video_html(name: str, siteurl: str, relative: bool, css_class: str) -> str:
-    base = f"/media/{name}" if relative else f"{siteurl}/media/{name}"
+    base = f"/media/video/{name}"
     poster = f"{base}.jpg"
     webm = f"{base}.webm"
     mp4 = f"{base}.mp4"
@@ -54,12 +53,10 @@ def replace_markers(instance):  # instance may be Article or Page
 
     settings = instance.settings
     css_class = settings.get('VIDEO_EMBED_CLASS', 'embedded-video')
-    relative = settings.get('VIDEO_EMBED_RELATIVE', True) and settings.get('RELATIVE_URLS', False)
-    siteurl = settings.get('SITEURL', '').rstrip('/')
 
     def _repl(match: re.Match) -> str:
         name = match.group(1)
-        return build_video_html(name, siteurl, relative, css_class)
+        return build_video_html(name, '', True, css_class)
 
     new_content = VIDEO_PATTERN.sub(_repl, instance.content)
     instance._content = new_content  # noqa: SLF001

@@ -34,28 +34,30 @@ import sys
 from pathlib import Path
 from typing import List
 
+
+# --- File Extensions ---
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".gif"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp", ".heic", ".heif"}
 ALLOWED_EXT = VIDEO_EXT | IMAGE_EXT
 
+
+# --- Utility Functions ---
 def which_or_exit(cmd: str) -> None:
+    """Exit if required command is not found."""
     if shutil.which(cmd) is None:
         print(f"[ERROR] Required tool '{cmd}' not found in PATH.", file=sys.stderr)
         sys.exit(1)
 
-
 def run_ffmpeg(args: List[str]) -> subprocess.CompletedProcess:
+    """Run ffmpeg with given arguments."""
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-
 def build_scale_filter(max_dimension: int) -> str:
-    # Scale down if either width or height exceeds max_dimension, preserving aspect ratio
+    """Return ffmpeg scale filter string for max dimension."""
     return f"scale='if(gt(iw,ih),min({max_dimension},iw),-2)':'if(gt(ih,iw),min({max_dimension},ih),-2)'"
-
 
 def is_video_file(file_path: Path) -> bool:
     return file_path.suffix.lower() in VIDEO_EXT
-
 
 def is_image_file(file_path: Path) -> bool:
     return file_path.suffix.lower() in IMAGE_EXT
@@ -63,76 +65,73 @@ def is_image_file(file_path: Path) -> bool:
 
 def transcode_image(cfg, src_file: Path) -> None:
     """Process image files into web-optimized formats."""
+
     name = src_file.stem
-    webp_out = cfg.dest / f"{name}.webp"
-    jpg_out = cfg.dest / f"{name}.jpg"
-    avif_out = cfg.dest / f"{name}.avif"
-
-    # Check if all outputs exist
-    if not cfg.force and webp_out.exists() and jpg_out.exists():
-        if not cfg.quiet:
-            print(f"[SKIP] {src_file.name} (image outputs exist)")
-        return
-
+    images_dir = cfg.dest / 'images'
+    images_dir.mkdir(parents=True, exist_ok=True)
     vf_chain = build_scale_filter(cfg.max_dimension)
 
-    # WebP (modern format with good compression)
-    if cfg.force or not webp_out.exists():
-        print(f"  -> WebP: {webp_out.name}")
-        webp_cmd = [
-            "ffmpeg", "-y", "-i", str(src_file),
-            "-vf", vf_chain,
-            "-c:v", "libwebp", "-quality", "85", "-preset", "photo",
-            str(webp_out)
-        ]
-        proc = run_ffmpeg(webp_cmd)
-        if proc.returncode != 0:
-            print(f"[WARN] WebP encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
+    # Try AVIF first
+    avif_out = images_dir / f"{name}.avif"
+    avif_cmd = [
+        "ffmpeg", "-y", "-i", str(src_file),
+        "-vf", vf_chain,
+        "-c:v", "libaom-av1", "-crf", "32", "-b:v", "0",
+        str(avif_out)
+    ]
+    proc = run_ffmpeg(avif_cmd)
+    if proc.returncode == 0:
+        print(f"  [IMAGE] AVIF: images/{avif_out.name}")
+        return
+    print(f"[INFO] AVIF encode failed for {src_file.name} (encoder may not be available)")
 
-    # JPEG (universal fallback)
-    if cfg.force or not jpg_out.exists():
-        print(f"  -> JPEG: {jpg_out.name}")
-        jpg_cmd = [
-            "ffmpeg", "-y", "-i", str(src_file),
-            "-vf", vf_chain,
-            "-c:v", "mjpeg", "-q:v", "3",
-            str(jpg_out)
-        ]
-        proc = run_ffmpeg(jpg_cmd)
-        if proc.returncode != 0:
-            print(f"[WARN] JPEG encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
+    # Try PNG next
+    png_out = images_dir / f"{name}.png"
+    png_cmd = [
+        "ffmpeg", "-y", "-i", str(src_file),
+        "-vf", vf_chain,
+        "-c:v", "png",
+        str(png_out)
+    ]
+    proc = run_ffmpeg(png_cmd)
+    if proc.returncode == 0:
+        print(f"  [IMAGE] PNG: images/{png_out.name}")
+        return
+    print(f"[WARN] PNG encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
 
-    # AVIF (next-gen format, if available)
-    if cfg.force or not avif_out.exists():
-        print(f"  -> AVIF: {avif_out.name}")
-        avif_cmd = [
-            "ffmpeg", "-y", "-i", str(src_file),
-            "-vf", vf_chain,
-            "-c:v", "libaom-av1", "-crf", "32", "-b:v", "0",
-            str(avif_out)
-        ]
-        proc = run_ffmpeg(avif_cmd)
-        if proc.returncode != 0:
-            print(f"[INFO] AVIF encode failed for {src_file.name} (encoder may not be available)")
+    # Fallback to JPEG
+    jpg_out = images_dir / f"{name}.jpg"
+    jpg_cmd = [
+        "ffmpeg", "-y", "-i", str(src_file),
+        "-vf", vf_chain,
+        "-c:v", "mjpeg", "-q:v", "3",
+        str(jpg_out)
+    ]
+    proc = run_ffmpeg(jpg_cmd)
+    if proc.returncode == 0:
+        print(f"  [IMAGE] JPEG: images/{jpg_out.name}")
+    else:
+        print(f"[WARN] JPEG encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
 
 
 def transcode_video(cfg, src_file: Path) -> None:
     """Process video files into web-optimized formats."""
     name = src_file.stem
-    mp4_out = cfg.dest / f"{name}.mp4"
-    webm_out = cfg.dest / f"{name}.webm"
-    poster_out = cfg.dest / f"{name}.jpg"
+    video_dir = cfg.dest / 'video'
+    video_dir.mkdir(parents=True, exist_ok=True)
+    vf_chain = build_scale_filter(cfg.max_dimension)
+    mp4_out = video_dir / f"{name}.mp4"
+    webm_out = video_dir / f"{name}.webm"
+    poster_out = video_dir / f"{name}.jpg"
 
     if not cfg.force and mp4_out.exists() and webm_out.exists() and poster_out.exists():
         if not cfg.quiet:
             print(f"[SKIP] {src_file.name} (video outputs exist)")
         return
 
-    vf_chain = build_scale_filter(cfg.max_dimension)
-
     # MP4 (H.264)
     if cfg.force or not mp4_out.exists():
-        print(f"  -> MP4: {mp4_out.name}")
+        print(f"  [VIDEO] MP4: video/{mp4_out.name}")
         mp4_cmd = [
             "ffmpeg", "-y", "-i", str(src_file),
             "-vf", f"{vf_chain}",
@@ -145,14 +144,15 @@ def transcode_video(cfg, src_file: Path) -> None:
         if proc.returncode != 0:
             print(f"[WARN] MP4 encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
 
-    # WebM (VP9)
+    # WebM (VP9, fast settings)
     if cfg.force or not webm_out.exists():
-        print(f"  -> WebM: {webm_out.name}")
+        print(f"  [VIDEO] WebM: video/{webm_out.name}")
         webm_cmd = [
             "ffmpeg", "-y", "-i", str(src_file),
             "-vf", f"{vf_chain}",
             "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", str(cfg.crf_webm),
-            "-row-mt", "1", "-c:a", "libopus", "-b:a", "96k", str(webm_out)
+            "-speed", "8", "-tile-columns", "2", "-row-mt", "1",
+            "-c:a", "libopus", "-b:a", "96k", str(webm_out)
         ]
         proc = run_ffmpeg(webm_cmd)
         if proc.returncode != 0:
@@ -160,7 +160,7 @@ def transcode_video(cfg, src_file: Path) -> None:
 
     # Poster frame
     if cfg.force or not poster_out.exists():
-        print(f"  -> Poster: {poster_out.name}")
+        print(f"  [VIDEO] Poster: video/{poster_out.name}")
         poster_cmd = [
             "ffmpeg", "-y", "-i", str(src_file), "-ss", str(cfg.poster_time),
             "-vframes", "1", "-vf", vf_chain, str(poster_out)
@@ -171,7 +171,7 @@ def transcode_video(cfg, src_file: Path) -> None:
 
 
 def transcode_file(cfg, src_file: Path) -> None:
-    """Main function to process either video or image files."""
+    """Process a single media file (video or image)."""
     if is_video_file(src_file):
         transcode_video(cfg, src_file)
     elif is_image_file(src_file):
@@ -179,16 +179,11 @@ def transcode_file(cfg, src_file: Path) -> None:
     else:
         print(f"[WARN] Unknown file type: {src_file.name}")
         return
-
-    print(f"  -> Done: {src_file.name}")
+    print(f"  [DONE] {src_file.name}")
 
 
 def discover_sources(src_dir: Path) -> List[Path]:
-    files = []
-    for p in sorted(src_dir.iterdir()):
-        if p.is_file() and p.suffix.lower() in ALLOWED_EXT:
-            files.append(p)
-    return files
+    return [p for p in sorted(src_dir.iterdir()) if p.is_file() and p.suffix.lower() in ALLOWED_EXT]
 
 
 def parse_args():
@@ -211,15 +206,14 @@ def parse_args():
 
 def main() -> int:
     cfg = parse_args()
-
     which_or_exit("ffmpeg")
 
+    # Ensure source and destination directories exist
     if not cfg.src.exists():
         print(f"[INFO] Source directory '{cfg.src}' does not exist. Creating it.")
         cfg.src.mkdir(parents=True, exist_ok=True)
         print("Drop master/source videos and images there and re-run.")
         return 0
-
     cfg.dest.mkdir(parents=True, exist_ok=True)
 
     sources = discover_sources(cfg.src)
@@ -238,22 +232,22 @@ def main() -> int:
         except KeyboardInterrupt:
             print("[ABORT] Interrupted by user.")
             return 2
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             print(f"[ERROR] Unexpected failure on {src_file.name}: {e}")
 
     print("=============================================================")
     print("Complete. Embed examples:")
     print("Videos:")
-    print('<video controls preload="metadata" poster="{{ SITEURL }}/media/name.jpg">')
-    print('  <source src="{{ SITEURL }}/media/name.webm" type="video/webm">')
-    print('  <source src="{{ SITEURL }}/media/name.mp4" type="video/mp4">')
+    print('<video controls preload="metadata" poster="{{ SITEURL }}/media/video/name.jpg">')
+    print('  <source src="{{ SITEURL }}/media/video/name.webm" type="video/webm">')
+    print('  <source src="{{ SITEURL }}/media/video/name.mp4" type="video/mp4">')
     print('</video>')
     print()
     print("Images (responsive with modern formats):")
     print('<picture>')
-    print('  <source srcset="{{ SITEURL }}/media/name.avif" type="image/avif">')
-    print('  <source srcset="{{ SITEURL }}/media/name.webp" type="image/webp">')
-    print('  <img src="{{ SITEURL }}/media/name.jpg" alt="Description">')
+    print('  <source srcset="{{ SITEURL }}/media/images/name.avif" type="image/avif">')
+    print('  <source srcset="{{ SITEURL }}/media/images/name.webp" type="image/webp">')
+    print('  <img src="{{ SITEURL }}/media/images/name.jpg" alt="Description">')
     print('</picture>')
     print("=============================================================")
     return 0
