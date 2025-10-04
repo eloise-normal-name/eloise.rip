@@ -440,48 +440,36 @@ picture img,
   color: rgba(0,0,0,0.6);
 }
 
-/* Responsive: stack media above content on small screens */
-@media (max-width: 720px) {
+
+/* Responsive design: stack media and adjust layout on small screens */
+@media (max-width: 768px) {
+  .site-title { font-size: 2rem; }
+  .article,
+  .article-summary,
+  .page {
+    padding: 2rem;
+    border-radius: 15px;
+  }
+  .article-title,
+  .page-title { font-size: 1.8rem; }
+  .article-summary-title { font-size: 1.5rem; }
+  .main-content { margin: 1rem auto; }
+  .article-meta {
+    gap: 0.5rem;
+  }
+  .pagination {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .article-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
   .article-summary {
     flex-direction: column;
     gap: 0.75rem;
   }
-
-}
-
-/* Pagination */
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin: 2rem 0;
-  font-weight: 600;
-}
-
-.pagination a {
-  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px var(--shadow);
-}
-
-.pagination a:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px var(--shadow-hover);
-}
-
-.page-number {
-  color: var(--text-light);
-  font-weight: 500;
-}
-
-/* Archives page */
-.year-section {
-  margin-bottom: 2rem;
 }
 
 .year-title {
@@ -537,7 +525,7 @@ picture img,
   padding: 1rem 1rem;
   border-top: 2px solid var(--border-color);
   border-radius: 20px 20px 0 0;
-}
+  }
 
 .footer-content p {
   margin: 0.5rem 0;
@@ -681,4 +669,3 @@ picture img,
     border: 1px solid #ccc;
   }
 }
-
