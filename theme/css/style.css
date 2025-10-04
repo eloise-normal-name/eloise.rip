@@ -172,12 +172,7 @@ figure.embedded-video video {
   box-shadow: 0 12px 40px var(--shadow-hover);
 }
 
-/* Article headers */
-.article-header,
-.article-summary-header,
-.page-header {
-  margin-bottom: 1.5rem;
-}
+
 
 .article-title,
 .article-summary-title,
@@ -210,7 +205,6 @@ figure.embedded-video video {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
   font-size: 0.85rem;
   color: var(--text-light);
 }
@@ -245,7 +239,6 @@ figure.embedded-video video {
 /* Article tags */
 .article-tags,
 .article-summary-tags {
-  margin-top: 1rem;
   font-size: 0.9rem;
 }
 
@@ -258,7 +251,7 @@ figure.embedded-video video {
   text-decoration: none;
   font-weight: 500;
   margin: 0.25rem 0.25rem 0.25rem 0;
-  font-size: 0.9rem; /* slightly smaller */
+  font-size: 0.9rem;
   line-height: 1;
   transition: all 0.3s ease;
 }
@@ -273,14 +266,13 @@ figure.embedded-video video {
 .article-summary-content,
 .page-content {
   font-size: 1.1rem;
-  line-height: 1.7;
 }
 
 .article-content h1, .article-content h2, .article-content h3, .article-content h4, .article-content h5, .article-content h6,
 .page-content h1, .page-content h2, .page-content h3, .page-content h4, .page-content h5, .page-content h6 {
   font-family: 'Fredoka', sans-serif;
   color: var(--accent-color);
-  margin: 2rem 0 1rem 0;
+  margin: 1rem 0 0 0;
 }
 
 .article-content h2,
@@ -704,3 +696,4 @@ picture img,
     border: 1px solid #ccc;
   }
 }
+
