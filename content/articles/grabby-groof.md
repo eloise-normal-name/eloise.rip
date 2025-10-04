@@ -1,4 +1,4 @@
-Title: Greedy Groof
+Title: Grabby Groof
 Date: 2025-10-01
 Summary: Groof grabbing treat bag from Groofriend
 Category: Crows

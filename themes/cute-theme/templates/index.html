@@ -5,7 +5,7 @@
     <section class="recent-articles">
         <h2 class="section-title">
             {% if category %}
-                {{ category }}
+                📂 {{ category }}
             {% else %}
                 Recent Posts
             {% endif %}
@@ -45,7 +45,7 @@
                         {% endif %}
                         <div class="article-summary-meta">
                             <time class="published" datetime="{{ article.date.isoformat() }}">
-                                📅 {{ article.locale_date }}
+                                📅 {{ article.date.strftime('%Y-%m-%d') }}
                             </time>
                             
                             {% if article.author %}

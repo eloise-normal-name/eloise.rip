@@ -14,7 +14,7 @@
         
         <div class="article-meta">
             <time class="published" datetime="{{ article.date.isoformat() }}">
-                📅 {{ article.locale_date }}
+                📅 {{ article.date.strftime('%Y-%m-%d') }}
             </time>
             
             {% if article.author %}
