@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% from "macros.html" import responsive_thumbnail, get_image_stem %}
 
 {% block content %}
 <div class="home-page">
@@ -13,34 +12,38 @@
                 {% set thumbnail = metadata.get('thumbnail') or metadata.get('image') or metadata.get('cover') or metadata.get('featured_image') or article.thumbnail or article.image %}
                 {% set video_poster = metadata.get('video_thumbnail') or metadata.get('video_poster') or article.video_thumbnail or article.video_poster %}
                 {% set media_thumbnail = thumbnail or video_poster %}
-                {% set video_url = metadata.get('video') or metadata.get('youtube') or metadata.get('vimeo') or article.video %}
+                {% set video_url = metadata.get('video') or article.video %}
 
                 <article class="article-summary">
-                    {% if media_thumbnail or video_url %}
-                        <div class="article-summary-media">
-                            <a href="{{ SITEURL }}/{{ article.url }}" aria-label="View {{ article.title|striptags }}">
-                                {% if media_thumbnail %}
-                                    {# allow absolute URLs or site-relative paths stored in metadata #}
-                                    {% if '://' in media_thumbnail %}
-                                        <img src="{{ media_thumbnail }}" alt="{{ article.title|striptags }}" loading="lazy">
-                                    {% else %}
-                                        {% set image_stem = get_image_stem(media_thumbnail) %}
-                                        {{ responsive_thumbnail(image_stem, article.title|striptags) }}
-                                    {% endif %}
-                                {% else %}
-                                    <div class="video-placeholder" aria-hidden="true">▶️</div>
-                                {% endif %}
-                                {% if video_url %}
-                                    <span class="media-badge media-badge-video" aria-hidden="true">▶</span>
-                                {% endif %}
-                            </a>
-                        </div>
-                    {% endif %}
                     <div class="article-summary-body">
                         <header class="article-summary-header">
                             <h3 class="article-summary-title">
                                 <a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a>
                             </h3>
+                            {% if media_thumbnail or video_url %}
+                                <div class="article-summary-media">
+                                    <a href="{{ SITEURL }}/{{ article.url }}" aria-label="View {{ article.title|striptags }}">
+                                        {% if media_thumbnail %}
+                                            {% if '://' in media_thumbnail %}
+                                                <img src="{{ media_thumbnail }}" alt="{{ article.title|striptags }}" loading="lazy">
+                                            {% else %}
+                                                <img src="{{ SITEURL }}/media/{{ media_thumbnail }}" alt="{{ article.title|striptags }}" loading="lazy">
+                                            {% endif %}
+                                        {% elif video_url %}
+                                            {% set video_stem = video_url.split('/')[-1].rsplit('.', 1)[0] %}
+                                            <img src="{{ SITEURL }}/media/video/{{ video_stem }}.jpg" alt="{{ article.title|striptags }}" loading="lazy">
+                                        {% else %}
+                                            <div class="video-placeholder" aria-hidden="true">▶️</div>
+                                        {% endif %}
+                                        {% if video_url %}
+                                            <span class="media-badge media-badge-video" aria-hidden="true">▶</span>
+                                        {% endif %}
+                                    </a>
+                                </div>
+                            {% endif %}
+                    <div class="article-summary-body">
+                        <header class="article-summary-header">
+
                             
                             <div class="article-summary-meta">
                                 <time class="published" datetime="{{ article.date.isoformat() }}">
