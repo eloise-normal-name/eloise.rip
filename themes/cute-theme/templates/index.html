@@ -4,10 +4,10 @@
 <div class="home-page">
     <section class="recent-articles">
         <h2 class="section-title">
-            {% if articles_page.object_list and articles_page.object_list[0].category %}
-                {{ articles_page.object_list[0].category }}
+            {% if category %}
+                {{ category }}
             {% else %}
-                Blog
+                Recent Posts
             {% endif %}
         </h2>
         {% for article in articles_page.object_list %}
