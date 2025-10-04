@@ -22,7 +22,7 @@
             {% endif %}
             
             {% if article.category %}
-                <span class="category">📂 {{ article.category }}</span>
+                <span class="category">📂 <a href="{{ SITEURL }}/category/{{ article.category|lower|replace(' ', '-') }}.html">{{ article.category }}</a></span>
             {% endif %}
         </div>
         

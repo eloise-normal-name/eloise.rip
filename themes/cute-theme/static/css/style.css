@@ -245,7 +245,7 @@ figure.embedded-video video {
 /* Article tags */
 .article-tags,
 .article-summary-tags {
-  margin-top: 1rem;
+  /* margin-top: 1rem; */
   font-size: 0.9rem;
 }
 
