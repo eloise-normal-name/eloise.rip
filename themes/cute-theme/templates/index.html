@@ -27,13 +27,13 @@
                                 <a href="{{ SITEURL }}/{{ article.url }}" aria-label="View {{ article.title|striptags }}">
                                     {% if media_thumbnail %}
                                         {% if '://' in media_thumbnail %}
-                                            <img src="{{ media_thumbnail }}" alt="{{ article.title|striptags }}" width="100%">
+                                            <img src="{{ media_thumbnail }}" alt="{{ article.title|striptags }}">
                                         {% else %}
-                                            <img src="{{ SITEURL }}/media/{{ media_thumbnail }}" alt="{{ article.title|striptags }}" width="100%">
+                                            <img src="{{ SITEURL }}/media/{{ media_thumbnail }}" alt="{{ article.title|striptags }}">
                                         {% endif %}
                                     {% elif video_url %}
                                         {% set video_stem = video_url.split('/')[-1].rsplit('.', 1)[0] %}
-                                        <img src="{{ SITEURL }}/media/video/{{ video_stem }}.jpg" alt="{{ article.title|striptags }}" width="100%">
+                                        <img src="{{ SITEURL }}/media/video/{{ video_stem }}.jpg" alt="{{ article.title|striptags }}">
                                     {% else %}
                                         <div class="video-placeholder" aria-hidden="true">▶️</div>
                                     {% endif %}
