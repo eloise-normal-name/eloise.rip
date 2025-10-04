@@ -3,17 +3,14 @@
 {% block title %}Archives - {{ SITENAME }}{% endblock %}
 
 {% block content %}
-<div class="archives-page">
     <h1 class="page-title">📚 Posts</h1>
-    
+<div class="archives-page article">
     {% for year, year_group in dates|groupby('date.year')|reverse %}
         <section class="year-section">
             <h2 class="year-title">{{ year }}</h2>
-            
             {% for month, month_group in year_group|groupby('date.month')|reverse %}
                 <div class="month-section">
                     <h3 class="month-title">{{ month_group[0].date.strftime('%B') }}</h3>
-                    
                     <ul class="articles-list">
                         {% for article in month_group %}
                             <li class="article-item">
