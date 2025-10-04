@@ -625,7 +625,7 @@ picture img,
   .main-content { margin: 1rem auto; }
   
   .article-meta {
-    flex-direction: column;
+    /* flex-direction: column; */
     gap: 0.5rem;
   }
   
