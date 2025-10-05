@@ -13,64 +13,62 @@
             {% set video_url = metadata.get('video') or article.video %}
 
             <article class="article-summary">
-                <div class="article-summary-body">
-                    <header class="article-summary-header">
-                        <h3 class="article-summary-title">
-                            <a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a>
-                        </h3>
-                        {% if media_thumbnail or video_url %}
-                            <div class="article-summary-media">
-                                <a href="{{ SITEURL }}/{{ article.url }}" aria-label="View {{ article.title|striptags }}">
-                                    {% if media_thumbnail %}
-                                        {% if '://' in media_thumbnail %}
-                                            <img src="{{ media_thumbnail }}" alt="{{ article.title|striptags }}">
-                                        {% else %}
-                                            <img src="{{ SITEURL }}/media/{{ media_thumbnail }}" alt="{{ article.title|striptags }}">
-                                        {% endif %}
-                                    {% elif video_url %}
-                                        {% set video_stem = video_url.split('/')[-1].rsplit('.', 1)[0] %}
-                                        <img src="{{ SITEURL }}/media/video/{{ video_stem }}.jpg" alt="{{ article.title|striptags }}">
+                <header class="article-summary-header">
+                    <h3 class="article-summary-title">
+                        <a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a>
+                    </h3>
+                    {% if media_thumbnail or video_url %}
+                        <div class="article-summary-media">
+                            <a href="{{ SITEURL }}/{{ article.url }}" aria-label="View {{ article.title|striptags }}">
+                                {% if media_thumbnail %}
+                                    {% if '://' in media_thumbnail %}
+                                        <img src="{{ media_thumbnail }}" alt="{{ article.title|striptags }}">
                                     {% else %}
-                                        <div class="video-placeholder" aria-hidden="true">▶️</div>
+                                        <img src="{{ SITEURL }}/media/{{ media_thumbnail }}" alt="{{ article.title|striptags }}">
                                     {% endif %}
-                                    {% if video_url %}
-                                        <span class="media-badge media-badge-video" aria-hidden="true">▶</span>
-                                    {% endif %}
-                                </a>
-                            </div>
+                                {% elif video_url %}
+                                    {% set video_stem = video_url.split('/')[-1].rsplit('.', 1)[0] %}
+                                    <img src="{{ SITEURL }}/media/video/{{ video_stem }}.jpg" alt="{{ article.title|striptags }}">
+                                {% else %}
+                                    <div class="video-placeholder" aria-hidden="true">▶️</div>
+                                {% endif %}
+                                {% if video_url %}
+                                    <span class="media-badge media-badge-video" aria-hidden="true">▶</span>
+                                {% endif %}
+                            </a>
+                        </div>
+                    {% endif %}
+                    <div class="article-summary-meta">
+                        <time class="published" datetime="{{ article.date.isoformat() }}">
+                            📅 {{ article.date.strftime('%Y-%m-%d') }}
+                        </time>
+                        
+                        {% if article.author %}
+                            <span class="author">👤 {{ article.author }}</span>
                         {% endif %}
-                        <div class="article-summary-meta">
-                            <time class="published" datetime="{{ article.date.isoformat() }}">
-                                📅 {{ article.date.strftime('%Y-%m-%d') }}
-                            </time>
-                            
-                            {% if article.author %}
-                                <span class="author">👤 {{ article.author }}</span>
-                            {% endif %}
-                            
-                            {% if article.category %}
-                                <span class="category">📂 {{ article.category }}</span>
-                            {% endif %}
-                        </div>
-                    </header>
-
-                    <div class="article-summary-content">
-                    {% if article.summary %}
-                        {{ article.summary }}
-                    {% else %}
-                        {{ article.content|truncate(200) }}
-                    {% endif %}
+                        
+                        {% if article.category %}
+                            <span class="category">📂 {{ article.category }}</span>
+                        {% endif %}
                     </div>
-                
-                    {% if article.tags %}
-                        <div class="article-summary-tags">
-                            🏷️ 
-                            {% for tag in article.tags %}
-                                <a href="{{ SITEURL }}/{{ tag.url }}" class="tag">{{ tag }}</a>{% if not loop.last %}, {% endif %}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
+                </header>
+
+                <div class="article-summary-content">
+                {% if article.summary %}
+                    {{ article.summary }}
+                {% else %}
+                    {{ article.content|truncate(200) }}
+                {% endif %}
                 </div>
+            
+                {% if article.tags %}
+                    <div class="article-summary-tags">
+                        🏷️ 
+                        {% for tag in article.tags %}
+                            <a href="{{ SITEURL }}/{{ tag.url }}" class="tag">{{ tag }}</a>{% if not loop.last %}{% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </article>
         {% endfor %}
     </section>
