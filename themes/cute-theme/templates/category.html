@@ -3,8 +3,9 @@
 {% block title %}{{ category }} - {{ SITENAME }}{% endblock %}
 
 {% block content %}
+<h2 class="section-title">📂 {{ category }}</h2>
+
 <section class="category-page article">
-    <h1 class="page-title">{{ category }}</h1>
     {% if articles %}
         <ul class="articles-list">
             {% for article in articles %}

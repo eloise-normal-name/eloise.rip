@@ -4,11 +4,7 @@
 <div class="home-page">
     <section class="recent-articles">
         <h2 class="section-title">
-            {% if category %}
-                📂 {{ category }}
-            {% else %}
-                Recent Posts
-            {% endif %}
+            Recent Posts
         </h2>
         {% for article in articles_page.object_list %}
             {% set metadata = article.metadata|default({}) %}
