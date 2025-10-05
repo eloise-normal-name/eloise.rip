@@ -3,7 +3,7 @@
 {% block title %}Blog Posts{% endblock %}
 
 {% block content %}
-    <h1 class="page-title">📚 Posts</h1>
+<h1 class="section-title">📚 Posts</h1>
 <div class="archives-page article">
     {% for year, year_group in dates|groupby('date.year')|reverse %}
         <section class="year-section">
