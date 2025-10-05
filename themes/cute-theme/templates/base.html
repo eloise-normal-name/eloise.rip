@@ -16,7 +16,6 @@
     <link rel="icon" type="image/png" sizes="32x32" href="{{ SITEURL }}/theme/favicon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="{{ SITEURL }}/theme/favicon-180.png">
     
-    <!-- Article meta tags (safe) -->
     {% if article is defined and article %}
         {% if article.tags %}
             {% for tag in article.tags %}
@@ -39,11 +38,8 @@
             <h1 class="site-title">
                 <a href="{{ SITEURL }}/">😈 {{ SITENAME }} 🍔</a>
             </h1>
-            {% if SITESUBTITLE %}
-                <p class="site-subtitle">{{ SITESUBTITLE }}</p>
-            {% endif %}
+            <p class="site-subtitle">{{ SITESUBTITLE }}</p>
             
-            <!-- Navigation -->
             {% if DISPLAY_PAGES_ON_MENU != False %}
             <nav class="main-nav">
                 <ul>
