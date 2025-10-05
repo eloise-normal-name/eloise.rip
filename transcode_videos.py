@@ -40,6 +40,9 @@ VIDEO_EXT = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".gif"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp", ".heic", ".heif"}
 ALLOWED_EXT = VIDEO_EXT | IMAGE_EXT
 
+HQ_SUFFIX = "_hq"
+HQ_CRF_BONUS = 8  # Lower CRF by this amount (higher quality) for `_hq` masters
+
 
 # --- Utility Functions ---
 def which_or_exit(cmd: str) -> None:
@@ -63,6 +66,11 @@ def is_image_file(file_path: Path) -> bool:
     return file_path.suffix.lower() in IMAGE_EXT
 
 
+def is_high_quality_variant(file_path: Path) -> bool:
+    """Return True if filename stem ends with the configured HQ suffix."""
+    return file_path.stem.lower().endswith(HQ_SUFFIX)
+
+
 def transcode_image(cfg, src_file: Path) -> None:
     """Process image files into web-optimized formats."""
 
@@ -79,39 +87,42 @@ def transcode_image(cfg, src_file: Path) -> None:
         "-c:v", "libaom-av1", "-crf", "32", "-b:v", "0",
         str(avif_out)
     ]
-    proc = run_ffmpeg(avif_cmd)
-    if proc.returncode == 0:
-        print(f"  [IMAGE] AVIF: images/{avif_out.name}")
-        return
-    print(f"[INFO] AVIF encode failed for {src_file.name} (encoder may not be available)")
-
-    # Try PNG next
     png_out = images_dir / f"{name}.png"
+    jpg_out = images_dir / f"{name}.jpg"
     png_cmd = [
         "ffmpeg", "-y", "-i", str(src_file),
         "-vf", vf_chain,
         "-c:v", "png",
         str(png_out)
     ]
-    proc = run_ffmpeg(png_cmd)
-    if proc.returncode == 0:
-        print(f"  [IMAGE] PNG: images/{png_out.name}")
-        return
-    print(f"[WARN] PNG encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
-
-    # Fallback to JPEG
-    jpg_out = images_dir / f"{name}.jpg"
     jpg_cmd = [
         "ffmpeg", "-y", "-i", str(src_file),
         "-vf", vf_chain,
         "-c:v", "mjpeg", "-q:v", "3",
         str(jpg_out)
     ]
-    proc = run_ffmpeg(jpg_cmd)
-    if proc.returncode == 0:
-        print(f"  [IMAGE] JPEG: images/{jpg_out.name}")
-    else:
-        print(f"[WARN] JPEG encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
+
+    attempts = (
+        ("AVIF", avif_out, avif_cmd, f"[INFO] AVIF encode failed for {src_file.name} (encoder may not be available)"),
+        ("PNG", png_out, png_cmd, f"[WARN] PNG encode failed for {src_file.name}: {{error}}"),
+        ("JPEG", jpg_out, jpg_cmd, f"[WARN] JPEG encode failed for {src_file.name}: {{error}}"),
+    )
+
+    for label, out_path, cmd, fail_msg in attempts:
+        if not cfg.force and out_path.exists():
+            if not cfg.quiet:
+                print(f"[SKIP] {src_file.name} ({label} already encoded)")
+            return
+
+        proc = run_ffmpeg(cmd)
+        if proc.returncode == 0:
+            print(f"  [IMAGE] {label}: images/{out_path.name}")
+            return
+
+        error_detail = proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else "Unknown error"
+        print(fail_msg.format(error=error_detail))
+
+    print(f"[WARN] All image encodes failed for {src_file.name}")
 
 
 def transcode_video(cfg, src_file: Path) -> None:
@@ -120,6 +131,10 @@ def transcode_video(cfg, src_file: Path) -> None:
     video_dir = cfg.dest / 'video'
     video_dir.mkdir(parents=True, exist_ok=True)
     vf_chain = build_scale_filter(cfg.max_dimension)
+    is_hq = is_high_quality_variant(src_file)
+    crf_mp4 = max(cfg.crf_mp4 - (HQ_CRF_BONUS if is_hq else 0), 0)
+    crf_webm = max(cfg.crf_webm - (HQ_CRF_BONUS if is_hq else 0), 0)
+    quality_tag = " (HQ)" if is_hq else ""
     mp4_out = video_dir / f"{name}.mp4"
     webm_out = video_dir / f"{name}.webm"
     poster_out = video_dir / f"{name}.jpg"
@@ -131,12 +146,12 @@ def transcode_video(cfg, src_file: Path) -> None:
 
     # MP4 (H.264)
     if cfg.force or not mp4_out.exists():
-        print(f"  [VIDEO] MP4: video/{mp4_out.name}")
+        print(f"  [VIDEO] MP4{quality_tag}: video/{mp4_out.name}")
         mp4_cmd = [
             "ffmpeg", "-y", "-i", str(src_file),
             "-vf", f"{vf_chain}",
             "-c:v", "libx264", "-preset", "veryfast",
-            "-crf", str(cfg.crf_mp4),
+            "-crf", str(crf_mp4),
             "-pix_fmt", "yuv420p", "-movflags", "+faststart",
             "-c:a", "aac", "-b:a", "128k", str(mp4_out)
         ]
@@ -146,11 +161,11 @@ def transcode_video(cfg, src_file: Path) -> None:
 
     # WebM (VP9, fast settings)
     if cfg.force or not webm_out.exists():
-        print(f"  [VIDEO] WebM: video/{webm_out.name}")
+        print(f"  [VIDEO] WebM{quality_tag}: video/{webm_out.name}")
         webm_cmd = [
             "ffmpeg", "-y", "-i", str(src_file),
             "-vf", f"{vf_chain}",
-            "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", str(cfg.crf_webm),
+            "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", str(crf_webm),
             "-speed", "8", "-tile-columns", "2", "-row-mt", "1",
             "-c:a", "libopus", "-b:a", "96k", str(webm_out)
         ]
