@@ -3,3 +3,5 @@ Markdown==3.6
 beautifulsoup4==4.12.3
 feedgenerator==2.1.0
 pytz
+Pillow==10.4.0
+# Optional: install pillow-heif separately for HEIC support when wheels are available

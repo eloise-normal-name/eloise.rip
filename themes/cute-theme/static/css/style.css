@@ -16,6 +16,10 @@
   --border-color: #f0e6ff;       /* Light lavender */
   --shadow: rgba(255, 107, 157, 0.15);
   --shadow-hover: rgba(255, 107, 157, 0.25);
+  --body-font: 'Nunito', sans-serif;
+  --heading-font: 'Fredoka', sans-serif;
+  --transition-base: all 0.3s ease;
+  --card-radius: 20px;
 }
 
 
@@ -24,7 +28,7 @@ html {
 }
 
 body {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--body-font);
   color: var(--text-color);
   background-color: var(--bg-color);
   margin: 0;
@@ -32,12 +36,6 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background:
-    radial-gradient(circle at top left, rgba(255, 211, 116, 0.45) 0%, rgba(255, 211, 116, 0) 55%),
-    linear-gradient(160deg, #fff6fa 0%, #ffe2f1 35%, #ffdfe4 65%, #ffeef5 100%);
-  background-attachment: fixed;
-  background-size: cover;
-  background-repeat: no-repeat;
 }
 
 /* Embedded video helper */
@@ -81,8 +79,8 @@ figure.embedded-video video {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-0px) rotate(180deg); }
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
 }
 
 .header-content {
@@ -91,7 +89,7 @@ figure.embedded-video video {
 }
 
 .site-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   font-size: 2.5rem;
   font-weight: 600;
   margin: 0;
@@ -101,7 +99,7 @@ figure.embedded-video video {
   color: white;
   text-decoration: none;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-  transition: all 0.3s ease;
+  transition: var(--transition-base);
 }
 
 .site-title a:hover {
@@ -124,10 +122,11 @@ figure.embedded-video video {
   color: white;
   text-decoration: none;
   font-weight: 500;
+  font-size: small;
   padding: 0.4rem .5rem;
   border-radius: 15px;
   background: rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
+  transition: var(--transition-base);
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
 }
@@ -151,14 +150,14 @@ figure.embedded-video video {
 .article-summary,
 .page {
   background: var(--card-bg);
-  border-radius: 20px;
+  border-radius: var(--card-radius);
   margin: 1rem;
   padding: 0 2.5rem;
   box-shadow: 0 8px 30px var(--shadow);
   border: 2px solid var(--border-color);
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: var(--transition-base);
 }
 
 .article::before,
@@ -184,15 +183,11 @@ figure.embedded-video video {
 .article-title,
 .article-summary-title,
 .page-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   color: var(--primary-color);
-  margin: 1rem;
   font-weight: 600;
 }
 
-.article-summary-title { 
-  padding-left: .5rem;
-}
 
 .article-title a,
 .article-summary-title a {
@@ -245,7 +240,7 @@ figure.embedded-video video {
   background: linear-gradient(135deg, rgba(255, 217, 61, 0.28), rgba(255, 107, 157, 0.18));
   color: var(--primary-color);
   font-weight: 500;
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   font-size: 0.78rem;
   letter-spacing: 0.03em;
   box-shadow: 0 3px 10px rgba(255, 107, 157, 0.12);
@@ -271,12 +266,67 @@ figure.embedded-video video {
   margin: 0.25rem 0.25rem 0.25rem 0;
   font-size: 0.9rem;
   line-height: 1;
-  transition: all 0.3s ease;
+  transition: var(--transition-base);
 }
 
 .tag:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 15px var(--shadow);
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  margin: 2.5rem auto 1.5rem;
+  width: fit-content;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: var(--card-radius);
+  box-shadow: 0 10px 24px var(--shadow);
+  font-weight: 500;
+}
+
+.pagination .page-number {
+  color: var(--text-light);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 107, 157, 0.15);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.pagination a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition-base);
+  box-shadow: 0 6px 18px var(--shadow);
+}
+
+.pagination a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px var(--shadow-hover);
+}
+
+.pagination a.prev::before {
+  content: '←';
+  font-size: 0.9rem;
+}
+
+.pagination a.next::after {
+  content: '→';
+  font-size: 0.9rem;
 }
 
 /* Article content */
@@ -286,13 +336,22 @@ figure.embedded-video video {
   font-size: 0.9rem;
 }
 
+.article-content img,
+.page-content img,
+.article-content picture img,
+.page-content picture img {
+  max-height: clamp(320px, 70vh, 820px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
 /* Links */
 a {
   color: var(--primary-color);
   text-decoration: none;
   font-weight: 600;
-  transition: all 0.3s ease;
-  position: relative;
+  transition: var(--transition-base);
 }
 
 a:hover {
@@ -361,7 +420,6 @@ blockquote {
 /* Images and responsive picture elements */
 img {
   max-width: 100%;
-  height: 100%;
   border-radius: 12px;
   box-shadow: 0 4px 20px var(--shadow);
   margin: 1rem 0;
@@ -383,8 +441,9 @@ picture img,
 .article-summary {
   display: flex;
   flex-direction: column;
-  margin: 1rem;
+  margin: 1rem auto;
   align-items: stretch;
+  width: fit-content;
 }
 
 .article-summary-media {
@@ -403,7 +462,6 @@ picture img,
   justify-content: flex-start;
   align-items: center;
   aspect-ratio: var(--summary-media-ratio);
-  background: rgba(255, 255, 255, 0);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
@@ -460,13 +518,15 @@ picture img,
   }
   .article-title,
   .page-title { font-size: 1.8rem; }
-  .main-content { margin: 0 auto; }
-  .article-meta {
-    gap: 0.5rem;
-  }
   .pagination {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .pagination a,
+  .pagination .page-number {
+    width: 100%;
+    justify-content: center;
   }
   .article-item {
     align-items: flex-start;
@@ -475,7 +535,7 @@ picture img,
 }
 
 .year-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   color: var(--primary-color);
   font-size: 2rem;
   margin-bottom: 1rem;
@@ -484,7 +544,7 @@ picture img,
 }
 
 .month-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   color: var(--accent-color);
   font-size: 1.4rem;
   margin: 1.5rem 0 0.75rem 0;
@@ -508,14 +568,14 @@ picture img,
 /* Comments section */
 .comments {
   background: var(--card-bg);
-  border-radius: 20px;
+  border-radius: var(--card-radius);
   padding: 2rem;
   margin-top: 2rem;
   border: 2px solid var(--border-color);
 }
 
 .comments h3 {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   color: var(--primary-color);
   margin-top: 0;
 }
@@ -524,7 +584,7 @@ picture img,
 .site-footer {
   background: var(--card-bg);
   text-align: center;
-  padding: 1rem 1rem;
+  padding: 1rem;
   border-top: 2px solid var(--border-color);
   border-radius: 20px 20px 0 0;
   margin-top: auto;
@@ -554,7 +614,7 @@ picture img,
   padding: 0.5rem 1rem;
   border-radius: 15px;
   background: var(--border-color);
-  transition: all 0.3s ease;
+  transition: var(--transition-base);
   font-size: 0.9rem;
 }
 
@@ -573,7 +633,7 @@ picture img,
 /* Section and page titles */
 .section-title,
 .page-title {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   color: var(--primary-color);
   font-size: 2rem;
   text-align: center;
@@ -587,12 +647,12 @@ picture img,
   text-align: center;
   padding: 3rem 2rem;
   background: var(--card-bg);
-  border-radius: 20px;
+  border-radius: var(--card-radius);
   border: 2px solid var(--border-color);
 }
 
 .no-content h2 {
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--heading-font);
   color: var(--primary-color);
   font-size: 2rem;
   margin-bottom: 1rem;
@@ -619,6 +679,11 @@ picture img,
   .tag {
     font-size: 0.95rem;
     padding: 0.2rem 0.5rem;
+  }
+
+  .pagination {
+    margin: 2rem auto 1rem;
+    padding: 0.9rem;
   }
 }
 
