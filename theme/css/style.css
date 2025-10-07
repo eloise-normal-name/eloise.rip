@@ -32,15 +32,12 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-image:
-    radial-gradient(circle at 18% 88%, rgba(255, 107, 157, 0.16) 0%, rgba(255, 107, 157, 0.05) 42%, transparent 72%),
-    radial-gradient(circle at 82% 12%, rgba(116, 192, 252, 0.18) 0%, rgba(116, 192, 252, 0.06) 46%, transparent 76%),
-    radial-gradient(circle at 46% 38%, rgba(255, 217, 61, 0.22) 0%, rgba(255, 217, 61, 0.08) 38%, transparent 68%),
-    linear-gradient(180deg, #fffdf9 0%, var(--bg-color) 100%);
+  background:
+    radial-gradient(circle at top left, rgba(255, 211, 116, 0.45) 0%, rgba(255, 211, 116, 0) 55%),
+    linear-gradient(160deg, #fff6fa 0%, #ffe2f1 35%, #ffdfe4 65%, #ffeef5 100%);
+  background-attachment: fixed;
+  background-size: cover;
   background-repeat: no-repeat;
-  background-size: 140vw 140vh, 160vw 160vh, 190vw 190vh, cover;
-  background-position: 18% 90%, 82% 10%, 46% 40%, center;
-  background-attachment: fixed, fixed, fixed, scroll;
 }
 
 /* Embedded video helper */
