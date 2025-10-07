@@ -2,7 +2,7 @@
 web versions for Pelican static site.
 
 For videos: Creates MP4 + WebM + poster JPG
-For images: Creates WebP + JPEG + AVIF (if supported)
+For images: Creates AVIF + WebP + JPEG (+ PNG when transparency is detected)
 
 Usage:
     python transcode_videos.py                     # default run
@@ -12,11 +12,12 @@ Usage:
 Requirements:
     - Python 3.8+
     - ffmpeg & ffprobe available on PATH
+    - (Optional) Pillow + pillow-heif for HEIC source conversion
 
 Strategy:
     1. Discover video and image files in source directory.
     2. For videos: create name.mp4, name.webm, name.jpg (poster @ 0.5s)
-    3. For images: create name.webp, name.jpg, name.avif (if encoder available)
+    3. For images: create name.avif, name.webp, name.jpg (and name.png when transparency is detected)
     4. Downscale if either dimension exceeds --max-dimension while preserving aspect ratio.
     5. Skip already existing outputs unless --force.
 
@@ -31,13 +32,27 @@ import argparse
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Tuple
+
+try:
+    from PIL import Image  # type: ignore
+except ImportError:
+    Image = None  # type: ignore
+
+try:
+    import pillow_heif  # type: ignore
+except ImportError:
+    pillow_heif = None  # type: ignore
+else:  # pragma: no cover - registration has no return
+    pillow_heif.register_heif_opener()
 
 
 # --- File Extensions ---
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".gif"}
-IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp", ".heic", ".heif"}
+HEIC_EXT = {".heic", ".heif"}
+IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"} | HEIC_EXT
 ALLOWED_EXT = VIDEO_EXT | IMAGE_EXT
 
 HQ_SUFFIX = "_hq"
@@ -53,6 +68,11 @@ def which_or_exit(cmd: str) -> None:
 
 def run_ffmpeg(args: List[str]) -> subprocess.CompletedProcess:
     """Run ffmpeg with given arguments."""
+    return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
+def run_ffprobe(args: List[str]) -> subprocess.CompletedProcess:
+    """Run ffprobe with given arguments."""
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 def build_scale_filter(max_dimension: int) -> str:
@@ -71,58 +91,132 @@ def is_high_quality_variant(file_path: Path) -> bool:
     return file_path.stem.lower().endswith(HQ_SUFFIX)
 
 
+def needs_heic_conversion(src_file: Path) -> bool:
+    return src_file.suffix.lower() in HEIC_EXT
+
+
+def prepare_image_source(src_file: Path) -> Tuple[Path, Optional[Path], bool]:
+    """Return an ffmpeg-ready path, temp dir (if any), and a success flag."""
+    if not needs_heic_conversion(src_file):
+        return src_file, None, True
+
+    if Image is None or pillow_heif is None:
+        print(
+            f"[WARN] HEIC input detected but Pillow/pillow-heif are not installed. "
+            f"Install them or provide a non-HEIC source: {src_file.name}"
+        )
+        return src_file, None, False
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="heic-convert-"))
+    tmp_png = tmp_dir / f"{src_file.stem}.png"
+    try:
+        with Image.open(src_file) as img:  # type: ignore[operator]
+            img.save(tmp_png, format="PNG")
+    except Exception as exc:  # pragma: no cover - depends on environment
+        print(f"[WARN] Failed to convert HEIC source {src_file.name}: {exc}")
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        return src_file, None, False
+
+    return tmp_png, tmp_dir, True
+
+
+def image_has_alpha(src_file: Path) -> bool:
+    """Return True if the primary stream reports an alpha channel."""
+    probe_cmd = [
+        "ffprobe", "-v", "error",
+        "-select_streams", "v:0",
+        "-show_entries", "stream=pix_fmt",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        str(src_file),
+    ]
+    proc = run_ffprobe(probe_cmd)
+    if proc.returncode != 0:
+        return False
+    pix_fmt = proc.stdout.strip().lower()
+    return "a" in pix_fmt
+
+
 def transcode_image(cfg, src_file: Path) -> None:
     """Process image files into web-optimized formats."""
 
     name = src_file.stem
+    original_suffix = src_file.suffix.lower()
     images_dir = cfg.dest / 'images'
     images_dir.mkdir(parents=True, exist_ok=True)
     vf_chain = build_scale_filter(cfg.max_dimension)
 
-    # Try AVIF first
+    input_path, tmp_dir, can_process = prepare_image_source(src_file)
+
+    if not can_process:
+        print(f"[SKIP] {src_file.name} (HEIC conversion unavailable)")
+        return
+
     avif_out = images_dir / f"{name}.avif"
     avif_cmd = [
-        "ffmpeg", "-y", "-i", str(src_file),
+        "ffmpeg", "-y", "-i", str(input_path),
         "-vf", vf_chain,
         "-c:v", "libaom-av1", "-crf", "32", "-b:v", "0",
         str(avif_out)
     ]
-    png_out = images_dir / f"{name}.png"
-    jpg_out = images_dir / f"{name}.jpg"
-    png_cmd = [
-        "ffmpeg", "-y", "-i", str(src_file),
+
+    webp_out = images_dir / f"{name}.webp"
+    webp_cmd = [
+        "ffmpeg", "-y", "-i", str(input_path),
         "-vf", vf_chain,
-        "-c:v", "png",
-        str(png_out)
+        "-c:v", "libwebp", "-quality", "82", "-lossless", "0",
+        str(webp_out)
     ]
+
+    jpg_out = images_dir / f"{name}.jpg"
     jpg_cmd = [
-        "ffmpeg", "-y", "-i", str(src_file),
+        "ffmpeg", "-y", "-i", str(input_path),
         "-vf", vf_chain,
         "-c:v", "mjpeg", "-q:v", "3",
         str(jpg_out)
     ]
 
-    attempts = (
-        ("AVIF", avif_out, avif_cmd, f"[INFO] AVIF encode failed for {src_file.name} (encoder may not be available)"),
-        ("PNG", png_out, png_cmd, f"[WARN] PNG encode failed for {src_file.name}: {{error}}"),
-        ("JPEG", jpg_out, jpg_cmd, f"[WARN] JPEG encode failed for {src_file.name}: {{error}}"),
-    )
+    needs_png = original_suffix in {".png", ".webp"} or image_has_alpha(input_path)
+    png_out = images_dir / f"{name}.png"
+    png_cmd = [
+        "ffmpeg", "-y", "-i", str(input_path),
+        "-vf", vf_chain,
+        "-c:v", "png",
+        str(png_out)
+    ]
 
-    for label, out_path, cmd, fail_msg in attempts:
+    encodes = [
+        ("AVIF", avif_out, avif_cmd, True),
+        ("WEBP", webp_out, webp_cmd, True),
+        ("JPEG", jpg_out, jpg_cmd, False),
+    ]
+
+    if needs_png:
+        encodes.append(("PNG", png_out, png_cmd, False))
+
+    produced_any = False
+
+    for label, out_path, cmd, optional in encodes:
         if not cfg.force and out_path.exists():
             if not cfg.quiet:
                 print(f"[SKIP] {src_file.name} ({label} already encoded)")
-            return
+            produced_any = True
+            continue
 
         proc = run_ffmpeg(cmd)
         if proc.returncode == 0:
             print(f"  [IMAGE] {label}: images/{out_path.name}")
-            return
+            produced_any = True
+            continue
 
         error_detail = proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else "Unknown error"
-        print(fail_msg.format(error=error_detail))
+        level = "[INFO]" if optional else "[WARN]"
+        print(f"{level} {label} encode failed for {src_file.name}: {error_detail}")
 
-    print(f"[WARN] All image encodes failed for {src_file.name}")
+    if not produced_any:
+        print(f"[WARN] All image encodes failed for {src_file.name}")
+
+    if tmp_dir is not None:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def transcode_video(cfg, src_file: Path) -> None:
@@ -222,6 +316,7 @@ def parse_args():
 def main() -> int:
     cfg = parse_args()
     which_or_exit("ffmpeg")
+    which_or_exit("ffprobe")
 
     # Ensure source and destination directories exist
     if not cfg.src.exists():
@@ -251,19 +346,7 @@ def main() -> int:
             print(f"[ERROR] Unexpected failure on {src_file.name}: {e}")
 
     print("=============================================================")
-    print("Complete. Embed examples:")
-    print("Videos:")
-    print('<video controls preload="metadata" poster="{{ SITEURL }}/media/video/name.jpg">')
-    print('  <source src="{{ SITEURL }}/media/video/name.webm" type="video/webm">')
-    print('  <source src="{{ SITEURL }}/media/video/name.mp4" type="video/mp4">')
-    print('</video>')
-    print()
-    print("Images (responsive with modern formats):")
-    print('<picture>')
-    print('  <source srcset="{{ SITEURL }}/media/images/name.avif" type="image/avif">')
-    print('  <source srcset="{{ SITEURL }}/media/images/name.webp" type="image/webp">')
-    print('  <img src="{{ SITEURL }}/media/images/name.jpg" alt="Description">')
-    print('</picture>')
+    print("Complete.")
     print("=============================================================")
     return 0
 
