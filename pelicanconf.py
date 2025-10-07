@@ -54,11 +54,6 @@ MARKDOWN = {
 # --- URL Settings ---
 RELATIVE_URLS = True
 
-# --- Extra Path Metadata ---
-# Ensure any extra files (like CNAME) get correct target names
-EXTRA_PATH_METADATA = {
-    'extra/CNAME': {'path': 'CNAME'},
-}
 
 # --- Theme-Specific Settings ---
 DISPLAY_PAGES_ON_MENU = True
