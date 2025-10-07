@@ -17,10 +17,6 @@
                 📅 {{ article.date.strftime('%Y-%m-%d') }}
             </time>
             
-            {% if article.author %}
-                <span class="author">👤 By {{ article.author }}</span>
-            {% endif %}
-            
             {% if article.category %}
                 <span class="category">📂 <a href="{{ SITEURL }}/category/{{ article.category|lower|replace(' ', '-') }}.html">{{ article.category }}</a></span>
             {% endif %}

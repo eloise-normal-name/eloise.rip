@@ -17,14 +17,6 @@ ARTICLE_SAVE_AS = 'blog/{slug}.html'
 ARTICLE_URL = 'blog/{slug}.html'
 PAGE_SAVE_AS = '{slug}.html'
 PAGE_URL = '{slug}.html'
-DELETE_OUTPUT_DIRECTORY = True
-
-# --- Feed Settings (disabled for development) ---
-FEED_ALL_ATOM = None
-CATEGORY_FEED_ATOM = None
-TRANSLATION_FEED_ATOM = None
-AUTHOR_FEED_ATOM = None
-AUTHOR_FEED_RSS = None
 
 # --- Pagination ---
 DEFAULT_PAGINATION = 10
@@ -35,8 +27,6 @@ THEME = 'themes/cute-theme'
 # --- Plugins ---
 PLUGIN_PATHS = ['pelican-plugins']
 PLUGINS = ['video_embed']
-# Optional plugin settings
-VIDEO_EMBED_CLASS = 'embedded-video'
 
 # --- Markdown Extensions ---
 MARKDOWN = {
@@ -54,6 +44,19 @@ MARKDOWN = {
 # --- URL Settings ---
 RELATIVE_URLS = True
 
+# --- Extra Path Metadata ---
+EXTRA_PATH_METADATA = {
+    f"extra/{name}": {"path": name}
+    for name in (
+        "CNAME",
+        "android-chrome-192x192.png",
+        "android-chrome-512x512.png",
+        "apple-touch-icon.png",
+        "favicon-16x16.png",
+        "favicon-32x32.png",
+        "favicon.ico",
+    )
+}
 
 # --- Theme-Specific Settings ---
 DISPLAY_PAGES_ON_MENU = True
