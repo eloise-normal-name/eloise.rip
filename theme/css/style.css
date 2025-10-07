@@ -273,11 +273,76 @@ figure.embedded-video video {
   box-shadow: 0 4px 15px var(--shadow);
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  margin: 2.5rem auto 1.5rem;
+  width: fit-content;
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: var(--card-radius);
+  box-shadow: 0 10px 24px var(--shadow);
+  font-weight: 500;
+}
+
+.pagination .page-number {
+  color: var(--text-light);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 107, 157, 0.15);
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.pagination a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transition: var(--transition-base);
+  box-shadow: 0 6px 18px var(--shadow);
+}
+
+.pagination a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px var(--shadow-hover);
+}
+
+.pagination a.prev::before {
+  content: '←';
+  font-size: 0.9rem;
+}
+
+.pagination a.next::after {
+  content: '→';
+  font-size: 0.9rem;
+}
+
 /* Article content */
 .article-content,
 .article-summary-content,
 .page-content {
   font-size: 0.9rem;
+}
+
+.article-content img,
+.page-content img,
+.article-content picture img,
+.page-content picture img {
+  max-height: clamp(320px, 70vh, 820px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 
 /* Links */
@@ -354,7 +419,6 @@ blockquote {
 /* Images and responsive picture elements */
 img {
   max-width: 100%;
-  height: 100%;
   border-radius: 12px;
   box-shadow: 0 4px 20px var(--shadow);
   margin: 1rem 0;
@@ -455,7 +519,13 @@ picture img,
   .page-title { font-size: 1.8rem; }
   .pagination {
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+  .pagination a,
+  .pagination .page-number {
+    width: 100%;
+    justify-content: center;
   }
   .article-item {
     align-items: flex-start;
@@ -608,6 +678,11 @@ picture img,
   .tag {
     font-size: 0.95rem;
     padding: 0.2rem 0.5rem;
+  }
+
+  .pagination {
+    margin: 2rem auto 1rem;
+    padding: 0.9rem;
   }
 }
 
