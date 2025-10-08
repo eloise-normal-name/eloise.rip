@@ -153,7 +153,7 @@ figure.embedded-video video {
   background: var(--card-bg);
   border-radius: var(--card-radius);
   margin: 1rem;
-  padding: 0 2.5rem;
+  padding: 0 1.5rem;
   box-shadow: 0 8px 30px var(--shadow);
   border: 2px solid var(--border-color);
   position: relative;
