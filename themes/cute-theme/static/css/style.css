@@ -40,6 +40,7 @@ body {
 
 /* Embedded video helper */
 figure.embedded-video {
+  margin: 1rem auto;
   width: fit-content;
   padding: 0;
   display: block;

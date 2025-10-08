@@ -9,9 +9,8 @@ thumbnail: video/groof-grab.jpg
 
 Groof is the slightly larger one with a rounder beak, and the instigator.
 
-[[video:groof-grab]]
-[[video:groof-caw-at-groofriend]]
-[[video:groofriend-snips-at-groof]]
+|[[video:groof-grab]]|[[video:groof-caw-at-groofriend]]|[[video:groofriend-snips-at-groof]]|
+|-|-|-|
 
 ### Groof wants more
 
