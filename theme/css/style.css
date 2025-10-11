@@ -442,7 +442,6 @@ picture img,
 .article-summary {
   display: flex;
   flex-direction: column;
-  /* margin: 1rem auto; */
   align-items: stretch;
   width: fit-content;
 }
@@ -454,8 +453,7 @@ picture img,
   height: var(--summary-media-max-height);
   width: calc(var(--summary-media-max-height) * var(--summary-media-ratio));
   max-width: 100%;
-  margin: 1rem 0;
-  margin-right: auto;
+  margin: 1rem auto;
   align-self: flex-start;
   border-radius: 16px;
   overflow: hidden;
