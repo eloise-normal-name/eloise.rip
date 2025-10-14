@@ -2,6 +2,7 @@ Title: Leg Hang Workshop
 Date: 2025-10-04
 Summary: Did my first leg hang switch
 Category: Pole Dance
+Tags: Leg Hang
 thumbnail: video/leg-hang-switch.jpg
 
 My inside leg hangs are feeling much better now. Maybe even better than outside.
