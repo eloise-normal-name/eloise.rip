@@ -153,7 +153,7 @@ figure.embedded-video video {
   background: var(--card-bg);
   border-radius: var(--card-radius);
   margin: 1rem auto;
-  padding: 0 2rem;
+  padding: 0 3rem;
   box-shadow: 0 8px 30px var(--shadow);
   border: 2px solid var(--border-color);
   position: relative;
@@ -449,7 +449,7 @@ picture img,
 }
 
 .article-summary-media {
-  --summary-media-max-height: clamp(160px, 28vw, 240px);
+  --summary-media-max-height: clamp(180px, 28vw, 300px);
   --summary-media-ratio: 1;
   flex: 0 0 auto;
   height: var(--summary-media-max-height);

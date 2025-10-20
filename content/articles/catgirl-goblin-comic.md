@@ -2,7 +2,7 @@ Title: Catgirl & Goblin at the Aquarium
 Date: 2025-10-14
 Summary: 🍄
 Category: Art
-Tags: Comic
+Tags: Comic, Catgirl
 thumbnail: images/comic-aquarium-front.jpg
 
 We got loopy at the aquarium but didn't take a photo,
