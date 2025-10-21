@@ -124,8 +124,8 @@ figure.embedded-video video {
   text-decoration: none;
   font-weight: 500;
   font-size: small;
-  padding: 0.4rem .5rem;
-  border-radius: 15px;
+  padding: 0.3rem .4rem;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.2);
   transition: var(--transition-base);
   -webkit-backdrop-filter: blur(5px);
@@ -140,7 +140,7 @@ figure.embedded-video video {
 
 /* Main content */
 .main-content {
-  max-width: 800px;
+  max-width: 600px;
   width: 100%;
   margin: auto;
   flex: 1 0 auto;
@@ -375,7 +375,7 @@ a:hover {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 1rem 0.5rem;
+  gap: 1rem 0.4rem;
 }
 
 .main-nav li { margin: 0; }
