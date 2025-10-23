@@ -1,4 +1,4 @@
-Title: Panter wakes up
+Title: Panther wakes up
 Date: 2025-10-20
 Summary: One of my favorite videos of him
 Category: Cats
