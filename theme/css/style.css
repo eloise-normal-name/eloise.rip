@@ -83,6 +83,8 @@ body {
   gap: 0.65rem;
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .carousel-item img {
