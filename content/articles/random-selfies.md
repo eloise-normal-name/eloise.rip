@@ -3,16 +3,16 @@ Date: 2025-10-14
 Summary: 😈
 Category: Self
 Tags: 
-thumbnail: images/goofy-gobbo.JPEG
+thumbnail: images/goofy-gobbo.avif
 
-![Goofy Gobbo selfie](../media/images/goofy-gobbo.JPEG "Goofy Gobbo selfie")
 
-![Frizzy Gobbo selfie](../media/images/frizzy-gobbo.JPEG "Frizzy Gobbo selfie")
 
-![Gamer Gobbo selfie](../media/images/gamer-gobbo.JPEG "Gamer Gobbo selfie")
 
-![Gobbo splits selfie](../media/images/gobbo-splits.JPG "Gobbo splits selfie")
-
-![Goth Gobbo selfie](../media/images/goth-gobbo.JPEG "Goth Gobbo selfie")
-
-![Normal Gobbo selfie](../media/images/normal-gobbo.JPEG "Normal Gobbo selfie")
+[[carousel:label=Gobbo photo set;
+media/images/goofy-gobbo.avif|Not the most flattering but maybe the most me;
+media/images/frizzy-gobbo.avif|Shortly after Collin styled my hair, idk what I did to fuck it up;
+media/images/gamer-gobbo.avif|Farming 🐮;
+media/images/gobbo-splits.avif|Still trying!;
+media/images/goth-gobbo.avif|I crashed out before actually being able to party with Catgirl 😭 Still so sad about this;
+media/images/normal-gobbo.avif|😈]]
+*6 images*

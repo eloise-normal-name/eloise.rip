@@ -26,7 +26,7 @@ THEME = 'themes/cute-theme'
 
 # --- Plugins ---
 PLUGIN_PATHS = ['pelican-plugins']
-PLUGINS = ['video_embed']
+PLUGINS = ['video_embed', 'carousel_embed']
 
 # --- Markdown Extensions ---
 MARKDOWN = {

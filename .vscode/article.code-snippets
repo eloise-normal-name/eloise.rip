@@ -1,0 +1,20 @@
+{
+  "Pelican Article": {
+    "prefix": "pelican-article",
+    "description": "Pelican article front matter and body scaffold",
+    "body": [
+      "Title: ${1:New Title}",
+      "Date: ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}",
+      "Summary: ${2:Short summary}",
+      "Category: ${3:Category}",
+      "Tags: ${4:Tag1, Tag2}",
+      "thumbnail: ${5:images/example.jpg}",
+      "",
+      "### ${6:Heading}",
+      "",
+      "${7:Start writing here}",
+      "",
+      "[[video:${8}]]"
+    ]
+  }
+}
