@@ -58,7 +58,6 @@ EXTRA_PATH_METADATA = {
     )
 }
 
-# --- Theme-Specific Settings ---
 DISPLAY_PAGES_ON_MENU = True
 DISPLAY_CATEGORIES_ON_MENU = True
 MENUITEMS = (

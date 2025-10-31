@@ -257,7 +257,6 @@ figure.embedded-video video {
   color: var(--primary-color);
   font-weight: 600;
   margin: 1em auto;
-  width: fit-content;
   text-align: center;
 }
 
@@ -414,8 +413,8 @@ figure.embedded-video video {
 .article-content picture img,
 .page-content picture img {
   max-height: clamp(320px, 70vh, 820px);
-  width: auto;
-  height: auto;
+  /* width: auto; */
+  /* height: auto; */
   object-fit: contain;
 }
 
