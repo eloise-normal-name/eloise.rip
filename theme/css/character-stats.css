@@ -1,0 +1,216 @@
+/* Character Stats page styles */
+
+article {
+  max-width: 80ch;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+header .page-title {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+  line-height: 1.2;
+  position: relative;
+}
+header .page-title::after {
+  content: "";
+  display: block;
+  height: 4px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(227,90,125,0.6), rgba(227,90,125,0.05));
+  margin-top: 6px;
+}
+
+section {
+  margin: 1.5rem 0;
+  --char-accent: #e35a7d;           /* rose */
+  --char-border: rgba(227,90,125,0.28);
+  --char-weak: rgba(227,90,125,0.08);
+  border: 1px solid var(--char-border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.92)),
+    radial-gradient(160% 100% at 15% 0%, var(--char-weak), transparent 60%);
+  box-shadow: 0 2px 10px rgba(227,90,125,0.06);
+}
+
+section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  border-bottom: 2px solid var(--char-border);
+  padding-bottom: 0.25rem;
+}
+
+/* Simple list readability */
+section ul {
+  padding-left: 1.25rem;
+}
+section ul li + li {
+  margin-top: 0.25rem;
+}
+section ul li strong {
+  font-weight: 600;
+}
+
+/* Make metadata list at top tidy */
+.overview ul {
+  list-style: none;
+  padding: 0;
+}
+.overview ul li {
+  display: flex;
+  gap: 0.5rem;
+}
+.overview ul li strong {
+  min-width: 6rem;
+}
+
+/* Overview layout with optional hero image (Flex-based to avoid grid overflow issues) */
+.overview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-start;
+  overflow: hidden; /* respect rounded corners of the section */
+}
+.overview .section-title {
+  order: 0;
+  flex: 1 1 100%;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #7a2a3a;
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--char-border);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(227,90,125,0.16), rgba(227,90,125,0.08));
+}
+.overview .hero-name { order: 2; font-weight: 700; font-size: 1.25rem; flex: 1 1 0; min-width: 0; }
+.overview .tagline { order: 3; font-weight: 600; font-size: 1.1rem; flex: 1 1 0; min-width: 0; }
+.overview .jobs { order: 4; color: rgba(0,0,0,0.65); margin-bottom: 0.25rem; flex: 1 1 0; min-width: 0; }
+.overview ul { order: 5; flex: 1 1 0; min-width: 0; }
+
+.overview img.hero {
+  order: 1;
+  display: block;
+  flex: 0 0 128px;
+  width: 128px;
+  height: 128px;
+  object-fit: cover;
+  object-position: center;
+  align-self: flex-start;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  border: 1px solid var(--char-border);
+  box-shadow: 0 3px 10px rgba(227,90,125,0.08);
+}
+.overview p { margin: 0 0 0.35rem; }
+
+/* Tables */
+section table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid rgba(127, 127, 127, 0.25);
+}
+section thead th {
+  text-align: left;
+  background: rgba(127, 127, 127, 0.08);
+}
+section th, section td {
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid rgba(127, 127, 127, 0.15);
+}
+section tbody tr:nth-child(odd) {
+  background: rgba(127, 127, 127, 0.05);
+}
+
+/* Aliases as badges */
+.aliases-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.aliases-list li {
+  display: inline-block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  line-height: 1;
+}
+
+/* Generic chips (for inline metadata like Debuffs) */
+.chip {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  background: rgba(127, 127, 127, 0.08);
+  font-size: 0.875rem;
+  line-height: 1.1;
+  margin: 0.125rem 0.25rem 0.125rem 0;
+}
+.chip--warn {
+  border-color: rgba(200, 64, 64, 0.55);
+  background: rgba(200, 64, 64, 0.12);
+  color: #702020;
+}
+
+.chip--alias {
+  border-color: rgba(64, 96, 200, 0.55);
+  background: rgba(64, 96, 200, 0.12);
+  color: #243060;
+}
+
+/* Mobile table compaction */
+@media (max-width: 640px) {
+  section h2 { font-size: 1.1rem; }
+  section table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    font-size: 0.9rem;
+  }
+  section th, section td {
+    padding: 0.4rem 0.5rem;
+  }
+  .overview { flex-direction: column; }
+  .overview img.hero {
+    width: 100%;
+    height: auto;
+    object-fit: contain; /* avoid cropping on narrow screens */
+    object-position: center;
+    max-height: 50vh;
+    aspect-ratio: auto;
+  }
+}
+
+/* Bio and similar: key/value grid for the first list after a heading */
+section h2 + ul {
+  list-style: none;
+  padding: 0;
+}
+section h2 + ul li {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+section h2 + ul li strong {
+  font-weight: 700;
+}
+
+/* The second list after a heading: quality-of-life items in two columns on wide screens */
+section h2 + ul + ul {
+  columns: 2;
+  column-gap: 2rem;
+  padding-left: 1.25rem;
+}
+@media (max-width: 640px) {
+  section h2 + ul { margin-bottom: 0.5rem; }
+  section h2 + ul + ul { columns: 1; }
+}
