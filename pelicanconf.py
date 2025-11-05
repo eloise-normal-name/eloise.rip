@@ -61,5 +61,5 @@ EXTRA_PATH_METADATA = {
 DISPLAY_PAGES_ON_MENU = True
 DISPLAY_CATEGORIES_ON_MENU = True
 MENUITEMS = (
-    ('Blog', '/archives.html'),
+    ('Archives', '/archives.html'),
 )
