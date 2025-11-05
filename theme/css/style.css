@@ -406,6 +406,7 @@ figure.embedded-video video {
 .article-summary-content,
 .page-content {
   font-size: 0.9rem;
+  max-width: 500px;
 }
 
 .article-content img,
