@@ -209,7 +209,7 @@ figure.embedded-video video {
 
 /* Main content */
 .main-content {
-  max-width: 600px;
+  max-width: 700px;
   width: 100%;
   margin: auto;
   flex: 1 0 auto;
