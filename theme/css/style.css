@@ -782,3 +782,8 @@ picture img,
     border: 1px solid #ccc;
   }
 }
+
+audio {
+  height: 1rem;
+  margin: 0;
+}
