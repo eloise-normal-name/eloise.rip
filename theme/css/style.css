@@ -1,7 +1,49 @@
+ol.voice-list {
+  counter-reset: voice-track;
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0;
+}
+
+ol.voice-list > li {
+  counter-increment: voice-track;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.2rem 0;
+  padding: 0.05rem 0;
+}
+
+ol.voice-list > li::before {
+  content: counter(voice-track);
+  flex: 0 0 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.9rem;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(255,219,235,0.95), rgba(255,169,206,0.95)),
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.22) 0 6px, transparent 6px 12px);
+  border: 1px solid rgba(255,107,157,0.6);
+  color: rgba(54,10,28,0.92);
+  font-family: 'Press Start 2P', var(--heading-font, 'Fredoka', sans-serif);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.45),
+    0 3px 8px rgba(255,107,157,0.25);
+}
+
+ol.voice-list audio {
+  flex: 1 1 auto;
+  margin: 0;
+}
 /* Cute and Friendly Pelican Theme */
 
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Fredoka:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Fredoka:wght@300;400;500;600&family=Press+Start+2P&display=swap');
 
 /* Color palette - warm and friendly */
 :root {
@@ -784,6 +826,41 @@ picture img,
 }
 
 audio {
-  height: 1rem;
-  margin: 0;
+  width: min(100%, 18rem);
+  height: 2rem;
+  display: block;
+  margin: 0.25rem auto;
+  accent-color: var(--primary-color);
+  filter: drop-shadow(0 5px 12px var(--shadow));
+}
+
+audio::-webkit-media-controls-enclosure {
+  background:
+    linear-gradient(135deg, rgba(255,238,244,0.96), rgba(255,190,214,0.93)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.18) 0 4px, transparent 4px 8px);
+  border: 2px solid rgba(255,107,157,0.55);
+  box-shadow:
+    inset 0 1px 2px rgba(255,255,255,0.75),
+    0 0 0 1px rgba(255,107,157,0.12);
+  padding: 2px 4px;
+}
+
+audio::-webkit-media-controls-panel {
+  background: transparent;
+  border-radius: inherit;
+}
+
+audio::-webkit-media-controls-play-button:hover,
+audio::-webkit-media-controls-mute-button:hover {
+  background: linear-gradient(135deg, rgba(255,255,255,1), rgba(255,204,228,1));
+}
+
+
+audio::-webkit-media-controls-current-time-display,
+audio::-webkit-media-controls-time-remaining-display {
+  color: #3b0c1d;
+  font-family: 'Press Start 2P', var(--heading-font, 'Fredoka', sans-serif);
+  font-weight: 600;
+  font-size: 0.55rem;
+  letter-spacing: 0.04em;
 }
