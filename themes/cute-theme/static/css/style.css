@@ -1,3 +1,6 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Fredoka:wght@300;400;500;600&family=Press+Start+2P&display=swap');
+
 ol.voice-list {
   counter-reset: voice-track;
   list-style: none;
@@ -41,9 +44,6 @@ ol.voice-list audio {
   margin: 0;
 }
 /* Cute and Friendly Pelican Theme */
-
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Fredoka:wght@300;400;500;600&family=Press+Start+2P&display=swap');
 
 /* Color palette - warm and friendly */
 :root {
