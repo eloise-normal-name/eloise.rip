@@ -2,13 +2,13 @@
 with an HTML5 video element referencing generated assets in /media/video.
 
 Usage in Markdown:
-    Write:  [[video:hop-hop-hop]]
-    Renders:
-        <figure class="embedded-video">
+        Write:  [[video:hop-hop-hop]]
+        Renders:
+                <figure class="embedded-video">
                     <video controls preload="metadata" poster="/media/video/hop-hop-hop.jpg">
-                        <source src="/media/video/hop-hop-hop.webm" type="video/webm" />
-          </video>
-        </figure>
+                        <source src="/media/video/hop-hop-hop.mp4" type="video/mp4" />
+                    </video>
+                </figure>
 
 Configuration (optional in pelicanconf.py):
     VIDEO_EMBED_CLASS = 'embedded-video'  # outer figure class
@@ -17,7 +17,7 @@ If relative disabled (or RELATIVE_URLS False), it prefixes SITEURL.
 
 Limitations:
     - No fallback text beyond standard browser message.
-    - Assumes poster and WebM assets exist.
+    - Assumes poster and MP4 assets exist.
 """
 from __future__ import annotations
 
@@ -31,11 +31,11 @@ VIDEO_PATTERN = re.compile(r"\[\[video:([a-zA-Z0-9._-]+)]]")
 def build_video_html(name: str, siteurl: str, relative: bool, css_class: str) -> str:
     base = f"/media/video/{name}"
     poster = f"{base}.jpg"
-    webm = f"{base}.webm"
+    mp4 = f"{base}.mp4"
     return (
         f'<figure class="{css_class}">\n'
         f'  <video controls preload="metadata" poster="{poster}">\n'
-        f'    <source src="{webm}" type="video/webm" />\n'
+        f'    <source src="{mp4}" type="video/mp4" />\n'
         f'    Your browser does not support the video tag.\n'
         f'  </video>\n'
         f'</figure>'
