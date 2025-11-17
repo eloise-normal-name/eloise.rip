@@ -833,34 +833,3 @@ audio {
   accent-color: var(--primary-color);
   filter: drop-shadow(0 5px 12px var(--shadow));
 }
-
-audio::-webkit-media-controls-enclosure {
-  background:
-    linear-gradient(135deg, rgba(255,238,244,0.96), rgba(255,190,214,0.93)),
-    repeating-linear-gradient(0deg, rgba(255,255,255,0.18) 0 4px, transparent 4px 8px);
-  border: 2px solid rgba(255,107,157,0.55);
-  box-shadow:
-    inset 0 1px 2px rgba(255,255,255,0.75),
-    0 0 0 1px rgba(255,107,157,0.12);
-  padding: 2px 4px;
-}
-
-audio::-webkit-media-controls-panel {
-  background: transparent;
-  border-radius: inherit;
-}
-
-audio::-webkit-media-controls-play-button:hover,
-audio::-webkit-media-controls-mute-button:hover {
-  background: linear-gradient(135deg, rgba(255,255,255,1), rgba(255,204,228,1));
-}
-
-
-audio::-webkit-media-controls-current-time-display,
-audio::-webkit-media-controls-time-remaining-display {
-  color: #3b0c1d;
-  font-family: 'Press Start 2P', var(--heading-font, 'Fredoka', sans-serif);
-  font-weight: 600;
-  font-size: 0.55rem;
-  letter-spacing: 0.04em;
-}
