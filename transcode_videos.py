@@ -1,7 +1,7 @@
 """Transcode high-quality source videos and images in media-source/ into optimized
 web versions for Pelican static site.
 
-For videos: Creates MP4 + WebM + poster JPG
+For videos: Creates WebM (AV1) + poster JPG
 For images: Creates AVIF + WebP + JPEG (+ PNG when transparency is detected)
 
 Usage:
@@ -16,7 +16,7 @@ Requirements:
 
 Strategy:
     1. Discover video and image files in source directory.
-    2. For videos: create name.mp4, name.webm, name.jpg (poster @ 0.5s)
+    2. For videos: create name.webm (AV1) and name.jpg (poster @ 0.5s)
     3. For images: create name.avif, name.webp, name.jpg (and name.png when transparency is detected)
     4. Downscale if either dimension exceeds --max-dimension while preserving aspect ratio.
     5. Skip already existing outputs unless --force.
@@ -34,8 +34,6 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Tuple
-
 try:
     from PIL import Image  # type: ignore
 except ImportError:
@@ -57,6 +55,8 @@ ALLOWED_EXT = VIDEO_EXT | IMAGE_EXT
 
 HQ_SUFFIX = "_hq"
 HQ_CRF_BONUS = 8  # Lower CRF by this amount (higher quality) for `_hq` masters
+AV1_CPU_USED = 6  # Balanced speed/quality preset for libaom
+AV1_AUDIO_BITRATE = "128k"
 
 
 # --- Utility Functions ---
@@ -66,12 +66,12 @@ def which_or_exit(cmd: str) -> None:
         print(f"[ERROR] Required tool '{cmd}' not found in PATH.", file=sys.stderr)
         sys.exit(1)
 
-def run_ffmpeg(args: List[str]) -> subprocess.CompletedProcess:
+def run_ffmpeg(args: list[str]) -> subprocess.CompletedProcess:
     """Run ffmpeg with given arguments."""
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
-def run_ffprobe(args: List[str]) -> subprocess.CompletedProcess:
+def run_ffprobe(args: list[str]) -> subprocess.CompletedProcess:
     """Run ffprobe with given arguments."""
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
@@ -95,7 +95,7 @@ def needs_heic_conversion(src_file: Path) -> bool:
     return src_file.suffix.lower() in HEIC_EXT
 
 
-def prepare_image_source(src_file: Path) -> Tuple[Path, Optional[Path], bool]:
+def prepare_image_source(src_file: Path) -> tuple[Path, Path | None, bool]:
     """Return an ffmpeg-ready path, temp dir (if any), and a success flag."""
     if not needs_heic_conversion(src_file):
         return src_file, None, True
@@ -220,54 +220,37 @@ def transcode_image(cfg, src_file: Path) -> None:
 
 
 def transcode_video(cfg, src_file: Path) -> None:
-    """Process video files into web-optimized formats."""
+    """Process video files into AV1 WebM plus a poster still."""
     name = src_file.stem
     video_dir = cfg.dest / 'video'
     video_dir.mkdir(parents=True, exist_ok=True)
     vf_chain = build_scale_filter(cfg.max_dimension)
     is_hq = is_high_quality_variant(src_file)
-    crf_mp4 = max(cfg.crf_mp4 - (HQ_CRF_BONUS if is_hq else 0), 0)
-    crf_webm = max(cfg.crf_webm - (HQ_CRF_BONUS if is_hq else 0), 0)
+    crf_av1 = max(cfg.crf_av1 - (HQ_CRF_BONUS if is_hq else 0), 0)
     quality_tag = " (HQ)" if is_hq else ""
-    mp4_out = video_dir / f"{name}.mp4"
-    webm_out = video_dir / f"{name}.webm"
+    av1_out = video_dir / f"{name}.webm"
     poster_out = video_dir / f"{name}.jpg"
 
-    if not cfg.force and mp4_out.exists() and webm_out.exists() and poster_out.exists():
+    if not cfg.force and av1_out.exists() and poster_out.exists():
         if not cfg.quiet:
             print(f"[SKIP] {src_file.name} (video outputs exist)")
         return
 
-    # MP4 (H.264)
-    if cfg.force or not mp4_out.exists():
-        print(f"  [VIDEO] MP4{quality_tag}: video/{mp4_out.name}")
-        mp4_cmd = [
+    if cfg.force or not av1_out.exists():
+        print(f"  [VIDEO] AV1{quality_tag}: video/{av1_out.name}")
+        av1_cmd = [
             "ffmpeg", "-y", "-i", str(src_file),
-            "-vf", f"{vf_chain}",
-            "-c:v", "libx264", "-preset", "veryfast",
-            "-crf", str(crf_mp4),
-            "-pix_fmt", "yuv420p", "-movflags", "+faststart",
-            "-c:a", "aac", "-b:a", "128k", str(mp4_out)
+            "-vf", vf_chain,
+            "-c:v", "libaom-av1", "-b:v", "0", "-crf", str(crf_av1),
+            "-row-mt", "1", "-cpu-used", str(AV1_CPU_USED),
+            "-pix_fmt", "yuv420p",
+            "-c:a", "libopus", "-b:a", AV1_AUDIO_BITRATE,
+            str(av1_out)
         ]
-        proc = run_ffmpeg(mp4_cmd)
+        proc = run_ffmpeg(av1_cmd)
         if proc.returncode != 0:
-            print(f"[WARN] MP4 encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
+            print(f"[WARN] AV1 encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
 
-    # WebM (VP9, fast settings)
-    if cfg.force or not webm_out.exists():
-        print(f"  [VIDEO] WebM{quality_tag}: video/{webm_out.name}")
-        webm_cmd = [
-            "ffmpeg", "-y", "-i", str(src_file),
-            "-vf", f"{vf_chain}",
-            "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", str(crf_webm),
-            "-speed", "8", "-tile-columns", "2", "-row-mt", "1",
-            "-c:a", "libopus", "-b:a", "96k", str(webm_out)
-        ]
-        proc = run_ffmpeg(webm_cmd)
-        if proc.returncode != 0:
-            print(f"[WARN] WebM encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
-
-    # Poster frame
     if cfg.force or not poster_out.exists():
         print(f"  [VIDEO] Poster: video/{poster_out.name}")
         poster_cmd = [
@@ -291,17 +274,16 @@ def transcode_file(cfg, src_file: Path) -> None:
     print(f"  [DONE] {src_file.name}")
 
 
-def discover_sources(src_dir: Path) -> List[Path]:
+def discover_sources(src_dir: Path) -> list[Path]:
     return [p for p in sorted(src_dir.iterdir()) if p.is_file() and p.suffix.lower() in ALLOWED_EXT]
 
 
 def parse_args():
-    ap = argparse.ArgumentParser(description="Pelican media transcoder (videos and images)")
+    ap = argparse.ArgumentParser(description="Pelican media transcoder (AV1 video and optimized images)")
     ap.add_argument("--src", default="media-source", help="Source directory of master videos and images")
     ap.add_argument("--dest", default="content/media", help="Destination directory for optimized outputs")
     ap.add_argument("--max-dimension", type=int, default=1080, help="Max output dimension (width or height, preserve aspect)")
-    ap.add_argument("--crf-mp4", type=int, default=28, help="CRF for H.264 (lower=better quality)")
-    ap.add_argument("--crf-webm", type=int, default=34, help="CRF for VP9 (lower=better quality)")
+    ap.add_argument("--crf-av1", type=int, default=30, help="CRF for AV1 (lower=better quality)")
     ap.add_argument("--poster-time", type=float, default=0.5, help="Timestamp (seconds) for poster frame")
     ap.add_argument("--force", action="store_true", help="Re-encode even if outputs exist")
     ap.add_argument("--quiet", action="store_true", help="Reduce console output")
