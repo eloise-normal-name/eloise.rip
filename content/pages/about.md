@@ -79,6 +79,13 @@ Template: character-stats
 						<a href="https://www.instagram.com/eloise_normal_name">@eloise-normal-name</a>
 					</div>
 				</div>
+				<div class="contact-item">
+					<span class="contact-icon">❓</span>
+					<div class="contact-details">
+						<strong>Ask Me Anything</strong>
+						<a href="https://ngl.link/eloise_normal_name">ngl.link/eloise_normal_name</a>
+					</div>
+				</div>
 			</div>
 		</div>
 		<div class="bio-traits">

@@ -1,13 +1,12 @@
 """Pelican plugin to replace [[video:NAME]] markers in article/page content
-with an HTML5 video element referencing generated assets in /videos.
+with an HTML5 video element referencing generated assets in /media/video.
 
 Usage in Markdown:
     Write:  [[video:hop-hop-hop]]
     Renders:
         <figure class="embedded-video">
-          <video controls preload="metadata" poster="/videos/hop-hop-hop.jpg">
-            <source src="/videos/hop-hop-hop.webm" type="video/webm" />
-            <source src="/videos/hop-hop-hop.mp4" type="video/mp4" />
+                    <video controls preload="metadata" poster="/media/video/hop-hop-hop.jpg">
+                        <source src="/media/video/hop-hop-hop.webm" type="video/webm" />
           </video>
         </figure>
 
@@ -18,7 +17,7 @@ If relative disabled (or RELATIVE_URLS False), it prefixes SITEURL.
 
 Limitations:
     - No fallback text beyond standard browser message.
-    - Assumes poster/MP4/WebM triplet exists.
+    - Assumes poster and WebM assets exist.
 """
 from __future__ import annotations
 
@@ -33,12 +32,10 @@ def build_video_html(name: str, siteurl: str, relative: bool, css_class: str) ->
     base = f"/media/video/{name}"
     poster = f"{base}.jpg"
     webm = f"{base}.webm"
-    mp4 = f"{base}.mp4"
     return (
         f'<figure class="{css_class}">\n'
         f'  <video controls preload="metadata" poster="{poster}">\n'
         f'    <source src="{webm}" type="video/webm" />\n'
-        f'    <source src="{mp4}" type="video/mp4" />\n'
         f'    Your browser does not support the video tag.\n'
         f'  </video>\n'
         f'</figure>'
