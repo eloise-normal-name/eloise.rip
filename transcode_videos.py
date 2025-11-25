@@ -3,6 +3,7 @@ web versions for Pelican static site.
 
 For videos: Creates MP4 (HEVC) + poster JPG
 For images: Creates AVIF + WebP + JPEG (+ PNG when transparency is detected)
+For audio: Creates AAC M4A
 
 Usage:
     python transcode_videos.py                     # default run
@@ -12,14 +13,15 @@ Usage:
 Requirements:
     - Python 3.8+
     - ffmpeg & ffprobe available on PATH
-    - (Optional) Pillow + pillow-heif for HEIC source conversion
+    - Pillow + pillow-heif for HEIC source conversion
 
 Strategy:
     1. Discover video and image files in source directory.
     2. For videos: create name.mp4 (HEVC) and name.jpg (poster @ 0.5s)
     3. For images: create name.avif, name.webp, name.jpg (and name.png when transparency is detected)
-    4. Downscale if either dimension exceeds --max-dimension while preserving aspect ratio.
-    5. Skip already existing outputs unless --force.
+    4. For audio: create name.m4a inside media/voice
+    5. Downscale if either dimension exceeds --max-dimension while preserving aspect ratio.
+    6. Skip already existing outputs unless --force.
 
 Exit codes:
     0 = success (even if no files processed)
@@ -34,29 +36,24 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-try:
-    from PIL import Image  # type: ignore
-except ImportError:
-    Image = None  # type: ignore
+from PIL import Image  # type: ignore
+import pillow_heif  # type: ignore
 
-try:
-    import pillow_heif  # type: ignore
-except ImportError:
-    pillow_heif = None  # type: ignore
-else:  # pragma: no cover - registration has no return
-    pillow_heif.register_heif_opener()
+pillow_heif.register_heif_opener()  # pragma: no cover - registration has no return
 
 
 # --- File Extensions ---
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".gif"}
 HEIC_EXT = {".heic", ".heif"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"} | HEIC_EXT
-ALLOWED_EXT = VIDEO_EXT | IMAGE_EXT
+AUDIO_EXT = {".wav", ".flac", ".m4a", ".mp3", ".ogg", ".mta", ".qta"}
+ALLOWED_EXT = VIDEO_EXT | IMAGE_EXT | AUDIO_EXT
 
 HQ_SUFFIX = "_hq"
 HQ_CRF_BONUS = 8  # Lower CRF by this amount (higher quality) for `_hq` masters
 HEVC_PRESET = "slow"  # Balance of speed/quality for libx265
 HEVC_AUDIO_BITRATE = "160k"
+AUDIO_BITRATE = "128k"
 
 
 # --- Utility Functions ---
@@ -86,6 +83,10 @@ def is_image_file(file_path: Path) -> bool:
     return file_path.suffix.lower() in IMAGE_EXT
 
 
+def is_audio_file(file_path: Path) -> bool:
+    return file_path.suffix.lower() in AUDIO_EXT
+
+
 def is_high_quality_variant(file_path: Path) -> bool:
     """Return True if filename stem ends with the configured HQ suffix."""
     return file_path.stem.lower().endswith(HQ_SUFFIX)
@@ -99,13 +100,6 @@ def prepare_image_source(src_file: Path) -> tuple[Path, Path | None, bool]:
     """Return an ffmpeg-ready path, temp dir (if any), and a success flag."""
     if not needs_heic_conversion(src_file):
         return src_file, None, True
-
-    if Image is None or pillow_heif is None:
-        print(
-            f"[WARN] HEIC input detected but Pillow/pillow-heif are not installed. "
-            f"Install them or provide a non-HEIC source: {src_file.name}"
-        )
-        return src_file, None, False
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="heic-convert-"))
     tmp_png = tmp_dir / f"{src_file.stem}.png"
@@ -219,6 +213,30 @@ def transcode_image(cfg, src_file: Path) -> None:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
+def transcode_audio(cfg, src_file: Path) -> None:
+    """Process audio files into M4A outputs suitable for web playback."""
+    name = src_file.stem
+    audio_dir = cfg.dest / 'voice'
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    m4a_out = audio_dir / f"{name}.m4a"
+
+    if not cfg.force and m4a_out.exists():
+        if not cfg.quiet:
+            print(f"[SKIP] {src_file.name} (audio output exists)")
+        return
+
+    print(f"  [AUDIO] M4A: voice/{m4a_out.name}")
+    audio_cmd = [
+        "ffmpeg", "-y", "-i", str(src_file),
+        "-vn",
+        "-c:a", "aac", "-b:a", AUDIO_BITRATE,
+        str(m4a_out)
+    ]
+    proc = run_ffmpeg(audio_cmd)
+    if proc.returncode != 0:
+        print(f"[WARN] Audio encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
+
+
 def transcode_video(cfg, src_file: Path) -> None:
     """Process video files into HEVC MP4 plus a poster still."""
     name = src_file.stem
@@ -262,11 +280,13 @@ def transcode_video(cfg, src_file: Path) -> None:
 
 
 def transcode_file(cfg, src_file: Path) -> None:
-    """Process a single media file (video or image)."""
+    """Process a single media file (video, image, or audio)."""
     if is_video_file(src_file):
         transcode_video(cfg, src_file)
     elif is_image_file(src_file):
         transcode_image(cfg, src_file)
+    elif is_audio_file(src_file):
+        transcode_audio(cfg, src_file)
     else:
         print(f"[WARN] Unknown file type: {src_file.name}")
         return

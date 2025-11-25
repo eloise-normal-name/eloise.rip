@@ -5,3 +5,4 @@ feedgenerator==2.1.0
 pytz
 Pillow==11.1.0
 # Optional: install pillow-heif separately for HEIC support when wheels are available
+pelican-jinja2content>=1.0

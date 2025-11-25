@@ -1,3 +1,4 @@
+from pathlib import Path
 
 # --- Site Information ---
 SITENAME = 'eloise.rip'
@@ -26,7 +27,11 @@ THEME = 'themes/cute-theme'
 
 # --- Plugins ---
 PLUGIN_PATHS = ['pelican-plugins']
-PLUGINS = ['video_embed', 'carousel_embed']
+PLUGINS = ['video_embed', 'carousel_embed', 'jinja2content']
+
+JINJA_GLOBALS = {
+    'Path': Path,
+}
 
 # --- Markdown Extensions ---
 MARKDOWN = {
