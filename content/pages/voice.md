@@ -3,7 +3,7 @@ Template: page
 
 {% set voice = namespace(dir=Path('content/media/voice'), done=0, total=720, percent=0.0, percent_str='0.00') %}
 {% if voice.dir.exists() %}
-  {% for pattern in ['*.m4a', '*.mp3', '*.wav', '*.ogg', '*.flac'] %}
+  {% for pattern in ['*.m4a'] %}
     {% set matches = voice.dir.glob(pattern) | list %}
     {% set voice.done = voice.done + (matches | length) %}
   {% endfor %}
@@ -86,10 +86,11 @@ From [harvardsentences.com](https://harvardsentences.com/)
 </div>
 
 <ol class="voice-list">
-	<li><audio src="media/voice/01-01.m4a" controls></audio></li>
-	<li><audio src="media/voice/01-02.m4a" controls></audio></li>
-	<li><audio src="media/voice/01-03.m4a" controls></audio></li>
-	<li><audio src="media/voice/01-04.m4a" controls></audio></li>
-	<li><audio src="media/voice/01-05.m4a" controls></audio></li>
-	<li><audio src="media/voice/01-06.m4a" controls></audio></li>
+{% if voice.dir.exists() %}
+  {% for pattern in ['*.m4a'] %}
+    {% for file in voice.dir.glob(pattern) | sort %}
+      <li><audio src="media/voice/{{ file.name }}" controls></audio></li>
+    {% endfor %}
+  {% endfor %}
+{% endif %}
 </ol>
