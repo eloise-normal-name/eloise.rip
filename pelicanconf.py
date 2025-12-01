@@ -3,7 +3,7 @@ from pathlib import Path
 # --- Site Information ---
 SITENAME = 'eloise.rip'
 SITEURL = 'https://eloise.rip'
-SITESUBTITLE = 'from the goblin hole 🕳'
+SITESUBTITLE = 'wintertime goblin hole 🕳❄'
 
 # --- Paths ---
 PATH = 'content'
