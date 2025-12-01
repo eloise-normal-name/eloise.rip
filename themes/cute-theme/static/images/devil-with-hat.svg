@@ -1,0 +1,37 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Face (Red with black outline) -->
+  <circle cx="32" cy="38" r="20" fill="#fd3f3f" stroke="#000000" stroke-width="2.5"/>
+
+  <!-- Eyes (Vertical Ovals - "more vertical oriented") -->
+  <ellipse cx="24" cy="36" rx="3" ry="4.5" fill="#000000" transform="rotate(10 24 36)"/>
+  <ellipse cx="40" cy="36" rx="3" ry="4.5" fill="#000000" transform="rotate(-10 40 36)"/>
+  
+  <!-- Eyebrows (Original Style - Frowning) -->
+  <path d="M18 30 L28 33" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M46 30 L36 33" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Mouth (Original Smirk - wider) -->
+  <path d="M24 45 Q32 50 40 45" fill="none" stroke="#000000" stroke-width="2.5" stroke-linecap="round"/>
+  
+  <!-- Beanie (Grey with black outline) -->
+  <!-- Main part - Smoother curve, less lumpy -->
+  <path d="M14 25 C 14 2, 44 -2, 50 25" fill="#90A4AE" stroke="#000000" stroke-width="2.5"/>
+  
+  <!-- Horns (Grey, part of hat) -->
+  <path d="M15 20 Q8 4 22 12" fill="#90A4AE" stroke="#000000" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M49 20 Q56 4 42 12" fill="#90A4AE" stroke="#000000" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- Cuff (Curved and Puffier) -->
+  <path d="M12 19 Q32 25 52 19 L52 28 Q32 34 12 28 Z" fill="#CFD8DC" stroke="#000000" stroke-width="2.5" stroke-linejoin="round"/>
+  
+  <!-- Ribbing on cuff -->
+  <line x1="20" y1="21" x2="20" y2="29" stroke="#000000" stroke-width="1.5" opacity="0.3"/>
+  <line x1="26" y1="22" x2="26" y2="30" stroke="#000000" stroke-width="1.5" opacity="0.3"/>
+  <line x1="32" y1="22.5" x2="32" y2="30.5" stroke="#000000" stroke-width="1.5" opacity="0.3"/>
+  <line x1="38" y1="22" x2="38" y2="30" stroke="#000000" stroke-width="1.5" opacity="0.3"/>
+  <line x1="44" y1="21" x2="44" y2="29" stroke="#000000" stroke-width="1.5" opacity="0.3"/>
+
+  <!-- Pompom - Adjusted to new peak -->
+  <circle cx="46" cy="6" r="4" fill="#ECEFF1" stroke="#000000" stroke-width="2.5"/>
+
+</svg>
