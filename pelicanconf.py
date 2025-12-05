@@ -20,7 +20,7 @@ PAGE_SAVE_AS = '{slug}.html'
 PAGE_URL = '{slug}.html'
 
 # --- Pagination ---
-DEFAULT_PAGINATION = 5
+DEFAULT_PAGINATION = 8
 
 # --- Theme Configuration ---
 THEME = 'themes/cute-theme'
