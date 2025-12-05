@@ -15,6 +15,14 @@
                     <h3 class="article-summary-title">
                         <a href="{{ SITEURL }}/{{ article.url }}">{{ article.title }}</a>
                     </h3>
+                    <div class="article-summary-meta">
+                        <time class="published" datetime="{{ article.date.isoformat() }}">
+                            📅 {{ article.date.strftime('%Y-%m-%d') }}
+                        </time>
+                        {% if article.category %}
+                            <span class="category">📂 {{ article.category }}</span>
+                        {% endif %}
+                    </div>
                     {% if media_thumbnail or video_url %}
                         <div class="article-summary-media">
                             <a href="{{ SITEURL }}/{{ article.url }}" aria-label="View {{ article.title|striptags }}">
@@ -36,19 +44,6 @@
                             </a>
                         </div>
                     {% endif %}
-                    <div class="article-summary-meta">
-                        <time class="published" datetime="{{ article.date.isoformat() }}">
-                            📅 {{ article.date.strftime('%Y-%m-%d') }}
-                        </time>
-                        
-                        {% if article.author %}
-                            <span class="author">👤 {{ article.author }}</span>
-                        {% endif %}
-                        
-                        {% if article.category %}
-                            <span class="category">📂 {{ article.category }}</span>
-                        {% endif %}
-                    </div>
                 </header>
 
                 <div class="article-summary-content">
