@@ -370,7 +370,6 @@ figure.embedded-video video {
   position: relative;
   overflow: hidden;
   transition: var(--transition-base);
-  width:fit-content;
 }
 
 .article::before,
@@ -559,6 +558,8 @@ figure.embedded-video video {
 .page-content picture img {
   max-height: clamp(320px, 70vh, 820px);
   object-fit: contain;
+  display: block;
+  margin: 1rem auto;
 }
 
 /* Links */
@@ -653,7 +654,7 @@ img {
 
 picture {
   display: block;
-  margin: 1rem 0;
+  margin: 1rem auto;
   max-width: 100%;
   height: auto;
 }
