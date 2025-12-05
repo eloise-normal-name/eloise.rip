@@ -8,10 +8,6 @@ Template: character-stats
 	<div class="jobs">Goblin • Bungler</div>
 	<ul>
 		<li>
-			<strong>Initials</strong>
-			<div>ELO</div>
-		</li>
-		<li>
 			<strong>Aliases</strong>
 			<div>
 				<span class="chip">Goblin</span>
@@ -63,7 +59,6 @@ Template: character-stats
 	
 	<div class="bio-lower-grid">
         <div class="contact-panel">
-			<h3>Contact</h3>
 			<div class="contact-grid">
 				<div class="contact-item">
 					<span class="contact-icon">✉️</span>
@@ -84,6 +79,17 @@ Template: character-stats
 					<div class="contact-details">
 						<strong>Ask Me Anything</strong>
 						<a href="https://ngl.link/eloise_normal_name">ngl.link/eloise_normal_name</a>
+					</div>
+				</div>
+				<div class="contact-item">
+					<span class="initials-glow">ELO</span>
+					<div class="contact-details">
+						<strong>Pinball</strong>
+						<div style="margin-top: 0.2rem;">
+							
+							<a href="https://www.ifpapinball.com/player.php?p=40838" class="chip chip--pinball" target="_blank" title="IFPA Profile">IFPA: 40838</a>
+							<a href="https://app.matchplay.events/users/19912" class="chip chip--pinball" target="_blank" title="MatchPlay Profile">MatchPlay: 19912</a>
+						</div>
 					</div>
 				</div>
 			</div>

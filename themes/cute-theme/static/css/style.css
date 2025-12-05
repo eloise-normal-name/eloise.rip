@@ -429,6 +429,8 @@ figure.embedded-video video {
 .article-summary-meta span,
 .category,
 .article-date {
+  display: inline-flex;
+  align-items: center;
   background: var(--border-color);
   padding: 0.18rem 0.5rem;
   border-radius: 10px;
@@ -437,23 +439,16 @@ figure.embedded-video video {
 
 .category {
   font-size: 0.78rem;
-  color: var(--text-light);
   font-weight: 600;
-  display: inline-block;
-  margin-right: 0.4rem;
-  vertical-align: middle;
 }
 
 .article-date {
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
   min-width: 3rem;
   padding: 0.18rem 0.65rem;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(255, 217, 61, 0.28), rgba(255, 107, 157, 0.18));
   color: var(--primary-color);
-  font-weight: 500;
   font-family: var(--heading-font);
   font-size: 0.78rem;
   letter-spacing: 0.03em;
@@ -552,6 +547,8 @@ figure.embedded-video video {
 
 .article-summary-content {
   max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 
@@ -560,9 +557,9 @@ figure.embedded-video video {
 .article-content picture img,
 .page-content picture img {
   max-height: clamp(320px, 70vh, 820px);
-  /* width: auto; */
-  /* height: auto; */
   object-fit: contain;
+  display: block;
+  margin: 1rem auto;
 }
 
 /* Links */
@@ -657,7 +654,7 @@ img {
 
 picture {
   display: block;
-  margin: 1rem 0;
+  margin: 1rem auto;
   max-width: 100%;
   height: auto;
 }
@@ -676,7 +673,7 @@ picture img,
 }
 
 .article-summary-media {
-  --summary-media-max-height: clamp(180px, 28vw, 300px);
+  --summary-media-max-height: clamp(220px, 40vw, 320px);
   --summary-media-ratio: 1;
   flex: 0 0 auto;
   height: var(--summary-media-max-height);
