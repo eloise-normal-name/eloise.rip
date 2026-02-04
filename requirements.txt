@@ -4,5 +4,6 @@ beautifulsoup4==4.12.3
 feedgenerator==2.1.0
 pytz
 Pillow==11.1.0
+requests>=2.31.0
 # Optional: install pillow-heif separately for HEIC support when wheels are available
 pelican-jinja2content>=1.0
