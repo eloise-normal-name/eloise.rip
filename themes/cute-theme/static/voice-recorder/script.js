@@ -1,4 +1,4 @@
-// Voice Recorder - 60fps animation with configurable bars, silence trimming, and video export
+// Voice Recorder - 30fps animation with configurable bars, silence trimming, and video export
 
 // ============================================================================
 // Configuration Constants
@@ -6,7 +6,7 @@
 
 const CONFIG = {
     MAX_DURATION: 60.0,        // seconds
-    FRAME_RATE: 60,            // fps (may be reduced on some devices)
+    FRAME_RATE: 30,            // fps
     SILENCE_THRESHOLD: -40,    // dB
     SILENCE_WINDOW: 0.1,       // seconds (100ms)
     CANVAS_WIDTH: 800,
@@ -22,10 +22,7 @@ const CONFIG = {
 // Platform detection
 const IS_IOS = typeof navigator !== 'undefined' && (/iP(hone|od|ad)/.test(navigator.platform) || (navigator.userAgent && /iPad|iPhone|iPod/.test(navigator.userAgent)) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)));
 
-// If on iOS, reduce frame rate for stability
-if (IS_IOS) {
-    CONFIG.FRAME_RATE = 30;
-} 
+
 
 // ============================================================================
 // State Management
@@ -253,7 +250,7 @@ function stopRecording() {
 }
 
 // ============================================================================
-// Canvas Animation (60fps)
+// Canvas Animation (30fps)
 // ============================================================================
 
 function startCanvasAnimation() {
