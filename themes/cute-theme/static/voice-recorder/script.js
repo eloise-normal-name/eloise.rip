@@ -5,7 +5,7 @@
 // ============================================================================
 
 const CONFIG = {
-    MAX_DURATION: 10.0,        // seconds
+    MAX_DURATION: 60.0,        // seconds
     FRAME_RATE: 60,            // fps
     SILENCE_THRESHOLD: -40,    // dB
     SILENCE_WINDOW: 0.1,       // seconds (100ms)
@@ -27,13 +27,9 @@ let state = {
     stream: null,
     startTime: null,
     elapsedTime: 0,
-    barMode: 'finite',
-    barCount: 20,
-    barUnit: 0.5,
-    trimEnabled: true,
-    trimmedDuration: null,
-    trimmedAudioBuffer: null,
-    originalDuration: null,
+    barUnit: 0.05,  // Fixed at 0.05 seconds per bar
+    recordedDuration: null,
+    audioBuffer: null,
     audioAnalyser: null,
     audioData: [],  // Store frequency data indexed by frame
     analyserNode: null,
@@ -47,37 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const recordBtn = document.getElementById('recordBtn');
     const stopBtn = document.getElementById('stopBtn');
     const previewBtn = document.getElementById('previewBtn');
-    const trimToggle = document.getElementById('trimToggle');
-    const barCountInput = document.getElementById('barCount');
-    const barUnitInput = document.getElementById('barUnit');
-    const modeRadios = document.querySelectorAll('input[name="barMode"]');
     const downloadVideoBtn = document.getElementById('downloadVideoBtn');
     const downloadAudioBtn = document.getElementById('downloadAudioBtn');
 
     recordBtn.addEventListener('click', startRecording);
     stopBtn.addEventListener('click', stopRecording);
     previewBtn.addEventListener('click', previewVideo);
-    trimToggle.addEventListener('change', (e) => {
-        state.trimEnabled = e.target.checked;
-        updateStatus();
-    });
-
-    barCountInput.addEventListener('change', (e) => {
-        state.barCount = parseInt(e.target.value) || 20;
-    });
-
-    barUnitInput.addEventListener('change', (e) => {
-        state.barUnit = parseFloat(e.target.value) || 0.5;
-    });
-
-    modeRadios.forEach(radio => {
-        radio.addEventListener('change', (e) => {
-            state.barMode = e.target.value;
-            barCountInput.disabled = state.barMode !== 'finite';
-            barUnitInput.disabled = state.barMode !== 'varying';
-            updateStatus();
-        });
-    });
 
     downloadVideoBtn.addEventListener('click', generateVideo);
     downloadAudioBtn.addEventListener('click', downloadAudio);
@@ -109,7 +80,7 @@ async function startRecording() {
         state.mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
         state.mediaRecorder.onstop = async () => {
             state.recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            state.originalDuration = CONFIG.MAX_DURATION;
+            state.recordedDuration = state.elapsedTime;
             await processRecording();
         };
 
@@ -173,8 +144,10 @@ function startCanvasAnimation() {
         if (state.analyserNode) {
             const dataArray = new Uint8Array(state.analyserNode.frequencyBinCount);
             state.analyserNode.getByteFrequencyData(dataArray);
-            const avgFreq = dataArray.reduce((a, b) => a + b) / dataArray.length / 255;
-            state.audioData[frameCount] = avgFreq;
+            // Use RMS for better amplitude representation
+            const rms = Math.sqrt(dataArray.reduce((sum, val) => sum + val * val, 0) / dataArray.length);
+            const normalized = Math.min(1.0, rms / 128);  // Normalize to 0-1 range
+            state.audioData[frameCount] = normalized;
         }
 
         drawProgressBars(ctx, canvas, progress, frameCount);
@@ -194,29 +167,42 @@ function startCanvasAnimation() {
 }
 
 function drawProgressBars(ctx, canvas, progress, frameCount = 0) {
-    const barCount = state.barMode === 'finite' ? state.barCount : 20;
+    // Calculate bar count based on duration and bar unit (0.05s per bar)
+    // During recording: use elapsed time (normalize to current recording length)
+    // During playback: use full recorded duration
+    const duration = state.isRecording 
+        ? state.elapsedTime 
+        : (state.recordedDuration || CONFIG.MAX_DURATION);
+    const barCount = Math.max(5, Math.floor(duration / state.barUnit));
+    
     const barWidth = canvas.width / barCount;
-    const filledBars = Math.floor(progress * barCount);
+    
+    // Progress determines how far through the bars we are (0.0 to 1.0)
+    const progressPosition = progress * barCount;
 
     for (let i = 0; i < barCount; i++) {
         const x = i * barWidth;
-        const isFilled = i < filledBars;
+        
+        // Bar is filled if it's before the progress position
+        const isFilled = i < progressPosition;
         
         // Get audio intensity for this bar (normalized 0-1)
-        let audioIntensity = 0.5;  // Default middle height
+        let audioIntensity = 0.1;  // Default minimal height
         if (state.audioData.length > 0) {
             const framePerBar = Math.max(1, Math.floor(state.audioData.length / barCount));
             const barFrameIndex = Math.floor(i * framePerBar);
             if (barFrameIndex < state.audioData.length) {
-                audioIntensity = Math.max(0.2, state.audioData[barFrameIndex]);
+                // Use actual audio intensity, amplify it for visibility
+                audioIntensity = Math.max(0.05, Math.min(1.0, state.audioData[barFrameIndex] * 1.5));
             }
         }
 
         ctx.fillStyle = isFilled ? CONFIG.BAR_COLOR_FILLED : CONFIG.BAR_COLOR_EMPTY;
         
-        // Draw bar with height based on audio intensity
-        const barHeight = (canvas.height - 20) * audioIntensity;
-        const barY = canvas.height - 10 - barHeight;
+        // Draw bar with height based on audio intensity, vertically centered
+        const maxBarHeight = canvas.height - 20;
+        const barHeight = maxBarHeight * audioIntensity;
+        const barY = (canvas.height - barHeight) / 2;  // Center vertically
         ctx.fillRect(x + 2, barY, barWidth - 4, barHeight);
 
         ctx.strokeStyle = '#ddd';
@@ -234,14 +220,7 @@ async function processRecording() {
 
     try {
         const arrayBuffer = await state.recordedBlob.arrayBuffer();
-        const audioBuffer = await state.audioContext.decodeAudioData(arrayBuffer);
-
-        if (state.trimEnabled) {
-            await trimSilence(audioBuffer);
-        } else {
-            state.trimmedAudioBuffer = audioBuffer;
-            state.trimmedDuration = state.originalDuration;
-        }
+        state.audioBuffer = await state.audioContext.decodeAudioData(arrayBuffer);
 
         enableDownloadButtons();
         updateStatus();
@@ -250,69 +229,6 @@ async function processRecording() {
         console.error('Error processing recording:', err);
         updateStatus('Error processing audio');
     }
-}
-
-async function trimSilence(audioBuffer) {
-    updateStatus('Trimming silence...');
-
-    const sampleRate = audioBuffer.sampleRate;
-    const windowSize = Math.floor(sampleRate * CONFIG.SILENCE_WINDOW);
-    const channelData = audioBuffer.getChannelData(0);
-
-    // Find silence windows
-    let windows = [];
-    for (let i = 0; i < channelData.length; i += windowSize) {
-        const chunk = channelData.slice(i, i + windowSize);
-        const rms = Math.sqrt(chunk.reduce((sum, val) => sum + val * val, 0) / chunk.length);
-        const db = 20 * Math.log10(rms || 0.0001);
-        windows.push({ index: i, db });
-    }
-
-    // Find first and last non-silent windows
-    let startWindow = 0;
-    let endWindow = windows.length - 1;
-
-    for (let i = 0; i < windows.length; i++) {
-        if (windows[i].db > CONFIG.SILENCE_THRESHOLD) {
-            startWindow = Math.max(0, i - 1);
-            break;
-        }
-    }
-
-    for (let i = windows.length - 1; i >= 0; i--) {
-        if (windows[i].db > CONFIG.SILENCE_THRESHOLD) {
-            endWindow = Math.min(windows.length - 1, i + 1);
-            break;
-        }
-    }
-
-    const startSample = startWindow * windowSize;
-    const endSample = Math.min((endWindow + 1) * windowSize, channelData.length);
-
-    // Ensure minimum length of 1 second
-    if ((endSample - startSample) / sampleRate < 1.0) {
-        state.trimmedAudioBuffer = audioBuffer;
-        state.trimmedDuration = state.originalDuration;
-        updateStatus('Recording too short, using full audio');
-        return;
-    }
-
-    // Create trimmed buffer
-    const trimmedLength = endSample - startSample;
-    const trimmedBuffer = state.audioContext.createBuffer(
-        audioBuffer.numberOfChannels,
-        trimmedLength,
-        sampleRate
-    );
-
-    for (let ch = 0; ch < audioBuffer.numberOfChannels; ch++) {
-        const source = audioBuffer.getChannelData(ch);
-        const target = trimmedBuffer.getChannelData(ch);
-        target.set(source.slice(startSample, endSample));
-    }
-
-    state.trimmedAudioBuffer = trimmedBuffer;
-    state.trimmedDuration = trimmedLength / sampleRate;
 }
 
 function enableDownloadButtons() {
@@ -364,12 +280,12 @@ async function previewVideo() {
 
 async function encodeCanvasVideo(canvas) {
     const stream = canvas.captureStream(CONFIG.FRAME_RATE);
-    const duration = state.trimmedDuration;
+    const duration = state.recordedDuration;
 
-    // Create audio destination and play trimmed buffer
+    // Create audio destination and play buffer
     const audioDestination = state.audioContext.createMediaStreamDestination();
     const audioSource = state.audioContext.createBufferSource();
-    audioSource.buffer = state.trimmedAudioBuffer;
+    audioSource.buffer = state.audioBuffer;
     audioSource.connect(audioDestination);
 
     // Add audio track to video stream
@@ -388,26 +304,27 @@ async function encodeCanvasVideo(canvas) {
 
         mediaRecorder.start();
 
-        // Render canvas animation synchronized with audio
+        // Render canvas animation synchronized with audio using performance.now()
         const ctx = canvas.getContext('2d');
-        const frameDuration = 1 / CONFIG.FRAME_RATE;
-        let currentTime = 0;
-        let frameCount = 0;
         const totalFrames = Math.ceil(duration * CONFIG.FRAME_RATE);
+        let frameCount = 0;
+        let startTime = null;
 
-        const renderFrame = () => {
-            const progress = currentTime / duration;
+        const renderFrame = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const elapsed = (timestamp - startTime) / 1000;  // Convert to seconds
+            const progress = Math.min(elapsed / duration, 1.0);
+            
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            drawProgressBars(ctx, canvas, Math.min(progress, 1.0), frameCount);
+            drawProgressBars(ctx, canvas, progress, frameCount);
 
             frameCount++;
-            currentTime += frameDuration;
 
-            if (frameCount < totalFrames) {
+            if (elapsed < duration) {
                 requestAnimationFrame(renderFrame);
             } else {
-                // Stop recording after all frames rendered
+                // Stop recording after duration complete
                 setTimeout(() => {
                     mediaRecorder.stop();
                     stream.getTracks().forEach(track => track.stop());
@@ -418,38 +335,38 @@ async function encodeCanvasVideo(canvas) {
 
         // Start audio and canvas animation together
         audioSource.start(0);
-        renderFrame();
+        requestAnimationFrame(renderFrame);
     });
 }
 
 async function playCanvasVideo(canvas) {
-    const duration = state.trimmedDuration;
+    const duration = state.recordedDuration;
 
-    // Create audio destination and play trimmed buffer
+    // Create audio destination and play buffer
     const audioDestination = state.audioContext.createMediaStreamDestination();
     const audioSource = state.audioContext.createBufferSource();
-    audioSource.buffer = state.trimmedAudioBuffer;
+    audioSource.buffer = state.audioBuffer;
     audioSource.connect(audioDestination);
     audioSource.connect(state.audioContext.destination);  // Also connect to speakers
 
-    // Render canvas animation synchronized with audio
+    // Render canvas animation synchronized with audio using performance.now()
     const ctx = canvas.getContext('2d');
-    const frameDuration = 1 / CONFIG.FRAME_RATE;
-    let currentTime = 0;
     let frameCount = 0;
-    const totalFrames = Math.ceil(duration * CONFIG.FRAME_RATE);
+    let startTime = null;
 
     return new Promise((resolve) => {
-        const renderFrame = () => {
-            const progress = currentTime / duration;
+        const renderFrame = (timestamp) => {
+            if (!startTime) startTime = timestamp;
+            const elapsed = (timestamp - startTime) / 1000;  // Convert to seconds
+            const progress = Math.min(elapsed / duration, 1.0);
+            
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            drawProgressBars(ctx, canvas, Math.min(progress, 1.0), frameCount);
+            drawProgressBars(ctx, canvas, progress, frameCount);
 
             frameCount++;
-            currentTime += frameDuration;
 
-            if (frameCount < totalFrames) {
+            if (elapsed < duration) {
                 requestAnimationFrame(renderFrame);
             } else {
                 audioSource.stop();
@@ -459,7 +376,7 @@ async function playCanvasVideo(canvas) {
 
         // Start audio and canvas animation together
         audioSource.start(0);
-        renderFrame();
+        requestAnimationFrame(renderFrame);
     });
 }
 
@@ -497,12 +414,8 @@ function updateStatus(text) {
 
     if (state.isRecording) {
         statusText.textContent = `Recording: ${state.elapsedTime.toFixed(1)}s / ${CONFIG.MAX_DURATION}s`;
-    } else if (state.trimmedAudioBuffer) {
-        if (state.trimEnabled && state.trimmedDuration < state.originalDuration) {
-            statusText.textContent = `Recorded: ${state.originalDuration.toFixed(1)}s → Trimmed: ${state.trimmedDuration.toFixed(1)}s`;
-        } else {
-            statusText.textContent = `Recorded: ${state.originalDuration.toFixed(1)}s`;
-        }
+    } else if (state.audioBuffer) {
+        statusText.textContent = `Recorded: ${state.recordedDuration.toFixed(1)}s`;
     } else {
         statusText.textContent = 'Ready';
     }
