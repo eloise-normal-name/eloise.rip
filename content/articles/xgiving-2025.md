@@ -3,7 +3,7 @@ Date: 2025-11-30
 Summary: Clobbered by kids, cuddles with kitties
 Category: Self
 Tags: Catgirl, Panther, Gooning
-thumbnail: images/xgiving-catgirl-goblin-self-checkout.webp
+thumbnail: images/xgiving-catgirl-goblin-self-checkout.avif
 
 # X-day
 
@@ -17,7 +17,7 @@ I didn't have enough time and abandoned that idea.
 It turned out that everyone was running late anyway, which is
 what I think happens every year but I always forget. 
 
-![Self Checkout](../media/images/xgiving-catgirl-goblin-self-checkout.webp)<br/>*At the Phair castle*
+![Self Checkout](../media/images/xgiving-catgirl-goblin-self-checkout.avif)<br/>*At the Phair castle*
 
 I got super drained of battery from being around kids. Julia
 started tackling me which was fun and cute but exhausting.
@@ -43,9 +43,9 @@ On Friday, Catgirl and I visited Diane's with Eggy Jeff, Dirty Jeff,
 and Landy. I didn't take photos of them, but I got a bunch of Panther.
 
 [[carousel:label=Selfies with Panther and Catgirl;
-media/images/xgiving-looking-at-catgirl.webp|Looking at Catgirl;
-media/images/xgiving-gobbo-food.webp|Food time;
-media/images/xgiving-goblin-panther-catgirl.webp|With Panther and Catgirl;]]
+media/images/xgiving-looking-at-catgirl.avif|Looking at Catgirl;
+media/images/xgiving-gobbo-food.avif|Food time;
+media/images/xgiving-goblin-panther-catgirl.avif|With Panther and Catgirl;]]
 *3 images*
 
 Catgirl drew a little cat face on his collar, which had been blank
@@ -58,9 +58,9 @@ blowdryer on him after, and he seemed to like it. He got into a very
 satisfied looking cat-pear pose 🍐.
 
 [[carousel:label=Panther at xgiving;
-media/images/xgiving-panther-with-collar.webp|So handsome!;
-media/images/xgiving-panther-cuddle.webp|Cuddle time;
-media/images/xgiving-panther-fireplace.webp|Toasty kitty;]]
+media/images/xgiving-panther-with-collar.avif|So handsome!;
+media/images/xgiving-panther-cuddle.avif|Cuddle time;
+media/images/xgiving-panther-fireplace.avif|Toasty kitty;]]
 *3 images*
 
 # Pole Practice
@@ -73,4 +73,4 @@ in the second video.
 
 ## I don't remember this context but it's cute
 We must have been moseying around in the moist for a bit?
-![Catgirl trying to share a brella](../media/images/xgiving-comic.webp)
+![Catgirl trying to share a brella](../media/images/xgiving-comic.avif)

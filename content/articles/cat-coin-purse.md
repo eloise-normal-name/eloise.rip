@@ -14,7 +14,7 @@ Demo opening the zipper
 [[video:cat-purse-demo]]
 
 I used blender to create the sewing pattern
-![Design in blender](../media/images/cat-purse-blender.png)
+![Design in blender](../media/images/cat-purse-blender.avif)
 
 
 

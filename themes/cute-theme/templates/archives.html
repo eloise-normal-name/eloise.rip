@@ -3,9 +3,9 @@
 {% block title %}Blog Posts{% endblock %}
 
 {% block content %}
-<h2 class="section-title">📚 Posts</h2>
 
 <div class="category-page article">
+    <h2 class="section-title">📚 Posts</h2>
     {% for year, year_group in dates|groupby('date.year')|reverse %}
         <section class="year-section">
             <h2 class="year-title">{{ year }}</h2>

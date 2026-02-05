@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 ### Building the Site
 ```bash
-pelican content -s pelicanconf.py  # Generate site to output/
+pelican content -ds pelicanconf.py  # Generate site to output/
 ```
 
 ### Media Transcoding

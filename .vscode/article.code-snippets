@@ -16,5 +16,14 @@
       "",
       "[[video:${8}]]"
     ]
+  },
+  "Carousel Embed": {
+    "prefix": "carousel",
+    "description": "Image carousel with label and multiple images",
+    "body": [
+      "[[carousel:label=${1:Photo set};",
+      "          ${2:media/images/image1.jpg}|${3:Caption for image 1};",
+      "          ${4:media/images/image2.jpg}|${5:Caption for image 2}]]"
+    ]
   }
 }
