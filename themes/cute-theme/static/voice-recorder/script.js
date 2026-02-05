@@ -11,8 +11,11 @@ const CONFIG = {
     SILENCE_WINDOW: 0.1,       // seconds (100ms)
     CANVAS_WIDTH: 800,
     CANVAS_HEIGHT: 200,
-    BAR_COLOR_FILLED: '#d19fb8',
-    BAR_COLOR_EMPTY: '#cccccc',
+    BAR_COLOR_FILLED_START: '#f5a5b8',   // Light pink gradient start
+    BAR_COLOR_FILLED_END: '#d19fb8',     // Darker pink gradient end
+    BAR_COLOR_EMPTY_START: '#e8e8e8',    // Light grey gradient start
+    BAR_COLOR_EMPTY_END: '#cccccc',      // Darker grey gradient end
+    BAR_GLOW_COLOR: '#f5a5b8',           // Glow color for filled bars
 };
 
 // ============================================================================
@@ -109,11 +112,21 @@ async function startRecording() {
 function stopRecording() {
     if (!state.isRecording) return;
 
+    // Calculate final duration before stopping
+    const finalTime = (Date.now() - state.startTime) / 1000;
+    state.recordedDuration = finalTime;
+    
     state.isRecording = false;
     state.mediaRecorder.stop();
 
     // Stop all audio tracks
     state.stream.getTracks().forEach(track => track.stop());
+
+    // Render final frame with all bars (progress = 1.0 to show all bars)
+    const canvas = document.getElementById('recordingCanvas');
+    const ctx = canvas.getContext('2d');
+    const finalFrameCount = state.audioData.length - 1;
+    drawProgressBars(ctx, canvas, 1.0, finalFrameCount);
 
     document.getElementById('recordBtn').disabled = false;
     document.getElementById('stopBtn').disabled = true;
@@ -130,9 +143,7 @@ function startCanvasAnimation() {
     let frameCount = 0;
 
     function drawBars() {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+        // Background is drawn by drawProgressBars
         if (!state.isRecording) {
             return;
         }
@@ -180,6 +191,21 @@ function drawProgressBars(ctx, canvas, progress, frameCount = 0) {
     // Progress determines how far through the bars we are (0.0 to 1.0)
     const progressPosition = progress * barCount;
 
+    // Draw stylized background with subtle gradient
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGradient.addColorStop(0, '#fafafa');
+    bgGradient.addColorStop(1, '#f5f5f5');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw center line
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+
     for (let i = 0; i < barCount; i++) {
         const x = i * barWidth;
         
@@ -192,22 +218,73 @@ function drawProgressBars(ctx, canvas, progress, frameCount = 0) {
             const framePerBar = Math.max(1, Math.floor(state.audioData.length / barCount));
             const barFrameIndex = Math.floor(i * framePerBar);
             if (barFrameIndex < state.audioData.length) {
-                // Use actual audio intensity, amplify it for visibility
-                audioIntensity = Math.max(0.05, Math.min(1.0, state.audioData[barFrameIndex] * 1.5));
+                audioIntensity = Math.max(0.08, Math.pow(Math.min(1.0, state.audioData[barFrameIndex] * 1.1), 2));
             }
         }
-
-        ctx.fillStyle = isFilled ? CONFIG.BAR_COLOR_FILLED : CONFIG.BAR_COLOR_EMPTY;
         
         // Draw bar with height based on audio intensity, vertically centered
         const maxBarHeight = canvas.height - 20;
         const barHeight = maxBarHeight * audioIntensity;
         const barY = (canvas.height - barHeight) / 2;  // Center vertically
-        ctx.fillRect(x + 2, barY, barWidth - 4, barHeight);
+        const barPadding = Math.max(1, barWidth * 0.15);  // 15% padding
 
-        ctx.strokeStyle = '#ddd';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x + 2, barY, barWidth - 4, barHeight);
+        // Add glow effect for filled bars with color varying by height
+        if (isFilled) {
+            ctx.shadowBlur = 8 + (audioIntensity * 3);  // Slightly stronger glow for taller bars
+            // Use theme colors: primary (#ff6b9d pink), accent (#74c0fc blue)
+            // Subtle blend from blue to pink based on intensity (50% less range)
+            const r = Math.round(116 + (audioIntensity * 70));   // 116 → 186 (was 255)
+            const g = Math.round(192 - (audioIntensity * 43));   // 192 → 149 (was 107)
+            const b = Math.round(252 - (audioIntensity * 48));   // 252 → 204 (was 157)
+            ctx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+        } else {
+            ctx.shadowBlur = 0;
+        }
+
+        // Create vertical gradient for bar with theme colors (subtle variation)
+        const gradient = ctx.createLinearGradient(x, barY, x, barY + barHeight);
+        if (isFilled) {
+            // Subtle blend from blue (#74c0fc) toward pink (#ff6b9d) based on intensity
+            const blend = audioIntensity * 0.6;  // Reduced from full range to 60%
+            const baseR = 116, baseG = 192, baseB = 252;  // Blue base
+            const targetR = 255, targetG = 107, targetB = 157;  // Pink target
+            
+            // Calculate color with reduced blend amount
+            const r = Math.round(baseR + (targetR - baseR) * blend);
+            const g = Math.round(baseG + (targetG - baseG) * blend);
+            const b = Math.round(baseB + (targetB - baseB) * blend);
+            
+            // Subtle vertical gradient
+            gradient.addColorStop(0, `rgb(${Math.min(255, r + 10)}, ${Math.max(0, g - 5)}, ${Math.max(0, b - 5)})`);
+            gradient.addColorStop(0.5, `rgb(${r}, ${g}, ${b})`);
+            gradient.addColorStop(1, `rgb(${Math.max(0, r - 15)}, ${Math.max(0, g - 10)}, ${Math.max(0, b - 15)})`);
+        } else {
+            gradient.addColorStop(0, CONFIG.BAR_COLOR_EMPTY_START);
+            gradient.addColorStop(1, CONFIG.BAR_COLOR_EMPTY_END);
+        }
+        
+        ctx.fillStyle = gradient;
+        
+        // Draw rounded rectangle
+        const barX = x + barPadding;
+        const barWidthAdjusted = barWidth - (barPadding * 2);
+        const radius = Math.min(2, barWidthAdjusted / 2);
+        
+        ctx.beginPath();
+        ctx.moveTo(barX + radius, barY);
+        ctx.lineTo(barX + barWidthAdjusted - radius, barY);
+        ctx.quadraticCurveTo(barX + barWidthAdjusted, barY, barX + barWidthAdjusted, barY + radius);
+        ctx.lineTo(barX + barWidthAdjusted, barY + barHeight - radius);
+        ctx.quadraticCurveTo(barX + barWidthAdjusted, barY + barHeight, barX + barWidthAdjusted - radius, barY + barHeight);
+        ctx.lineTo(barX + radius, barY + barHeight);
+        ctx.quadraticCurveTo(barX, barY + barHeight, barX, barY + barHeight - radius);
+        ctx.lineTo(barX, barY + radius);
+        ctx.quadraticCurveTo(barX, barY, barX + radius, barY);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Reset shadow
+        ctx.shadowBlur = 0;
     }
 }
 
@@ -315,13 +392,11 @@ async function encodeCanvasVideo(canvas) {
             const elapsed = (timestamp - startTime) / 1000;  // Convert to seconds
             const progress = Math.min(elapsed / duration, 1.0);
             
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawProgressBars(ctx, canvas, progress, frameCount);
 
             frameCount++;
 
-            if (elapsed < duration) {
+            if (elapsed < duration + 0.1) {  // Add 0.1s buffer to prevent early truncation
                 requestAnimationFrame(renderFrame);
             } else {
                 // Stop recording after duration complete
@@ -360,8 +435,6 @@ async function playCanvasVideo(canvas) {
             const elapsed = (timestamp - startTime) / 1000;  // Convert to seconds
             const progress = Math.min(elapsed / duration, 1.0);
             
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawProgressBars(ctx, canvas, progress, frameCount);
 
             frameCount++;
