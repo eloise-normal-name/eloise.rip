@@ -6,17 +6,26 @@
 
 const CONFIG = {
     MAX_DURATION: 60.0,        // seconds
-    FRAME_RATE: 60,            // fps
+    FRAME_RATE: 60,            // fps (may be reduced on some devices)
     SILENCE_THRESHOLD: -40,    // dB
     SILENCE_WINDOW: 0.1,       // seconds (100ms)
     CANVAS_WIDTH: 800,
     CANVAS_HEIGHT: 200,
+    SMOOTHING_ALPHA: 0.18,     // smoothing for audio values (0-1)
     BAR_COLOR_FILLED_START: '#f5a5b8',   // Light pink gradient start
     BAR_COLOR_FILLED_END: '#d19fb8',     // Darker pink gradient end
     BAR_COLOR_EMPTY_START: '#e8e8e8',    // Light grey gradient start
     BAR_COLOR_EMPTY_END: '#cccccc',      // Darker grey gradient end
     BAR_GLOW_COLOR: '#f5a5b8',           // Glow color for filled bars
 };
+
+// Platform detection
+const IS_IOS = typeof navigator !== 'undefined' && (/iP(hone|od|ad)/.test(navigator.platform) || (navigator.userAgent && /iPad|iPhone|iPod/.test(navigator.userAgent)) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform)));
+
+// If on iOS, reduce frame rate for stability
+if (IS_IOS) {
+    CONFIG.FRAME_RATE = 30;
+} 
 
 // ============================================================================
 // State Management
@@ -61,8 +70,31 @@ document.addEventListener('DOMContentLoaded', () => {
         saveToPhotosBtn.addEventListener('click', saveToPhotos);
     }
 
+    const exportHevcBtn = document.getElementById('exportHevcBtn');
+    if (exportHevcBtn) {
+        exportHevcBtn.addEventListener('click', exportHevcMov);
+    }
+
     // Initialize audio context
     state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Configure canvas for devicePixelRatio to avoid flicker/aliasing on Retina displays
+    function configureCanvas() {
+        const canvas = document.getElementById('recordingCanvas');
+        if (!canvas) return;
+        const dpr = window.devicePixelRatio || 1;
+        // Set logical canvas size (CSS width remains responsive)
+        canvas.width = Math.round(CONFIG.CANVAS_WIDTH * dpr);
+        canvas.height = Math.round(CONFIG.CANVAS_HEIGHT * dpr);
+        canvas.style.width = `${Math.min(CONFIG.CANVAS_WIDTH, canvas.parentElement.clientWidth)}px`;
+        canvas.style.height = `${CONFIG.CANVAS_HEIGHT}px`;
+        const ctx = canvas.getContext('2d');
+        // Scale drawing operations to account for DPR
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    configureCanvas();
+    window.addEventListener('resize', configureCanvas);
 
     updateStatus();
 });
@@ -139,6 +171,9 @@ async function startRecording() {
         state.analyserNode = state.audioContext.createAnalyser();
         state.analyserNode.fftSize = 256;
         audioSource.connect(state.analyserNode);
+
+        // Initialize smoothed audio buffer for stable rendering
+        state.smoothedAudioData = [];
 
         const audioChunks = [];
         state.mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
@@ -298,12 +333,20 @@ function drawProgressBars(ctx, canvas, progress, frameCount = 0) {
         const isFilled = i < progressPosition;
         
         // Get audio intensity for this bar (normalized 0-1)
-        let audioIntensity = 0.1;  // Default minimal height
+        let audioIntensity = 0.08;  // Default minimal height
         if (state.audioData.length > 0) {
             const framePerBar = Math.max(1, Math.floor(state.audioData.length / barCount));
             const barFrameIndex = Math.floor(i * framePerBar);
             if (barFrameIndex < state.audioData.length) {
-                audioIntensity = Math.max(0.08, Math.pow(Math.min(1.0, state.audioData[barFrameIndex] * 1.1), 2));
+                // Raw value scaled for visibility
+                const raw = Math.min(1.0, state.audioData[barFrameIndex] * 1.1);
+                // Apply gentle curve but keep dynamic range (avoid squaring which exaggerates small differences)
+                const scaled = Math.max(0.05, raw);
+                // Smooth abrupt changes to reduce flicker using exponential moving average
+                const prev = state.smoothedAudioData[i] ?? scaled;
+                const alpha = CONFIG.SMOOTHING_ALPHA ?? 0.18;
+                audioIntensity = prev * (1 - alpha) + scaled * alpha;
+                state.smoothedAudioData[i] = audioIntensity;
             }
         }
         
@@ -315,13 +358,19 @@ function drawProgressBars(ctx, canvas, progress, frameCount = 0) {
 
         // Add glow effect for filled bars with color varying by height
         if (isFilled) {
-            ctx.shadowBlur = 8 + (audioIntensity * 3);  // Slightly stronger glow for taller bars
-            // Use theme colors: primary (#ff6b9d pink), accent (#74c0fc blue)
-            // Subtle blend from blue to pink based on intensity (50% less range)
-            const r = Math.round(116 + (audioIntensity * 70));   // 116 → 186 (was 255)
-            const g = Math.round(192 - (audioIntensity * 43));   // 192 → 149 (was 107)
-            const b = Math.round(252 - (audioIntensity * 48));   // 252 → 204 (was 157)
-            ctx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+            // Slightly reduced blur on iOS for performance/stability
+            const blurBase = IS_IOS ? 5 : 8;
+            const blurScale = IS_IOS ? (audioIntensity * 2) : (audioIntensity * 3);
+            ctx.shadowBlur = blurBase + blurScale;
+
+            // Subtle theme-based blend
+            const blend = audioIntensity * 0.55;
+            const baseR = 116, baseG = 192, baseB = 252;  // Blue base
+            const targetR = 255, targetG = 107, targetB = 157;  // Pink target
+            const r = Math.round(baseR + (targetR - baseR) * blend);
+            const g = Math.round(baseG + (targetG - baseG) * blend);
+            const b = Math.round(baseB + (targetB - baseB) * blend);
+            ctx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.55)`;
         } else {
             ctx.shadowBlur = 0;
         }
@@ -397,6 +446,8 @@ function enableDownloadButtons() {
     document.getElementById('downloadVideoBtn').disabled = false;
     document.getElementById('downloadAudioBtn').disabled = false;
     document.getElementById('previewBtn').disabled = false;
+    const exportHevcBtn = document.getElementById('exportHevcBtn');
+    if (exportHevcBtn) exportHevcBtn.disabled = false;
 }
 
 // ============================================================================
@@ -458,52 +509,24 @@ async function encodeCanvasVideo(canvas, preferMp4 = true) {
     // Add audio track to video stream
     stream.addTrack(audioDestination.stream.getAudioTracks()[0]);
 
-    // Determine best mime type (prefer MP4 for iOS/Windows compatibility)
-    const candidates = [
-        'video/mp4;codecs="avc1.42E01E, mp4a.40.2"',
-        'video/mp4',
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm'
-    ];
-    let chosenMime = '';
-    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
-        if (preferMp4) {
-            for (const t of candidates) {
-                if (MediaRecorder.isTypeSupported(t)) {
-                    chosenMime = t;
-                    break;
-                }
-            }
-        } else {
-            // prefer webm
-            for (let i = candidates.length - 1; i >= 0; i--) {
-                if (MediaRecorder.isTypeSupported(candidates[i])) {
-                    chosenMime = candidates[i];
-                    break;
-                }
-            }
-        }
-    }
+    // Use only h264 (MP4) format
+    const h264Mime = 'video/mp4;codecs="avc1.42E01E, mp4a.40.2"';
 
     return new Promise((resolve, reject) => {
         let mediaRecorder;
         try {
-            if (chosenMime) {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: chosenMime });
-            } else {
-                mediaRecorder = new MediaRecorder(stream);
-            }
+            mediaRecorder = new MediaRecorder(stream, { mimeType: h264Mime });
         } catch (err) {
-            console.warn('Failed to construct MediaRecorder with mime', chosenMime, err);
-            try { mediaRecorder = new MediaRecorder(stream); } catch (err2) { reject(err2); return; }
+            console.warn('Failed to construct MediaRecorder with h264 mime', h264Mime, err);
+            reject(err);
+            return;
         }
 
         const chunks = [];
         mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
         mediaRecorder.onstop = () => {
-            const blob = new Blob(chunks, { type: chosenMime || (chunks[0] && chunks[0].type) || 'video/webm' });
-            resolve({ blob, mimeType: blob.type || chosenMime });
+            const blob = new Blob(chunks, { type: h264Mime });
+            resolve({ blob, mimeType: blob.type || h264Mime });
         };
 
         mediaRecorder.start();
@@ -620,6 +643,62 @@ async function playCanvasVideo(canvas) {
             await shareBlobToIOS(state.lastVideoBlob, `voice-recording.${ext}`);
         }
 
+// ============================================================================
+// HEVC/MOV (iOS-targeted) export (feature-detect first)
+// ============================================================================
+
+async function exportHevcMov() {
+    updateStatus('Checking device support for HEVC + AAC...');
+
+    // Detect VideoEncoder HEVC support
+    if (typeof VideoEncoder === 'undefined' || !VideoEncoder.isConfigSupported) {
+        updateStatus('HEVC (VideoEncoder) is not available in this browser.');
+        return;
+    }
+
+    // Try common HEVC codec strings
+    let hevcSupported = false;
+    const hevcCandidates = ['hvc1', 'hev1', 'h265'];
+    for (const c of hevcCandidates) {
+        try {
+            // Query a basic config for support
+            const ok = await VideoEncoder.isConfigSupported({ codec: c });
+            if (ok && ok.supported) {
+                hevcSupported = c;
+                break;
+            }
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    if (!hevcSupported) {
+        updateStatus('HEVC hardware encoder not available on this device. Cannot export MOV with HEVC.');
+        return;
+    }
+
+    // Detect AAC support via AudioEncoder if available
+    let aacSupported = false;
+    if (typeof AudioEncoder !== 'undefined' && AudioEncoder.isConfigSupported) {
+        try {
+            const ok = await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2' });
+            if (ok && ok.supported) aacSupported = true;
+        } catch (e) {
+            // ignore
+        }
+    }
+
+    if (!aacSupported) {
+        updateStatus('AAC audio encoder is not available in this browser. Cannot export MOV with AAC.');
+        return;
+    }
+
+    // Both HEVC and AAC appear available — proceed to a confirmed message (encoding pipeline not yet implemented)
+    updateStatus('HEVC + AAC supported. Encoding pipeline for HEVC+alpha is not yet implemented in this build. If you want, I can add the client-side encoder + small muxer to produce a MOV and save to Photos.');
+    // Placeholder: implement full WebCodecs encode + JS muxer pipeline when you confirm
+}
+
+
         // Start audio and canvas animation together
         audioSource.start(0);
         requestAnimationFrame(renderFrame);
@@ -632,7 +711,7 @@ async function playCanvasVideo(canvas) {
 
 function downloadAudio() {
     if (!state.recordedBlob) return;
-    downloadBlob(state.recordedBlob, 'voice-recording.webm');
+    downloadBlob(state.recordedBlob, 'voice-recording.mp3');
 }
 
 function downloadBlob(blob, filename) {
