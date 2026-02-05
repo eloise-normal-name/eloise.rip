@@ -56,6 +56,11 @@ document.addEventListener('DOMContentLoaded', () => {
     downloadVideoBtn.addEventListener('click', generateVideo);
     downloadAudioBtn.addEventListener('click', downloadAudio);
 
+    const saveToPhotosBtn = document.getElementById('saveToPhotosBtn');
+    if (saveToPhotosBtn) {
+        saveToPhotosBtn.addEventListener('click', saveToPhotos);
+    }
+
     // Initialize audio context
     state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
@@ -68,13 +73,81 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function startRecording() {
     try {
-        state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        state.mediaRecorder = new MediaRecorder(state.stream, {
-            mimeType: 'audio/webm'
-        });
+        // Choose a getUserMedia implementation (modern + legacy fallback for older iOS)
+        let getUserMediaFn = null;
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            getUserMediaFn = (opts) => navigator.mediaDevices.getUserMedia(opts);
+        } else if (navigator.getUserMedia || navigator.webkitGetUserMedia) {
+            // Legacy callback-style API
+            getUserMediaFn = (opts) => new Promise((resolve, reject) => {
+                const fn = navigator.getUserMedia || navigator.webkitGetUserMedia;
+                fn.call(navigator, opts, resolve, reject);
+            });
+        } else {
+            // iOS-specific hint
+            const isiOS = /iP(hone|od|ad)/i.test(navigator.userAgent);
+            const suggestion = isiOS ? 'On iOS, try Safari (latest) and ensure the site is served over HTTPS.' : 'Use a browser that supports getUserMedia (latest Chrome, Edge, or Safari).';
+            updateStatus('Microphone not supported by this browser. ' + suggestion);
+            return;
+        }
 
-        // Set up audio analysis to capture frequency data
-        const audioSource = state.audioContext.createMediaStreamSource(state.stream);
+        // If Permissions API is available, check microphone permission state first
+        try {
+            if (navigator.permissions && navigator.permissions.query) {
+                const perm = await navigator.permissions.query({ name: 'microphone' });
+                if (perm && perm.state === 'denied') {
+                    updateStatus('Microphone permission is denied in your browser. Please enable it in site settings.');
+                    return;
+                }
+            }
+        } catch (permErr) {
+            // Some browsers don't support permissions.query for 'microphone' — ignore
+            console.debug('Permissions API not available for microphone:', permErr);
+        }
+
+        state.stream = await getUserMediaFn({ audio: true });
+
+        // Ensure AudioContext is resumed on a user gesture (some browsers start suspended)
+        if (state.audioContext && state.audioContext.state === 'suspended') {
+            try {
+                await state.audioContext.resume();
+            } catch (e) {
+                console.warn('Failed to resume audio context:', e);
+            }
+        }
+
+        // Create MediaRecorder with a safe fallback for unsupported mimeTypes (e.g., iOS Safari)
+        try {
+            state.mediaRecorder = new MediaRecorder(state.stream, { mimeType: 'audio/webm' });
+        } catch (e) {
+            console.warn('Preferred mimeType unsupported, falling back to default MediaRecorder:', e);
+            try {
+                state.mediaRecorder = new MediaRecorder(state.stream);
+            } catch (err2) {
+                console.error('MediaRecorder is not supported on this browser or stream:', err2);
+                throw err2; // Let outer catch handle the user-visible error
+            }
+        }
+
+        // Ensure AudioContext exists and is resumed
+        if (!state.audioContext) {
+            state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (state.audioContext.state === 'suspended') {
+            try { await state.audioContext.resume(); } catch (e) { console.warn('Could not resume AudioContext:', e); }
+        }
+
+        // Set up audio analysis to capture frequency data, with robust error handling
+        let audioSource;
+        try {
+            audioSource = state.audioContext.createMediaStreamSource(state.stream);
+        } catch (e) {
+            console.error('Failed to create media stream source:', e);
+            // Stop tracks to avoid dangling permissions/streams
+            if (state.stream && state.stream.getTracks) state.stream.getTracks().forEach(t => t.stop());
+            updateStatus('Microphone initialization failed. Check device permissions and that no other app is using the microphone.');
+            return;
+        }
         state.analyserNode = state.audioContext.createAnalyser();
         state.analyserNode.fftSize = 256;
         audioSource.connect(state.analyserNode);
@@ -105,7 +178,31 @@ async function startRecording() {
 
     } catch (err) {
         console.error('Error accessing microphone:', err);
-        updateStatus('Error: Could not access microphone');
+        let msg = 'Could not access microphone';
+        if (err && err.name) {
+            switch (err.name) {
+                case 'NotAllowedError':
+                case 'PermissionDeniedError':
+                    msg = 'Microphone permission denied. Please allow microphone access in your browser or site settings.';
+                    break;
+                case 'NotFoundError':
+                case 'DevicesNotFoundError':
+                    msg = 'No microphone found. Check your system device settings.';
+                    break;
+                case 'NotReadableError':
+                case 'TrackStartError':
+                    msg = 'Microphone is already in use by another application.';
+                    break;
+                case 'SecurityError':
+                    msg = 'Microphone access unavailable: site may require HTTPS.';
+                    break;
+                default:
+                    msg = `Could not access microphone: ${err.message || err.name}`;
+            }
+        } else if (err && err.message) {
+            msg = `Could not access microphone: ${err.message}`;
+        }
+        updateStatus(msg);
     }
 }
 
@@ -321,12 +418,17 @@ function enableDownloadButtons() {
 async function generateVideo() {
     const downloadVideoBtn = document.getElementById('downloadVideoBtn');
     downloadVideoBtn.disabled = true;
-    updateStatus('Generating video...');
+    updateStatus('Generating video (preferring MP4 for compatibility)...');
 
     try {
         const canvas = document.getElementById('recordingCanvas');
-        const video = await encodeCanvasVideo(canvas, false);
-        downloadBlob(video, 'voice-recording.webm');
+        const { blob, mimeType } = await encodeCanvasVideo(canvas, true);
+        state.lastVideoBlob = blob;
+        state.lastVideoMime = mimeType;
+        const ext = mimeType && mimeType.includes('mp4') ? 'mp4' : 'webm';
+        downloadBlob(blob, `voice-recording.${ext}`);
+        const saveBtn = document.getElementById('saveToPhotosBtn');
+        if (saveBtn) saveBtn.disabled = false;
         updateStatus();
         downloadVideoBtn.disabled = false;
 
@@ -355,7 +457,7 @@ async function previewVideo() {
     }
 }
 
-async function encodeCanvasVideo(canvas) {
+async function encodeCanvasVideo(canvas, preferMp4 = true) {
     const stream = canvas.captureStream(CONFIG.FRAME_RATE);
     const duration = state.recordedDuration;
 
@@ -368,22 +470,58 @@ async function encodeCanvasVideo(canvas) {
     // Add audio track to video stream
     stream.addTrack(audioDestination.stream.getAudioTracks()[0]);
 
-    return new Promise((resolve) => {
-        const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: 'video/webm'
-        });
+    // Determine best mime type (prefer MP4 for iOS/Windows compatibility)
+    const candidates = [
+        'video/mp4;codecs="avc1.42E01E, mp4a.40.2"',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+    ];
+    let chosenMime = '';
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+        if (preferMp4) {
+            for (const t of candidates) {
+                if (MediaRecorder.isTypeSupported(t)) {
+                    chosenMime = t;
+                    break;
+                }
+            }
+        } else {
+            // prefer webm
+            for (let i = candidates.length - 1; i >= 0; i--) {
+                if (MediaRecorder.isTypeSupported(candidates[i])) {
+                    chosenMime = candidates[i];
+                    break;
+                }
+            }
+        }
+    }
+
+    return new Promise((resolve, reject) => {
+        let mediaRecorder;
+        try {
+            if (chosenMime) {
+                mediaRecorder = new MediaRecorder(stream, { mimeType: chosenMime });
+            } else {
+                mediaRecorder = new MediaRecorder(stream);
+            }
+        } catch (err) {
+            console.warn('Failed to construct MediaRecorder with mime', chosenMime, err);
+            try { mediaRecorder = new MediaRecorder(stream); } catch (err2) { reject(err2); return; }
+        }
 
         const chunks = [];
-        mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+        mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
         mediaRecorder.onstop = () => {
-            resolve(new Blob(chunks, { type: 'video/webm' }));
+            const blob = new Blob(chunks, { type: chosenMime || (chunks[0] && chunks[0].type) || 'video/webm' });
+            resolve({ blob, mimeType: blob.type || chosenMime });
         };
 
         mediaRecorder.start();
 
         // Render canvas animation synchronized with audio using performance.now()
         const ctx = canvas.getContext('2d');
-        const totalFrames = Math.ceil(duration * CONFIG.FRAME_RATE);
         let frameCount = 0;
         let startTime = null;
 
@@ -391,7 +529,7 @@ async function encodeCanvasVideo(canvas) {
             if (!startTime) startTime = timestamp;
             const elapsed = (timestamp - startTime) / 1000;  // Convert to seconds
             const progress = Math.min(elapsed / duration, 1.0);
-            
+
             drawProgressBars(ctx, canvas, progress, frameCount);
 
             frameCount++;
@@ -401,9 +539,9 @@ async function encodeCanvasVideo(canvas) {
             } else {
                 // Stop recording after duration complete
                 setTimeout(() => {
-                    mediaRecorder.stop();
+                    try { mediaRecorder.stop(); } catch (e) { console.warn(e); }
                     stream.getTracks().forEach(track => track.stop());
-                    audioSource.stop();
+                    try { audioSource.stop(); } catch (e) { /* ignore */ }
                 }, 100);
             }
         };
@@ -446,6 +584,53 @@ async function playCanvasVideo(canvas) {
                 resolve();
             }
         };
+
+        // Share video blob to iOS Photos via Web Share API (best-effort)
+        async function shareBlobToIOS(blob, filename) {
+            if (!blob) {
+                updateStatus('No video available to share');
+                return false;
+            }
+            // Wrap blob in File for Web Share API
+            const file = new File([blob], filename, { type: blob.type || 'video/webm' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({ files: [file], title: 'Voice Recording', text: 'Save to Photos' });
+                    updateStatus('Opened share sheet — choose Save Video to add to Photos.');
+                    return true;
+                } catch (err) {
+                    console.warn('Share failed or cancelled', err);
+                    updateStatus('Share cancelled or failed');
+                    return false;
+                }
+            } else {
+                // Fallback: open file in a new tab (mobile Safari allows Share → Save Video)
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                updateStatus('Opened file. Use Share → Save Video to add to Photos.');
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
+                return false;
+            }
+        }
+
+        async function saveToPhotos() {
+            updateStatus('Preparing to save to Photos...');
+            // If we already have a generated video, use it; otherwise generate one (prefer MP4)
+            if (!state.lastVideoBlob) {
+                const canvas = document.getElementById('recordingCanvas');
+                try {
+                    const { blob, mimeType } = await encodeCanvasVideo(canvas, true);
+                    state.lastVideoBlob = blob;
+                    state.lastVideoMime = mimeType;
+                } catch (err) {
+                    console.error('Error creating video for sharing:', err);
+                    updateStatus('Error preparing video');
+                    return;
+                }
+            }
+            const ext = (state.lastVideoBlob && state.lastVideoBlob.type && state.lastVideoBlob.type.includes('mp4')) || (state.lastVideoMime && state.lastVideoMime.includes('mp4')) ? 'mp4' : 'webm';
+            await shareBlobToIOS(state.lastVideoBlob, `voice-recording.${ext}`);
+        }
 
         // Start audio and canvas animation together
         audioSource.start(0);
