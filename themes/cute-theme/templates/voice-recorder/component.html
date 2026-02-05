@@ -1,0 +1,46 @@
+<div class="recorder-main">
+    <div class="recorder-settings">
+        <div class="settings-row">
+            <label>
+                <input type="checkbox" id="trimToggle" checked>
+                Trim silence
+            </label>
+        </div>
+        
+        <div class="settings-row">
+            <label>
+                <input type="radio" name="barMode" value="finite" checked>
+                Finite
+            </label>
+            <input type="number" id="barCount" min="5" max="50" value="20" disabled>
+            <span class="setting-hint">bars</span>
+        </div>
+        
+        <div class="settings-row">
+            <label>
+                <input type="radio" name="barMode" value="varying">
+                Varying
+            </label>
+            <input type="number" id="barUnit" min="0.1" max="2" step="0.1" value="0.5" disabled>
+            <span class="setting-hint">seconds per bar</span>
+        </div>
+    </div>
+
+    <div class="recorder-canvas-container">
+        <canvas id="recordingCanvas" width="800" height="200"></canvas>
+    </div>
+
+    <div class="recorder-controls">
+        <button id="recordBtn" class="btn btn-record">Record</button>
+        <button id="stopBtn" class="btn btn-stop" disabled>Stop</button>
+    </div>
+
+    <div class="recorder-status">
+        <p id="statusText">Ready</p>
+    </div>
+
+    <div class="recorder-downloads">
+        <button id="downloadVideoBtn" class="btn btn-download" disabled>Download Video</button>
+        <button id="downloadAudioBtn" class="btn btn-download" disabled>Download Audio</button>
+    </div>
+</div>

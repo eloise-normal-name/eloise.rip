@@ -3,7 +3,7 @@ Date: 2025-11-24
 Summary: Catgirl and I visit Panther and Diane to get big
 Category: Cats
 Tags: Catgirl, Panther, Diane
-thumbnail: images/panther-catgirl-catlady.webp
+thumbnail: images/panther-catgirl-catlady.avif
 
 Everyone loves Panther so much! He meowed a bunch to go on a patrol, but
 we needed to wait for Catgirl and Diane to finish the Katamari level,

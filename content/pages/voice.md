@@ -1,96 +1,79 @@
 Title: Voice Practice
 Template: page
 
-{% set voice = namespace(dir=Path('content/media/voice'), done=0, total=720, percent=0.0, percent_str='0.00') %}
-{% if voice.dir.exists() %}
-  {% for pattern in ['*.m4a'] %}
-    {% set matches = voice.dir.glob(pattern) | list %}
-    {% set voice.done = voice.done + (matches | length) %}
-  {% endfor %}
-{% endif %}
-{% if voice.done > voice.total %}
-  {% set voice.done = voice.total %}
-{% endif %}
-{% set voice.percent = (voice.done / voice.total * 100) if voice.total else 0 %}
-{% if voice.percent > 100 %}
-  {% set voice.percent = 100 %}
-{% elif voice.percent < 0 %}
-  {% set voice.percent = 0 %}
-{% endif %}
-{% set voice.percent_str = '%.2f' % voice.percent %}
+{% set voice_dir = Path('content/media/voice') %}
+{% set voice_files = voice_dir.glob('*.m4a') | sort | list if voice_dir.exists() else [] %}
+{% set voice_done = voice_files | length %}
+{% set voice_total = 720 %}
+{% set voice_percent = ((voice_done / voice_total * 100) | round(2)) if voice_total else 0 %}
 
-# Harvard Sentences
 
-From [harvardsentences.com](https://harvardsentences.com/)
+[🔗 Old Threads Practice](https://www.threads.com/@eloise_normal_name/post/Cyd1v7sxkt2?xmt=AQF02aaArZSSLu8ZJnlUFBkQVm7vC5rJyQKlWayDHYDHAA) Threads lost voice its recording technology.
+
+
+<style>
+  .voice-progress {
+    max-width: 640px;
+    margin: 0.5rem 0 1.2rem;
+  }
+  .voice-progress .progress-track {
+    background: linear-gradient(135deg, rgba(255, 233, 241, 0.45), rgba(255, 208, 224, 0.25));
+    border-radius: 999px;
+    padding: 4px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
+  }
+  .voice-progress .progress-fill {
+    width: {{ voice_percent }}%;
+    height: 14px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary-color), #ffa6c6);
+    box-shadow: 0 6px 14px var(--shadow);
+  }
+  .voice-progress .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.55rem;
+    font-size: 0.92rem;
+    color: var(--text-light);
+  }
+  .voice-progress .progress-meta .label {
+    font-weight: 700;
+  }
+  .page-content > h3 {
+    font-family: 'Nunito Sans', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: #222222;
+    margin: 2rem 0 0.75rem;
+    text-align: center;
+  }
+  .page-content > h3 a {
+    color: #222222;
+    text-decoration: none;
+    font-weight: 300;
+  }
+  .page-content > h3 a:hover {
+    color: #00b8d4;
+    text-decoration: none;
+  }
+</style>
 
 <div class="voice-progress">
-  <style>
-    .voice-progress {
-      --voice-accent: #ff6b9d;
-      --voice-accent-dark: #c03d6f;
-      max-width: 640px;
-      margin: 0.5rem 0 1.2rem;
-      font-family: 'Nunito', 'Segoe UI', sans-serif;
-      color: rgba(75, 10, 25, 0.8);
-    }
-    .voice-progress .progress-track {
-      background: linear-gradient(135deg, rgba(255, 233, 241, 0.45), rgba(255, 208, 224, 0.25));
-      border-radius: 999px;
-      padding: 4px;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
-    }
-    .voice-progress .progress-fill {
-      width: {{ voice.percent_str }}%;
-      height: 14px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, var(--voice-accent), #ffa6c6);
-      box-shadow: 0 6px 14px rgba(255, 107, 157, 0.25);
-      transition: width 800ms cubic-bezier(.25, .9, .35, 1);
-      position: relative;
-      overflow: hidden;
-    }
-    .voice-progress .progress-fill::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(120deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
-      mix-blend-mode: screen;
-      opacity: 0.7;
-    }
-    .voice-progress .progress-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 0.55rem;
-      font-size: 0.92rem;
-      color: var(--voice-accent-dark);
-    }
-    .voice-progress .progress-meta .label {
-      font-weight: 700;
-      letter-spacing: 0.03em;
-    }
-    .voice-progress .progress-meta .hint {
-      font-size: 0.85rem;
-      opacity: 0.85;
-    }
-  </style>
-
-  <div class="progress-track" role="presentation" aria-hidden="true">
-    <div class="progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="{{ voice.total }}" aria-valuenow="{{ voice.done }}" aria-label="Voice practice progress: {{ voice.done }} of {{ voice.total }}"></div>
+  <div class="progress-track">
+    <div class="progress-fill"></div>
   </div>
-
   <div class="progress-meta">
-    <div class="label">{{ voice.done }}/{{ voice.total }} complete</div>
-    <div class="hint">{{ voice.percent_str }}%</div>
+    <span class="label">{{ voice_done }}/{{ voice_total }} complete</span>
+    <span>{{ voice_percent }}%</span>
   </div>
 </div>
 
-<ol class="voice-list">
-{% if voice.dir.exists() %}
-  {% for pattern in ['*.m4a'] %}
-    {% for file in voice.dir.glob(pattern) | sort %}
-      <li><audio src="media/voice/{{ file.name }}" controls></audio></li>
-    {% endfor %}
-  {% endfor %}
-{% endif %}
+{% for i in range(0, voice_files | length, 10) %}
+{% set set_num = (i // 10) + 1 %}
+<h3 id="H{{ set_num }}"><a href="https://harvardsentences.com/#h{{ set_num }}-harvard-sentences">H{{ set_num }} Harvard Sentences</a></h3>
+<ol class="voice-list" start="{{ i + 1 }}">
+{% for file in voice_files[i:i+10] %}
+  <li><audio src="media/voice/{{ file.name }}" controls></audio></li>
+{% endfor %}
 </ol>
+{% endfor %}

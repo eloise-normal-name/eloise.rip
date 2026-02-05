@@ -2,7 +2,7 @@
 web versions for Pelican static site.
 
 For videos: Creates MP4 (HEVC) + poster JPG
-For images: Creates AVIF + WebP + JPEG (+ PNG when transparency is detected)
+For images: Creates AVIF
 For audio: Creates AAC M4A
 
 Usage:
@@ -12,13 +12,13 @@ Usage:
 
 Requirements:
     - Python 3.8+
-    - ffmpeg & ffprobe available on PATH
+    - ffmpeg available on PATH
     - Pillow + pillow-heif for HEIC source conversion
 
 Strategy:
     1. Discover video and image files in source directory.
     2. For videos: create name.mp4 (HEVC) and name.jpg (poster @ 0.5s)
-    3. For images: create name.avif, name.webp, name.jpg (and name.png when transparency is detected)
+    3. For images: create name.avif
     4. For audio: create name.m4a inside media/voice
     5. Downscale if either dimension exceeds --max-dimension while preserving aspect ratio.
     6. Skip already existing outputs unless --force.
@@ -67,11 +67,6 @@ def run_ffmpeg(args: list[str]) -> subprocess.CompletedProcess:
     """Run ffmpeg with given arguments."""
     return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
-
-def run_ffprobe(args: list[str]) -> subprocess.CompletedProcess:
-    """Run ffprobe with given arguments."""
-    return subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-
 def build_scale_filter(max_dimension: int) -> str:
     """Return ffmpeg scale filter string for max dimension."""
     return f"scale='if(gt(iw,ih),min({max_dimension},iw),-2)':'if(gt(ih,iw),min({max_dimension},ih),-2)'"
@@ -114,29 +109,13 @@ def prepare_image_source(src_file: Path) -> tuple[Path, Path | None, bool]:
     return tmp_png, tmp_dir, True
 
 
-def image_has_alpha(src_file: Path) -> bool:
-    """Return True if the primary stream reports an alpha channel."""
-    probe_cmd = [
-        "ffprobe", "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=pix_fmt",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        str(src_file),
-    ]
-    proc = run_ffprobe(probe_cmd)
-    if proc.returncode != 0:
-        return False
-    pix_fmt = proc.stdout.strip().lower()
-    return "a" in pix_fmt
-
-
-def transcode_image(cfg, src_file: Path) -> None:
+def transcode_image(cfg, src_file: Path, rel_path: Path) -> None:
     """Process image files into web-optimized formats."""
 
     name = src_file.stem
-    original_suffix = src_file.suffix.lower()
-    images_dir = cfg.dest / 'images'
+    images_dir = cfg.dest / 'images' / rel_path
     images_dir.mkdir(parents=True, exist_ok=True)
+    rel_display = str(rel_path / name) if rel_path != Path('.') else name
     vf_chain = build_scale_filter(cfg.max_dimension)
 
     input_path, tmp_dir, can_process = prepare_image_source(src_file)
@@ -153,71 +132,32 @@ def transcode_image(cfg, src_file: Path) -> None:
         str(avif_out)
     ]
 
-    webp_out = images_dir / f"{name}.webp"
-    webp_cmd = [
-        "ffmpeg", "-y", "-i", str(input_path),
-        "-vf", vf_chain,
-        "-c:v", "libwebp", "-quality", "82", "-lossless", "0",
-        str(webp_out)
-    ]
+    if not cfg.force and avif_out.exists():
+        if not cfg.quiet:
+            print(f"[SKIP] {src_file.name} (AVIF already encoded)")
+        produced_avif = True
+    else:
+        proc = run_ffmpeg(avif_cmd)
+        produced_avif = proc.returncode == 0
+        if produced_avif:
+            print(f"  [IMAGE] AVIF: images/{rel_display}{avif_out.suffix}")
+        else:
+            error_detail = proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else "Unknown error"
+            print(f"[WARN] AVIF encode failed for {src_file.name}: {error_detail}")
 
-    jpg_out = images_dir / f"{name}.jpg"
-    jpg_cmd = [
-        "ffmpeg", "-y", "-i", str(input_path),
-        "-vf", vf_chain,
-        "-c:v", "mjpeg", "-q:v", "3",
-        str(jpg_out)
-    ]
-
-    needs_png = original_suffix in {".png", ".webp"} or image_has_alpha(input_path)
-    png_out = images_dir / f"{name}.png"
-    png_cmd = [
-        "ffmpeg", "-y", "-i", str(input_path),
-        "-vf", vf_chain,
-        "-c:v", "png",
-        str(png_out)
-    ]
-
-    encodes = [
-        ("AVIF", avif_out, avif_cmd, True),
-        ("WEBP", webp_out, webp_cmd, True),
-        ("JPEG", jpg_out, jpg_cmd, False),
-    ]
-
-    if needs_png:
-        encodes.append(("PNG", png_out, png_cmd, False))
-
-    produced_any = False
-
-    for label, out_path, cmd, optional in encodes:
-        if not cfg.force and out_path.exists():
-            if not cfg.quiet:
-                print(f"[SKIP] {src_file.name} ({label} already encoded)")
-            produced_any = True
-            continue
-
-        proc = run_ffmpeg(cmd)
-        if proc.returncode == 0:
-            print(f"  [IMAGE] {label}: images/{out_path.name}")
-            produced_any = True
-            continue
-
-        error_detail = proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else "Unknown error"
-        level = "[INFO]" if optional else "[WARN]"
-        print(f"{level} {label} encode failed for {src_file.name}: {error_detail}")
-
-    if not produced_any:
-        print(f"[WARN] All image encodes failed for {src_file.name}")
+    if not produced_avif:
+        print(f"[WARN] Image encodes failed for {src_file.name}")
 
     if tmp_dir is not None:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
-def transcode_audio(cfg, src_file: Path) -> None:
+def transcode_audio(cfg, src_file: Path, rel_path: Path) -> None:
     """Process audio files into M4A outputs suitable for web playback."""
     name = src_file.stem
-    audio_dir = cfg.dest / 'voice'
+    audio_dir = cfg.dest / 'voice' / rel_path
     audio_dir.mkdir(parents=True, exist_ok=True)
+    rel_display = str(rel_path / name) if rel_path != Path('.') else name
     m4a_out = audio_dir / f"{name}.m4a"
 
     if not cfg.force and m4a_out.exists():
@@ -225,7 +165,7 @@ def transcode_audio(cfg, src_file: Path) -> None:
             print(f"[SKIP] {src_file.name} (audio output exists)")
         return
 
-    print(f"  [AUDIO] M4A: voice/{m4a_out.name}")
+    print(f"  [AUDIO] M4A: voice/{rel_display}.m4a")
     audio_cmd = [
         "ffmpeg", "-y", "-i", str(src_file),
         "-vn",
@@ -237,11 +177,12 @@ def transcode_audio(cfg, src_file: Path) -> None:
         print(f"[WARN] Audio encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
 
 
-def transcode_video(cfg, src_file: Path) -> None:
+def transcode_video(cfg, src_file: Path, rel_path: Path) -> None:
     """Process video files into HEVC MP4 plus a poster still."""
     name = src_file.stem
-    video_dir = cfg.dest / 'video'
+    video_dir = cfg.dest / 'video' / rel_path
     video_dir.mkdir(parents=True, exist_ok=True)
+    rel_display = str(rel_path / name) if rel_path != Path('.') else name
     vf_chain = build_scale_filter(cfg.max_dimension)
     is_hq = is_high_quality_variant(src_file)
     crf_hevc = max(cfg.crf_hevc - (HQ_CRF_BONUS if is_hq else 0), 0)
@@ -255,7 +196,7 @@ def transcode_video(cfg, src_file: Path) -> None:
         return
 
     if cfg.force or not hevc_out.exists():
-        print(f"  [VIDEO] HEVC{quality_tag}: video/{hevc_out.name}")
+        print(f"  [VIDEO] HEVC{quality_tag}: video/{rel_display}.mp4")
         hevc_cmd = [
             "ffmpeg", "-y", "-i", str(src_file),
             "-vf", vf_chain,
@@ -269,7 +210,7 @@ def transcode_video(cfg, src_file: Path) -> None:
             print(f"[WARN] HEVC encode failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
 
     if cfg.force or not poster_out.exists():
-        print(f"  [VIDEO] Poster: video/{poster_out.name}")
+        print(f"  [VIDEO] Poster: video/{rel_display}.jpg")
         poster_cmd = [
             "ffmpeg", "-y", "-i", str(src_file), "-ss", str(cfg.poster_time),
             "-vframes", "1", "-vf", vf_chain, str(poster_out)
@@ -279,22 +220,28 @@ def transcode_video(cfg, src_file: Path) -> None:
             print(f"[WARN] Poster extraction failed for {src_file.name}: {proc.stderr.splitlines()[-1] if proc.stderr.splitlines() else 'Unknown error'}")
 
 
-def transcode_file(cfg, src_file: Path) -> None:
+def transcode_file(cfg, src_file: Path, rel_path: Path) -> None:
     """Process a single media file (video, image, or audio)."""
     if is_video_file(src_file):
-        transcode_video(cfg, src_file)
+        transcode_video(cfg, src_file, rel_path)
     elif is_image_file(src_file):
-        transcode_image(cfg, src_file)
+        transcode_image(cfg, src_file, rel_path)
     elif is_audio_file(src_file):
-        transcode_audio(cfg, src_file)
+        transcode_audio(cfg, src_file, rel_path)
     else:
         print(f"[WARN] Unknown file type: {src_file.name}")
         return
     print(f"  [DONE] {src_file.name}")
 
 
-def discover_sources(src_dir: Path) -> list[Path]:
-    return [p for p in sorted(src_dir.iterdir()) if p.is_file() and p.suffix.lower() in ALLOWED_EXT]
+def discover_sources(src_dir: Path) -> list[tuple[Path, Path]]:
+    """Recursively discover source files and return (absolute_path, relative_parent) tuples."""
+    results = []
+    for p in sorted(src_dir.rglob('*')):
+        if p.is_file() and p.suffix.lower() in ALLOWED_EXT:
+            rel_parent = p.parent.relative_to(src_dir)
+            results.append((p, rel_parent))
+    return results
 
 
 def parse_args():
@@ -317,7 +264,6 @@ def parse_args():
 def main() -> int:
     cfg = parse_args()
     which_or_exit("ffmpeg")
-    which_or_exit("ffprobe")
 
     # Ensure source and destination directories exist
     if not cfg.src.exists():
@@ -336,10 +282,11 @@ def main() -> int:
     print(f"Processing {len(sources)} media file(s) from {cfg.src} -> {cfg.dest}")
     print("=============================================================")
 
-    for src_file in sources:
-        print(f"[PROCESS] {src_file.name}")
+    for src_file, rel_path in sources:
+        rel_display = src_file.relative_to(cfg.src)
+        print(f"[PROCESS] {rel_display}")
         try:
-            transcode_file(cfg, src_file)
+            transcode_file(cfg, src_file, rel_path)
         except KeyboardInterrupt:
             print("[ABORT] Interrupted by user.")
             return 2

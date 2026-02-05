@@ -75,13 +75,6 @@ Template: character-stats
 					</div>
 				</div>
 				<div class="contact-item">
-					<span class="contact-icon">❓</span>
-					<div class="contact-details">
-						<strong>Ask Me Anything</strong>
-						<a href="https://ngl.link/eloise_normal_name">ngl.link/eloise_normal_name</a>
-					</div>
-				</div>
-				<div class="contact-item">
 					<span class="initials-glow">ELO</span>
 					<div class="contact-details">
 						<strong>Pinball</strong>
@@ -242,6 +235,12 @@ Template: character-stats
 				<li>Catgirl (girlfriend <3)</li>
 				<li>Diane</li>
 				<li>Ben</li>
+				<li>Davida</li>
+				<li>Maia</li>
+				<li>Iris</li>
+				<li>Jeff (dirty)</li>
+				<li>Jeff (eggy)</li>
+				<li>Geoff (hard)</li>
 			</ul>
 		</div>
 	</div>
