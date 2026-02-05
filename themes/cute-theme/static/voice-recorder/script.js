@@ -73,13 +73,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function startRecording() {
     try {
-        state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        state.mediaRecorder = new MediaRecorder(state.stream, {
-            mimeType: 'audio/webm'
-        });
+        // Basic feature checks
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            updateStatus('Microphone not supported by this browser');
+            return;
+        }
 
-        // Set up audio analysis to capture frequency data
-        const audioSource = state.audioContext.createMediaStreamSource(state.stream);
+        // If Permissions API is available, check microphone permission state first
+        try {
+            if (navigator.permissions && navigator.permissions.query) {
+                const perm = await navigator.permissions.query({ name: 'microphone' });
+                if (perm && perm.state === 'denied') {
+                    updateStatus('Microphone permission is denied in your browser. Please enable it in site settings.');
+                    return;
+                }
+            }
+        } catch (permErr) {
+            // Some browsers don't support permissions.query for 'microphone' — ignore
+            console.debug('Permissions API not available for microphone:', permErr);
+        }
+
+        state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+        // Ensure AudioContext is resumed on a user gesture (some browsers start suspended)
+        if (state.audioContext && state.audioContext.state === 'suspended') {
+            try {
+                await state.audioContext.resume();
+            } catch (e) {
+                console.warn('Failed to resume audio context:', e);
+            }
+        }
+
+        // Create MediaRecorder with a safe fallback for unsupported mimeTypes (e.g., iOS Safari)
+        try {
+            state.mediaRecorder = new MediaRecorder(state.stream, { mimeType: 'audio/webm' });
+        } catch (e) {
+            console.warn('Preferred mimeType unsupported, falling back to default MediaRecorder:', e);
+            try {
+                state.mediaRecorder = new MediaRecorder(state.stream);
+            } catch (err2) {
+                console.error('MediaRecorder is not supported on this browser or stream:', err2);
+                throw err2; // Let outer catch handle the user-visible error
+            }
+        }
+
+        // Ensure AudioContext exists and is resumed
+        if (!state.audioContext) {
+            state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (state.audioContext.state === 'suspended') {
+            try { await state.audioContext.resume(); } catch (e) { console.warn('Could not resume AudioContext:', e); }
+        }
+
+        // Set up audio analysis to capture frequency data, with robust error handling
+        let audioSource;
+        try {
+            audioSource = state.audioContext.createMediaStreamSource(state.stream);
+        } catch (e) {
+            console.error('Failed to create media stream source:', e);
+            // Stop tracks to avoid dangling permissions/streams
+            if (state.stream && state.stream.getTracks) state.stream.getTracks().forEach(t => t.stop());
+            updateStatus('Microphone initialization failed. Check device permissions and that no other app is using the microphone.');
+            return;
+        }
         state.analyserNode = state.audioContext.createAnalyser();
         state.analyserNode.fftSize = 256;
         audioSource.connect(state.analyserNode);
@@ -110,7 +166,31 @@ async function startRecording() {
 
     } catch (err) {
         console.error('Error accessing microphone:', err);
-        updateStatus('Error: Could not access microphone');
+        let msg = 'Could not access microphone';
+        if (err && err.name) {
+            switch (err.name) {
+                case 'NotAllowedError':
+                case 'PermissionDeniedError':
+                    msg = 'Microphone permission denied. Please allow microphone access in your browser or site settings.';
+                    break;
+                case 'NotFoundError':
+                case 'DevicesNotFoundError':
+                    msg = 'No microphone found. Check your system device settings.';
+                    break;
+                case 'NotReadableError':
+                case 'TrackStartError':
+                    msg = 'Microphone is already in use by another application.';
+                    break;
+                case 'SecurityError':
+                    msg = 'Microphone access unavailable: site may require HTTPS.';
+                    break;
+                default:
+                    msg = `Could not access microphone: ${err.message || err.name}`;
+            }
+        } else if (err && err.message) {
+            msg = `Could not access microphone: ${err.message}`;
+        }
+        updateStatus(msg);
     }
 }
 
