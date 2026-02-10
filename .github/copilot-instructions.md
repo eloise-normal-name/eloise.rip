@@ -1,3 +1,20 @@
+## Pelican Preview Workflow: Requirements & Common Mistakes
+
+### Requirements for Correct Preview
+- Virtual environment must be activated before running Pelican commands.
+- Pelican must be available in PATH (from the virtual environment).
+- The Pelican server (`pelican -l`) must be running before opening any localhost preview.
+- Always check server status before opening a preview; never assume.
+- Use the correct script path for static assets in output (e.g., `./theme/voice-recorder/script.js`).
+
+### Common Mistakes (Tally)
+- Opening localhost preview without checking if Pelican server is running (repeated).
+- Failing to activate virtual environment before running Pelican commands.
+- Not verifying Pelican command availability in PATH.
+- Using incorrect script/static asset paths in output.
+- Asking unnecessary questions about server status instead of checking directly.
+
+**Always follow these steps to avoid blank pages and ensure reliable previews.**
 # eloise.rip - Personal Blog Codebase Guide
 
 ## Project Architecture
@@ -13,6 +30,7 @@ This is a **Pelican static site generator** project for a personal blog at [eloi
 
 ## Critical Workflows
 
+pip install -r requirements.txt
 ### Environment Setup
 ```bash
 # Windows
@@ -24,10 +42,31 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+#### Troubleshooting: Pelican Not Found
+If you see an error like `pelican : The term 'pelican' is not recognized as the name of a cmdlet...`, it means:
+- The virtual environment is not activated, or
+- Pelican is not installed in the environment, or
+- The shell session does not recognize the environment activation.
+
+**To fix:**
+1. Activate the virtual environment (see above).
+2. Ensure you are running commands in the same shell session where the environment was activated.
+3. If using VS Code tasks or terminals, always activate `.venv` before running Pelican commands.
+
+**Reason for previous failure:**
+The Pelican command was run before activating the virtual environment, so Pelican was not available in PATH. Always activate `.venv` first.
+
 ### Building the Site
 ```bash
 pelican content -ds pelicanconf.py  # Generate site to output/
 ```
+
+### Local Preview
+To preview the site at http://localhost, always ensure Pelican is serving the output directory:
+```bash
+pelican -l  # Starts local server at http://localhost:8000
+```
+Never open a localhost address unless the server is running.
 
 ### Media Transcoding
 ```bash
