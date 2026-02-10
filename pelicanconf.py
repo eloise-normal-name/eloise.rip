@@ -8,8 +8,8 @@ SITESUBTITLE = 'wintertime goblin hole 🕳❄'
 # --- Paths ---
 PATH = 'content'
 ARTICLE_PATHS = ['articles']
-PAGE_PATHS = ['pages']
-STATIC_PATHS = ['media', 'extra']
+PAGE_PATHS = ['pages', 'voice-recorder']
+STATIC_PATHS = ['media', 'extra', 'themes/cute-theme/static/voice-recorder']
 
 # --- Content Settings ---
 TIMEZONE = 'UTC'
@@ -62,6 +62,7 @@ EXTRA_PATH_METADATA = {
         "favicon.ico",
     )
 }
+
 
 DISPLAY_PAGES_ON_MENU = True
 DISPLAY_CATEGORIES_ON_MENU = True

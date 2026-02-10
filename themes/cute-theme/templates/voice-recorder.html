@@ -3,35 +3,32 @@
 {% block title %}{{ page.title }} - {{ SITENAME }}{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{{ SITEURL }}/theme/voice-recorder/styles.css">
-<script src="{{ SITEURL }}/theme/voice-recorder/script.js" defer></script>
+<link rel="stylesheet" href="{{ SITEURL }}/theme/css/voice-recorder.css">
+<script src="{{ SITEURL }}/theme/js/voice-recorder.js" defer></script>
 {% endblock %}
 
 {% block content %}
-<section class="voice-recorder-page">
-    <div class="voice-recorder-content">
-        <header class="voice-recorder-hero">
-            <h1 class="page-title">{{ page.title }}</h1>
-            <p class="voice-recorder-subtitle">Capture quick voice sketches, play them back, and share with your favorite apps.</p>
-        </header>
-        <div class="voice-recorder-stage">
-            <div class="recorder-main">
-                <div class="recorder-canvas-container">
-                    <canvas id="recordingCanvas" width="800" height="200"></canvas>
-                </div>
-                <div class="recorder-controls">
-                    <button id="recordBtn" class="btn btn-record">Record</button>
-                    <button id="previewBtn" class="btn btn-preview" disabled>Play</button>
-                </div>
-                <div class="recorder-status">
-                    <p id="statusText">Ready</p>
-                </div>
-                <div class="recorder-downloads">
-                    <button id="downloadVideoBtn" class="btn btn-download" disabled>Download Video</button>
-                    <button id="downloadAudioBtn" class="btn btn-download" disabled>Download Audio</button>
-                </div>
-            </div>
-        </div>
+<header class="voice-recorder-hero">
+    <h1 class="page-title">{{ page.title }}</h1>
+    <p class="voice-recorder-subtitle">Capture quick voice sketches, play them back, and share with your favorite apps.
+    </p>
+</header>
+
+<section>
+    <div class="recorder-canvas-container">
+        <canvas id="recordingCanvas" width="800" height="200"></canvas>
     </div>
+    <div class="recorder-controls">
+        <button id="recordBtn" class="btn btn-record">Record</button>
+        <button id="playBtn" class="btn btn-play" disabled>Play</button>
+    </div>
+    <div class="recorder-status">
+        <p id="debugMsg">Ready</p>
+    </div>
+    <div class="recorder-downloads">
+        <button id="saveVideoBtn" class="btn btn-download" disabled>Download Video</button>
+        <button id="saveAudioBtn" class="btn btn-download" disabled>Download Audio</button>
+    </div>
+
 </section>
 {% endblock %}
