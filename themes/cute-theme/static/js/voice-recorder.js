@@ -3,11 +3,11 @@
 // Handles button state toggling and debug messages
 
 document.addEventListener('DOMContentLoaded', () => {
-  const recordBtn = document.getElementById('record-btn');
-  const playBtn = document.getElementById('play-btn');
-  const saveVideoBtn = document.getElementById('save-video-btn');
-  const saveAudioBtn = document.getElementById('save-audio-btn');
-  const debugMsg = document.getElementById('debug-msg');
+  const recordBtn = document.getElementById('recordBtn');
+  const playBtn = document.getElementById('playBtn');
+  const saveVideoBtn = document.getElementById('saveVideoBtn');
+  const saveAudioBtn = document.getElementById('saveAudioBtn');
+  const debugMsg = document.getElementById('debugMsg');
 
   let isRecording = false;
   let isPlaying = false;
