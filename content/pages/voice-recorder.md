@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+Template: page
+Title: Voice Recorder
 
-{% block title %}{{ page.title }} - {{ SITENAME }}{% endblock %}
 
-{% block extra_head %}
+{% block extra_head %} 
 <style>
 .voice-recorder {
     display: flex;
@@ -13,7 +13,7 @@
     margin-left: auto;
     margin-right: auto;
     text-align: center;
-}
+} 
 
 .recorder-row {
     display: flex;
@@ -22,6 +22,19 @@
     align-items: center;
     gap: 1.2rem;
     margin-bottom: 1.2rem;
+}
+
+.button-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.button-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
 }
 
 .btn {
@@ -70,6 +83,11 @@
     border-color: rgba(151, 117, 250, 0.3);
 }
 
+.btn-download-audio {
+    background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+    border-color: rgba(32, 201, 151, 0.3);
+}
+
 .icon {
     display: inline-block;
     vertical-align: middle;
@@ -100,23 +118,9 @@
     border-radius: 2px;
 }
 
-.icon-download {
-    width: 0;
-    height: 0;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 14px solid #9775fa;
-    position: relative;
-}
-
-.icon-download::after {
-    content: '';
-    position: absolute;
-    width: 12px;
-    height: 8px;
-    background-color: #9775fa;
-    top: -18px;
-    left: -6px;
+.emoji-icon {
+    font-size: 24px;
+    line-height: 1;
 }
 
 .recorder-status {
@@ -195,10 +199,10 @@ class AudioVisualizer {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const recordButton = document.getElementById('recordBtn');
-    const playButton = document.getElementById('playBtn');
-    const saveVideoButton = document.getElementById('saveVideoBtn');
-    const saveAudioButton = document.getElementById('saveAudioBtn');
+    const recordButton = document.getElementById('recordButton');
+    const playButton = document.getElementById('playButton');
+    const saveVideoButton = document.getElementById('saveVideoButton');
+    const saveAudioButton = document.getElementById('saveAudioButton');
     const debugMsg = document.getElementById('debugMsg');
     const recordingCanvas = document.getElementById('recordingCanvas');
 
@@ -611,30 +615,34 @@ document.addEventListener('DOMContentLoaded', () => {
 {% endblock %}
 
 {% block content %}
-<header class="voice-recorder-hero">
-    <h1 class="page-title">{{ page.title }}</h1>
-</header>
+ 
 
 <section class="voice-recorder">
     <div class="recorder-canvas-container">
         <canvas id="recordingCanvas" width="600" height="400"></canvas>
     </div>
     <div class="recorder-row">
-        <button id="recordBtn" class="btn btn-record">
+        <button id="recordButton" class="btn btn-record">
             <span class="icon icon-circle"></span>
         </button>
-        <button id="playBtn" class="btn btn-play" disabled>
+        <button id="playButton" class="btn btn-play" disabled>
             <span class="icon icon-triangle"></span>
         </button>
     </div>
 
     <div class="recorder-row">
-        <button id="saveVideoBtn" class="btn btn-download" disabled title="Download Video">
-            <span class="icon icon-download"></span>
-        </button>
-        <button id="saveAudioBtn" class="btn btn-download" disabled title="Download Audio">
-            <span class="icon icon-download"></span>
-        </button>
+        <div class="button-stack">
+            <button id="saveVideoButton" class="btn btn-download" disabled title="Download Video">
+                <span class="emoji-icon" aria-hidden="true">🎬</span>
+            </button>
+            <span class="button-label">Save video</span>
+        </div>
+        <div class="button-stack">
+            <button id="saveAudioButton" class="btn btn-download-audio" disabled title="Download Audio">
+                <span class="emoji-icon" aria-hidden="true">🎵</span>
+            </button>
+            <span class="button-label">Save audio</span>
+        </div>
     </div>
     <div class="recorder-status">
         <pre id="debugMsg">Ready</pre>
