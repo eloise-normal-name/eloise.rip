@@ -15,13 +15,20 @@ Title: Voice Recorder
     text-align: center;
 } 
 
-.recorder-row {
+.recorder-actions {
     display: flex;
-    flex-direction: row;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 1.2rem;
+    width: 100%;
     margin-bottom: 1.2rem;
+}
+
+@media (max-width: 520px) {
+    .recorder-actions {
+        gap: 1rem;
+    }
 }
 
 .button-stack {
@@ -88,6 +95,17 @@ Title: Voice Recorder
     border-color: rgba(32, 201, 151, 0.3);
 }
 
+.btn-save {
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.btn-save-text {
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+}
+
 .icon {
     display: inline-block;
     vertical-align: middle;
@@ -119,7 +137,7 @@ Title: Voice Recorder
 }
 
 .emoji-icon {
-    font-size: 24px;
+    font-size: 20px;
     line-height: 1;
 }
 
@@ -616,32 +634,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
 {% block content %}
  
-
 <section class="voice-recorder">
     <div class="recorder-canvas-container">
-        <canvas id="recordingCanvas" width="600" height="400"></canvas>
+        <canvas id="recordingCanvas" width="400" height="300"></canvas>
     </div>
-    <div class="recorder-row">
+    <div class="recorder-actions">
         <button id="recordButton" class="btn btn-record">
             <span class="icon icon-circle"></span>
         </button>
         <button id="playButton" class="btn btn-play" disabled>
             <span class="icon icon-triangle"></span>
         </button>
-    </div>
-
-    <div class="recorder-row">
         <div class="button-stack">
-            <button id="saveVideoButton" class="btn btn-download" disabled title="Download Video">
+            <button id="saveVideoButton" class="btn btn-download btn-save" disabled title="Download Video">
                 <span class="emoji-icon" aria-hidden="true">🎬</span>
+                <span class="btn-save-text">Save</span>
             </button>
-            <span class="button-label">Save video</span>
         </div>
         <div class="button-stack">
-            <button id="saveAudioButton" class="btn btn-download-audio" disabled title="Download Audio">
+            <button id="saveAudioButton" class="btn btn-download-audio btn-save" disabled title="Download Audio">
                 <span class="emoji-icon" aria-hidden="true">🎵</span>
+                <span class="btn-save-text">Save</span>
             </button>
-            <span class="button-label">Save audio</span>
         </div>
     </div>
     <div class="recorder-status">
