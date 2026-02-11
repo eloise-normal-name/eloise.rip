@@ -9,7 +9,7 @@ SITESUBTITLE = 'wintertime goblin hole 🕳❄'
 PATH = 'content'
 ARTICLE_PATHS = ['articles']
 PAGE_PATHS = ['pages', 'voice-recorder']
-STATIC_PATHS = ['media', 'extra', 'themes/cute-theme/static/voice-recorder']
+STATIC_PATHS = ['media', 'extra']
 
 # --- Content Settings ---
 TIMEZONE = 'UTC'
