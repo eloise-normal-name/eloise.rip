@@ -4,10 +4,10 @@ Title: Voice Recorder
 
 {% block extra_head %} 
 <style>
-{% include 'pages/voice-recorder.css' %}
+{% include 'pages/voice-recorder/voice-recorder.css' %}
 </style>
 <script>
-{% include 'pages/voice-recorder.js' %}
+{% include 'pages/voice-recorder/voice-recorder.js' %}
 </script>
 {% endblock %}
 
