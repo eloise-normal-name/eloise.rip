@@ -2,22 +2,44 @@ class AudioVisualizer {
     constructor(canvas, analyserNode) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.analyserNode = analyserNode;
+        this.analyserNode = null;
         this.data = null;
+
+        this.backgroundColor = 'rgba(16, 12, 20, 1)';
+        this.borderColor = 'rgba(255, 107, 157, 0.65)';
+        this.borderWidth = 2;
+
+        this.setAnalyser(analyserNode);
     }
 
     setAnalyser(analyserNode) {
         this.analyserNode = analyserNode;
-        if (this.analyserNode) {
-            this.data = new Uint8Array(this.analyserNode.fftSize);
+        this.data = this.analyserNode ? new Uint8Array(this.analyserNode.fftSize) : null;
+    }
+
+    paintFrame() {
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+
+        this.ctx.save();
+        this.ctx.fillStyle = this.backgroundColor;
+        this.ctx.fillRect(0, 0, width, height);
+
+        if (this.borderWidth > 0) {
+            const inset = this.borderWidth / 2;
+            this.ctx.lineWidth = this.borderWidth;
+            this.ctx.strokeStyle = this.borderColor;
+            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
         }
+        this.ctx.restore();
     }
 
     clear() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.paintFrame();
     }
 
     render() {
+        this.paintFrame();
         if (!this.analyserNode) return;
         if (!this.data || this.data.length !== this.analyserNode.fftSize) {
             this.data = new Uint8Array(this.analyserNode.fftSize);
@@ -28,8 +50,6 @@ class AudioVisualizer {
         const width = this.canvas.width;
         const height = this.canvas.height;
         const mid = height / 2;
-
-        this.ctx.clearRect(0, 0, width, height);
         this.ctx.lineWidth = 2;
         this.ctx.strokeStyle = 'rgba(255, 107, 157, 0.9)';
 
@@ -206,7 +226,11 @@ document.addEventListener('DOMContentLoaded', () => {
             cancelAnimationFrame(playbackAnimationId);
             playbackAnimationId = null;
         }
-        recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+        if (visualizer) {
+            visualizer.clear();
+        } else {
+            recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+        }
     };
 
     const startPlaybackRender = () => {
@@ -302,8 +326,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const source = audioContext.createMediaStreamSource(mediaStream);
         source.connect(analyser);
 
-        visualizer = new AudioVisualizer(recordingCanvas, analyser);
-        visualizer.setAnalyser(analyser);
+        if (!visualizer) {
+            visualizer = new AudioVisualizer(recordingCanvas, analyser);
+        } else {
+            visualizer.setAnalyser(analyser);
+        }
 
         mediaRecorder.start();
         isRecording = true;
@@ -498,6 +525,9 @@ document.addEventListener('DOMContentLoaded', () => {
     playButton.disabled = true;
     saveVideoButton.disabled = true;
     saveAudioButton.disabled = true;
+
+    visualizer = new AudioVisualizer(recordingCanvas, null);
+    visualizer.clear();
 
     showBrowserCapabilities();
 });
