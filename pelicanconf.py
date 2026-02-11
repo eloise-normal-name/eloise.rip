@@ -8,7 +8,7 @@ SITESUBTITLE = 'wintertime goblin hole 🕳❄'
 # --- Paths ---
 PATH = 'content'
 ARTICLE_PATHS = ['articles']
-PAGE_PATHS = ['pages', 'voice-recorder']
+PAGE_PATHS = ['pages']
 STATIC_PATHS = ['media', 'extra']
 
 # --- Content Settings ---
