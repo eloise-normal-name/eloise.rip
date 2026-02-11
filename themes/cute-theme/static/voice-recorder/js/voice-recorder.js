@@ -40,8 +40,49 @@ document.addEventListener('DOMContentLoaded', () => {
     return '';
   };
 
-  const setStatus = (message) => {
-    debugMsg.textContent = message;
+  const getTimestamp = () => {
+    const now = new Date();
+    return now.toLocaleTimeString('en-US', { hour12: false });
+  };
+
+  const setStatus = (message, details = null) => {
+    const timestamp = `[${getTimestamp()}] `;
+    let output = timestamp + message;
+    if (details) {
+      output += '\n' + details;
+    }
+    debugMsg.textContent = output;
+  };
+
+  const showBrowserCapabilities = () => {
+    const lines = [];
+    lines.push('=== BROWSER CAPABILITIES ===');
+    
+    // Check MediaDevices API
+    const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    lines.push(`getUserMedia: ${hasMediaDevices ? '✓' : '✗'}`);
+    
+    // Check MediaRecorder API
+    const hasMediaRecorder = !!window.MediaRecorder;
+    lines.push(`MediaRecorder: ${hasMediaRecorder ? '✓' : '✗'}`);
+    
+    // Check AudioContext
+    const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
+    lines.push(`AudioContext: ${hasAudioContext ? '✓' : '✗'}`);
+    
+    // List supported MIME types
+    if (hasMediaRecorder && MediaRecorder.isTypeSupported) {
+      lines.push('\nSupported MIME types:');
+      for (const type of preferredTypes) {
+        const supported = MediaRecorder.isTypeSupported(type);
+        lines.push(`  ${type}: ${supported ? '✓' : '✗'}`);
+      }
+    }
+    
+    // Browser info
+    lines.push(`\nUser Agent: ${navigator.userAgent.substring(0, 80)}...`);
+    
+    setStatus('Browser capabilities checked', lines.join('\n'));
   };
 
   const stopVisualizer = () => {
@@ -72,14 +113,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const startRecording = async () => {
     if (!canRecord()) {
-      setStatus('Recording not supported in this browser.');
+      setStatus('Recording not supported in this browser.', 
+        'Missing: ' + (!navigator.mediaDevices ? 'MediaDevices' : !window.MediaRecorder ? 'MediaRecorder' : 'getUserMedia'));
       return;
     }
 
     try {
       mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch (error) {
-      setStatus('Microphone permission denied.');
+      const details = `Error: ${error.name}\nMessage: ${error.message}\n\nTip: Check browser permissions or use HTTPS`;
+      setStatus('Microphone permission denied.', details);
       return;
     }
 
@@ -89,16 +132,24 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       mediaRecorder = new MediaRecorder(mediaStream, options);
     } catch (error) {
-      setStatus('Unable to start recorder.');
+      const details = `Error: ${error.name}\nMessage: ${error.message}\nAttempted MIME: ${mimeType || 'default'}`;
+      setStatus('Unable to start recorder.', details);
       stopStream();
       return;
     }
 
     audioChunks = [];
+    let totalBytes = 0;
+    
     mediaRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
         audioChunks.push(event.data);
+        totalBytes += event.data.size;
       }
+    };
+
+    mediaRecorder.onerror = (event) => {
+      setStatus('MediaRecorder error occurred', `Error: ${event.error}`);
     };
 
     mediaRecorder.onstop = () => {
@@ -109,7 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       audioUrl = URL.createObjectURL(audioBlob);
       playBtn.disabled = false;
-      setStatus('Recording ready.');
+      
+      const details = `Chunks: ${audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
+      setStatus('Recording ready.', details);
       stopVisualizer();
       stopStream();
     };
@@ -129,7 +182,9 @@ document.addEventListener('DOMContentLoaded', () => {
     isRecording = true;
     recordBtn.textContent = 'Stop';
     playBtn.disabled = true;
-    setStatus('Recording started.');
+    
+    const details = `MIME type: ${mimeType || 'default'}\nSample rate: ${audioContext.sampleRate} Hz\nFFT size: ${analyser.fftSize}\nState: ${mediaRecorder.state}`;
+    setStatus('Recording started.', details);
     startVisualizer();
   };
 
@@ -190,4 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
   playBtn.disabled = true;
   saveVideoBtn.disabled = true;
   saveAudioBtn.disabled = true;
+  
+  // Show browser capabilities on page load
+  showBrowserCapabilities();
 });
