@@ -12,9 +12,8 @@ The voice recorder page is a client-side-only feature that captures microphone a
 
 ## File Map
 - Template: themes/cute-theme/templates/voice-recorder.html
-- Recorder logic: themes/cute-theme/static/voice-recorder/js/voice-recorder.js
-- Waveform visualizer: themes/cute-theme/static/voice-recorder/js/visualizer.js
-- Styles: themes/cute-theme/static/voice-recorder/css/voice-recorder.css
+- Recorder logic + waveform visualizer: inlined in themes/cute-theme/templates/voice-recorder.html
+- Styles: inlined in themes/cute-theme/templates/voice-recorder.html
 - Page source: content/voice-recorder/voice-recorder.md
 
 ## Recording Flow
