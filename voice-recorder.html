@@ -18,8 +18,6 @@
     <link rel="shortcut icon" href="./favicon.ico">
     
     
-<link rel="stylesheet" href="./theme/voice-recorder/styles.css">
-<script src="./theme/voice-recorder/script.js" defer></script>
 </head>
 
 <body>
@@ -50,32 +48,756 @@
     </header>
 
     <main class="main-content">
+
+
 <article class="page">
     <h1 class="page-title">Voice Recorder</h1>
-    
+    <header class="page-header">
+    </header>
+
     <div class="page-content">
-        <div class="recorder-main">
-            <div class="recorder-canvas-container">
-                <canvas id="recordingCanvas" width="800" height="200"></canvas>
-            </div>
+        <style>
+.voice-recorder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
 
-            <div class="recorder-controls">
-                <button id="recordBtn" class="btn btn-record">Record</button>
-                <button id="stopBtn" class="btn btn-stop" disabled>Stop</button>
-                <button id="previewBtn" class="btn btn-preview" disabled>Play</button>
-            </div>
+.recorder-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    margin-bottom: 1.2rem;
+}
 
-            <div class="recorder-status">
-                <p id="statusText">Ready</p>
-            </div>
+.button-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+}
 
-            <div class="recorder-downloads">
-                <button id="downloadVideoBtn" class="btn btn-download" disabled>Download Video</button>
-                <button id="downloadAudioBtn" class="btn btn-download" disabled>Download Audio</button>
-                <button id="saveToPhotosBtn" class="btn btn-download" disabled>Save to Photos</button>
-                <button id="exportHevcBtn" class="btn btn-download" disabled>Export MOV (HEVC+alpha)</button>
-            </div>
+.button-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+}
+
+.btn {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    width: 64px;
+    height: 64px;
+    padding: 0;
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    text-transform: none;
+    background: #ffffff;
+    color: var(--text-color);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-record {
+    background: linear-gradient(180deg, #ffffff 0%, #f7f0ff 100%);
+    border-color: rgba(255, 107, 157, 0.25);
+}
+
+.btn-play {
+    background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%);
+    border-color: rgba(116, 192, 252, 0.35);
+}
+
+.btn-download {
+    background: linear-gradient(180deg, #ffffff 0%, #f3f0ff 100%);
+    border-color: rgba(151, 117, 250, 0.3);
+}
+
+.btn-download-audio {
+    background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+    border-color: rgba(32, 201, 151, 0.3);
+}
+
+.btn-save {
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.btn-save-text {
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+}
+
+.icon {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.icon-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #ff6b9d;
+    border: 2px solid #ff6b9d;
+}
+
+.icon-triangle {
+    width: 0;
+    height: 0;
+    border-left: 12px solid #74c0fc;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    margin-left: 4px;
+}
+
+.icon-square {
+    width: 16px;
+    height: 16px;
+    background-color: #ff6b6b;
+    border: 2px solid #ff6b6b;
+    border-radius: 2px;
+}
+
+.emoji-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.recorder-status {
+    width: 100%;
+    max-width: 600px;
+    margin: 1rem auto;
+}
+
+.recorder-status summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+    list-style: none;
+}
+
+.recorder-status summary::-webkit-details-marker {
+    display: none;
+}
+
+.recorder-status[open] summary {
+    margin-bottom: 0.6rem;
+}
+
+.recorder-canvas-container {
+    position: relative;
+}
+
+.playback-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#debugMsg {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    text-align: left;
+    padding: 1rem;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    color: var(--text-color);
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px var(--shadow);
+}</style>
+<script>
+class AudioVisualizer {
+    constructor(canvas, analyserNode) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.analyserNode = null;
+        this.data = null;
+
+        this.backgroundColor = 'rgba(16, 12, 20, 1)';
+        this.borderColor = 'rgba(255, 107, 157, 0.65)';
+        this.borderWidth = 2;
+
+        this.setAnalyser(analyserNode);
+    }
+
+    setAnalyser(analyserNode) {
+        this.analyserNode = analyserNode;
+        this.data = this.analyserNode ? new Uint8Array(this.analyserNode.fftSize) : null;
+    }
+
+    paintFrame() {
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+
+        this.ctx.save();
+        this.ctx.fillStyle = this.backgroundColor;
+        this.ctx.fillRect(0, 0, width, height);
+
+        if (this.borderWidth > 0) {
+            const inset = this.borderWidth / 2;
+            this.ctx.lineWidth = this.borderWidth;
+            this.ctx.strokeStyle = this.borderColor;
+            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
+        }
+        this.ctx.restore();
+    }
+
+    clear() {
+        this.paintFrame();
+    }
+
+    render() {
+        this.paintFrame();
+        if (!this.analyserNode) return;
+        if (!this.data || this.data.length !== this.analyserNode.fftSize) {
+            this.data = new Uint8Array(this.analyserNode.fftSize);
+        }
+
+        this.analyserNode.getByteTimeDomainData(this.data);
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const mid = height / 2;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeStyle = 'rgba(255, 107, 157, 0.9)';
+
+        this.ctx.beginPath();
+        for (let i = 0; i < this.data.length; i += 1) {
+            const x = (i / (this.data.length - 1)) * width;
+            const v = (this.data[i] - 128) / 128;
+            const y = mid + v * (mid - 6);
+            if (i === 0) {
+                this.ctx.moveTo(x, y);
+            } else {
+                this.ctx.lineTo(x, y);
+            }
+        }
+        this.ctx.stroke();
+    }
+}class VoiceRecorderApp {
+    static adjectives = [
+        'swift', 'bright', 'gentle', 'calm', 'wild',
+        'quiet', 'bold', 'soft', 'warm', 'cool',
+        'happy', 'clever', 'brave', 'kind', 'free',
+        'pure', 'neat', 'clear', 'smooth', 'crisp'
+    ];
+
+    static nouns = [
+        'river', 'cloud', 'forest', 'wave', 'star',
+        'moon', 'sky', 'wind', 'rain', 'snow',
+        'bird', 'leaf', 'stone', 'light', 'dream',
+        'song', 'path', 'lake', 'fire', 'echo'
+    ];
+
+    static debugMimeTypes = [
+        'audio/mp4',
+        'audio/webm;codecs=opus',
+        'audio/webm'
+    ];
+
+    static preferredVideoTypes = [
+        'video/mp4',
+        'video/webm'
+    ];
+
+    constructor() {
+        this.recordButton = document.getElementById('recordButton');
+        this.playButton = document.getElementById('playButton');
+        this.saveVideoButton = document.getElementById('saveVideoButton');
+        this.saveAudioButton = document.getElementById('saveAudioButton');
+        this.debugMsg = document.getElementById('debugMsg');
+        this.recordingCanvas = document.getElementById('recordingCanvas');
+        this.playbackVideo = document.getElementById('playbackVideo');
+
+        this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
+
+        this.isRecording = false;
+
+        this.mediaRecorder = null;
+        this.mediaStream = null;
+        this.audioChunks = [];
+        this.audioUrl = null;
+        this.audioBlob = null;
+
+        this.audioContext = null;
+        this.analyser = null;
+        this.visualizer = null;
+        this.animationId = null;
+
+        this.videoMediaRecorder = null;
+        this.videoChunks = [];
+        this.videoUrl = null;
+        this.videoBlob = null;
+        this.playbackAnimationId = null;
+
+        if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
+            || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
+            return;
+        }
+
+        this.playButton.disabled = true;
+        this.saveVideoButton.disabled = true;
+        this.saveAudioButton.disabled = true;
+
+        this.recordButton.onclick = () => this.onRecordClick();
+        this.playButton.onclick = () => this.togglePlayback();
+        this.saveVideoButton.onclick = () => this.saveVideo();
+        this.saveAudioButton.onclick = () => this.saveAudio();
+
+        this.playbackVideo.onended = () => {
+            this.stopPlaybackRender();
+            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.setStatus('Playback finished.');
+        };
+
+        this.playbackVideo.onpause = () => {
+            this.stopPlaybackRender();
+        };
+
+        this.visualizer = new AudioVisualizer(this.recordingCanvas, null);
+        this.visualizer.clear();
+        this.showBrowserCapabilities();
+    }
+
+    pickSupportedType(types) {
+        for (const type of types) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+                return type;
+            }
+        }
+        return '';
+    }
+
+    setStatus(message, details = null) {
+        const now = new Date();
+        const timestamp = `[${now.toLocaleTimeString('en-US', { hour12: false })}] `;
+        let output = timestamp + message;
+        if (details) {
+            output += `\n${details}`;
+        }
+        this.debugMsg.textContent = output;
+    }
+
+    setButtonIcon(button, iconClass) {
+        button.innerHTML = `<span class="icon ${iconClass}"></span>`;
+    }
+
+    generateRandomFilename() {
+        const { adjectives, nouns } = VoiceRecorderApp;
+        const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        return `${adjective}-${noun}`;
+    }
+
+    downloadBlob(blob, filename, existingUrl = null) {
+        const url = existingUrl || URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        if (!existingUrl) {
+            window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+    }
+
+    downloadWithStatus(blob, filename, existingUrl = null) {
+        const type = blob.type || 'application/octet-stream';
+        this.downloadBlob(blob, filename, existingUrl);
+        this.setStatus('Download started.', `Filename: ${filename}\nType: ${type}`);
+    }
+
+    async shareOrDownload({ blob, filename, existingUrl, successMessage }) {
+        const type = blob.type || 'application/octet-stream';
+
+        if (navigator.share) {
+            try {
+                if (!window.File) {
+                    throw new Error('File API not available');
+                }
+
+                const file = new File([blob], filename, { type });
+                const shareData = { files: [file] };
+
+                if (navigator.canShare && !navigator.canShare(shareData)) {
+                    this.downloadWithStatus(blob, filename, existingUrl);
+                    return;
+                }
+
+                await navigator.share(shareData);
+                this.setStatus(successMessage, `Filename: ${filename}`);
+                return;
+            } catch (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+            }
+        }
+
+        this.downloadWithStatus(blob, filename, existingUrl);
+    }
+
+    showBrowserCapabilities() {
+        const lines = [];
+        lines.push('=== BROWSER CAPABILITIES ===');
+
+        const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+        lines.push(`getUserMedia: ${hasMediaDevices ? '✓' : '✗'}`);
+
+        const hasMediaRecorder = !!window.MediaRecorder;
+        lines.push(`MediaRecorder: ${hasMediaRecorder ? '✓' : '✗'}`);
+
+        const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
+        lines.push(`AudioContext: ${hasAudioContext ? '✓' : '✗'}`);
+
+        if (hasMediaRecorder && MediaRecorder.isTypeSupported) {
+            lines.push('\nSupported MIME types:');
+            for (const type of VoiceRecorderApp.debugMimeTypes) {
+                const supported = MediaRecorder.isTypeSupported(type);
+                lines.push(`  ${type}: ${supported ? '✓' : '✗'}`);
+            }
+        }
+
+        lines.push(`\nUser Agent: ${navigator.userAgent.substring(0, 80)}...`);
+        this.setStatus('Browser capabilities checked', lines.join('\n'));
+    }
+
+    stopVisualizer() {
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        if (this.visualizer) {
+            this.visualizer.clear();
+        }
+    }
+
+    startVisualizer() {
+        if (!this.visualizer) return;
+        const loop = () => {
+            this.visualizer.render();
+            this.animationId = requestAnimationFrame(loop);
+        };
+        this.animationId = requestAnimationFrame(loop);
+    }
+
+    stopPlaybackRender() {
+        if (this.playbackAnimationId) {
+            cancelAnimationFrame(this.playbackAnimationId);
+            this.playbackAnimationId = null;
+        }
+        this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+    }
+
+    startPlaybackRender() {
+        const drawFrame = () => {
+            if (this.playbackVideo.paused || this.playbackVideo.ended) {
+                return;
+            }
+            this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.recordingCtx.drawImage(this.playbackVideo, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.playbackAnimationId = requestAnimationFrame(drawFrame);
+        };
+        this.playbackAnimationId = requestAnimationFrame(drawFrame);
+    }
+
+    stopStream() {
+        if (!this.mediaStream) return;
+        this.mediaStream.getTracks().forEach((track) => track.stop());
+        this.mediaStream = null;
+    }
+
+    async onRecordClick() {
+        if (this.isRecording) {
+            this.stopRecording();
+            return;
+        }
+        await this.startRecording();
+    }
+
+    async startRecording() {
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) {
+            this.setStatus(
+                'Recording not supported in this browser.',
+                `Missing: ${!navigator.mediaDevices ? 'MediaDevices' : !window.MediaRecorder ? 'MediaRecorder' : 'getUserMedia'}`
+            );
+            return;
+        }
+
+        try {
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (error) {
+            const details = `Error: ${error.name}\nMessage: ${error.message}\n\nTip: Check browser permissions or use HTTPS`;
+            this.setStatus('Microphone permission denied.', details);
+            return;
+        }
+
+        const mimeType = this.pickSupportedType(['audio/mp4']);
+        if (!mimeType) {
+            this.setStatus(
+                'Unable to start recorder.',
+                'Required: audio/mp4 (.mp4), but it is not supported in this browser.'
+            );
+            this.stopStream();
+            return;
+        }
+
+        try {
+            this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType });
+        } catch (error) {
+            const details = `Error: ${error.name}\nMessage: ${error.message}\nAttempted MIME: ${mimeType}`;
+            this.setStatus('Unable to start recorder.', details);
+            this.stopStream();
+            return;
+        }
+
+        this.audioChunks = [];
+        let totalBytes = 0;
+
+        this.mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                this.audioChunks.push(event.data);
+                totalBytes += event.data.size;
+            }
+        };
+
+        this.mediaRecorder.onerror = (event) => {
+            this.setStatus('MediaRecorder error occurred', `Error: ${event.error}`);
+        };
+
+        this.mediaRecorder.onstop = () => {
+            const blobType = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || 'audio/mp4';
+            this.audioBlob = new Blob(this.audioChunks, { type: blobType });
+            if (this.audioUrl) {
+                URL.revokeObjectURL(this.audioUrl);
+            }
+            this.audioUrl = URL.createObjectURL(this.audioBlob);
+            this.saveAudioButton.disabled = false;
+
+            const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
+            this.setStatus('Recording ready.', details);
+            this.stopVisualizer();
+            this.stopStream();
+        };
+
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 1024;
+        const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+        source.connect(this.analyser);
+        this.visualizer.setAnalyser(this.analyser);
+
+        this.mediaRecorder.start();
+        this.isRecording = true;
+        this.setButtonIcon(this.recordButton, 'icon-square');
+        this.playButton.disabled = true;
+        this.saveAudioButton.disabled = true;
+        this.saveVideoButton.disabled = true;
+
+        const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
+        this.setStatus('Recording started.', details);
+        this.startVisualizer();
+
+        this.startVideoRecording();
+    }
+
+    startVideoRecording() {
+        try {
+            const canvasStream = this.recordingCanvas.captureStream(30);
+            const videoTrack = canvasStream.getVideoTracks()[0];
+            const audioTrack = this.mediaStream.getAudioTracks()[0];
+            const combinedStream = new MediaStream([videoTrack, audioTrack]);
+
+            const videoMimeType = this.pickSupportedType(VoiceRecorderApp.preferredVideoTypes);
+            const videoOptions = videoMimeType ? { mimeType: videoMimeType } : undefined;
+
+            this.videoMediaRecorder = new MediaRecorder(combinedStream, videoOptions);
+            this.videoChunks = [];
+            let totalVideoBytes = 0;
+
+            this.videoMediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    this.videoChunks.push(event.data);
+                    totalVideoBytes += event.data.size;
+                }
+            };
+
+            this.videoMediaRecorder.onerror = (event) => {
+                this.setStatus('Video MediaRecorder error occurred', `Error: ${event.error}`);
+            };
+
+            this.videoMediaRecorder.onstop = () => {
+                const blobType = videoMimeType || (this.videoChunks[0] && this.videoChunks[0].type) || 'video/webm';
+                this.videoBlob = new Blob(this.videoChunks, { type: blobType });
+                if (this.videoUrl) {
+                    URL.revokeObjectURL(this.videoUrl);
+                }
+                this.videoUrl = URL.createObjectURL(this.videoBlob);
+                this.saveVideoButton.disabled = false;
+                this.playButton.disabled = false;
+                this.playbackVideo.src = this.videoUrl;
+                this.playbackVideo.load();
+
+                const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
+                this.setStatus('Video ready.', videoDetails);
+            };
+
+            this.videoMediaRecorder.start();
+        } catch (error) {
+            this.setStatus('Video recording failed', `Error: ${error.message}\nCanvas recording may not be supported.`);
+        }
+    }
+
+    stopRecording() {
+        if (!this.mediaRecorder || this.mediaRecorder.state !== 'recording') {
+            return;
+        }
+
+        this.mediaRecorder.stop();
+        if (this.videoMediaRecorder && this.videoMediaRecorder.state === 'recording') {
+            this.videoMediaRecorder.stop();
+        }
+
+        this.isRecording = false;
+        this.setButtonIcon(this.recordButton, 'icon-circle');
+        this.setStatus('Processing recording...');
+    }
+
+    togglePlayback() {
+        if (!this.videoUrl) {
+            this.setStatus('No video recording yet.');
+            return;
+        }
+
+        if (!this.playbackVideo.paused && !this.playbackVideo.ended) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.setStatus('Playback stopped.');
+            return;
+        }
+
+        this.playbackVideo.currentTime = 0;
+        const playPromise = this.playbackVideo.play();
+        if (playPromise && playPromise.catch) {
+            playPromise.catch((error) => {
+                this.setButtonIcon(this.playButton, 'icon-triangle');
+                this.setStatus('Playback failed.', `Error: ${error.message}`);
+            });
+        }
+        this.setButtonIcon(this.playButton, 'icon-square');
+        this.setStatus('Playback started.');
+        this.stopPlaybackRender();
+        this.startPlaybackRender();
+    }
+
+    async saveVideo() {
+        if (!this.videoBlob) {
+            this.setStatus('No video recording available to save.');
+            return;
+        }
+
+        const videoExt = (this.videoBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = this.generateRandomFilename() + (videoExt ? `.${videoExt}` : '');
+        await this.shareOrDownload({
+            blob: this.videoBlob,
+            filename,
+            existingUrl: this.videoUrl,
+            successMessage: 'Video share completed.'
+        });
+    }
+
+    async saveAudio() {
+        if (!this.audioBlob) {
+            this.setStatus('No recording available to save.');
+            return;
+        }
+
+        const audioExt = (this.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = this.generateRandomFilename() + (audioExt ? `.${audioExt}` : '');
+        await this.shareOrDownload({
+            blob: this.audioBlob,
+            filename,
+            existingUrl: this.audioUrl,
+            successMessage: 'Share completed.'
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new VoiceRecorderApp();
+});</script>
+
+<section class="voice-recorder">
+    <div class="recorder-canvas-container">
+        <canvas id="recordingCanvas" width="400" height="300"></canvas>
+        <video id="playbackVideo" width="400" height="300" class="playback-video" playsinline></video>
+    </div>
+    <div class="recorder-actions">
+        <button id="recordButton" class="btn btn-record">
+            <span class="icon icon-circle"></span>
+        </button>
+        <button id="playButton" class="btn btn-play" disabled>
+            <span class="icon icon-triangle"></span>
+        </button>
+        <div class="button-stack">
+            <button id="saveVideoButton" class="btn btn-download btn-save" disabled title="Download Video">
+                <span class="emoji-icon" aria-hidden="true">🎬</span>
+                <span class="btn-save-text">Save</span>
+            </button>
         </div>
+        <div class="button-stack">
+            <button id="saveAudioButton" class="btn btn-download-audio btn-save" disabled title="Download Audio">
+                <span class="emoji-icon" aria-hidden="true">🎵</span>
+                <span class="btn-save-text">Save</span>
+            </button>
+        </div>
+    </div>
+    <details class="recorder-status" closed>
+        <summary>Status</summary>
+        <pre id="debugMsg">Ready</pre>
+    </details>
+</section>
     </div>
 </article>
     </main>
