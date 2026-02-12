@@ -1,5 +1,6 @@
 Template: page
 Title: Voice Recorder
+Status: hidden
 
 
 {% block extra_head %} 
@@ -7,6 +8,7 @@ Title: Voice Recorder
 {% include 'pages/voice-recorder/voice-recorder.css' %}
 </style>
 <script>
+{% include 'pages/voice-recorder/audio-visualizer.js' %}
 {% include 'pages/voice-recorder/voice-recorder.js' %}
 </script>
 {% endblock %}
@@ -38,7 +40,7 @@ Title: Voice Recorder
             </button>
         </div>
     </div>
-    <details class="recorder-status" open>
+    <details class="recorder-status" closed>
         <summary>Status</summary>
         <pre id="debugMsg">Ready</pre>
     </details>

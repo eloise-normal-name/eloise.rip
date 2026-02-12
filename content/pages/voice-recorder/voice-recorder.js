@@ -1,191 +1,170 @@
-class AudioVisualizer {
-    constructor(canvas, analyserNode) {
-        this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
-        this.analyserNode = null;
-        this.data = null;
-
-        this.backgroundColor = 'rgba(16, 12, 20, 1)';
-        this.borderColor = 'rgba(255, 107, 157, 0.65)';
-        this.borderWidth = 2;
-
-        this.setAnalyser(analyserNode);
-    }
-
-    setAnalyser(analyserNode) {
-        this.analyserNode = analyserNode;
-        this.data = this.analyserNode ? new Uint8Array(this.analyserNode.fftSize) : null;
-    }
-
-    paintFrame() {
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-
-        this.ctx.save();
-        this.ctx.fillStyle = this.backgroundColor;
-        this.ctx.fillRect(0, 0, width, height);
-
-        if (this.borderWidth > 0) {
-            const inset = this.borderWidth / 2;
-            this.ctx.lineWidth = this.borderWidth;
-            this.ctx.strokeStyle = this.borderColor;
-            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
-        }
-        this.ctx.restore();
-    }
-
-    clear() {
-        this.paintFrame();
-    }
-
-    render() {
-        this.paintFrame();
-        if (!this.analyserNode) return;
-        if (!this.data || this.data.length !== this.analyserNode.fftSize) {
-            this.data = new Uint8Array(this.analyserNode.fftSize);
-        }
-
-        this.analyserNode.getByteTimeDomainData(this.data);
-
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-        const mid = height / 2;
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeStyle = 'rgba(255, 107, 157, 0.9)';
-
-        this.ctx.beginPath();
-        for (let i = 0; i < this.data.length; i += 1) {
-            const x = (i / (this.data.length - 1)) * width;
-            const v = (this.data[i] - 128) / 128;
-            const y = mid + v * (mid - 6);
-            if (i === 0) {
-                this.ctx.moveTo(x, y);
-            } else {
-                this.ctx.lineTo(x, y);
-            }
-        }
-        this.ctx.stroke();
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const recordButton = document.getElementById('recordButton');
-    const playButton = document.getElementById('playButton');
-    const saveVideoButton = document.getElementById('saveVideoButton');
-    const saveAudioButton = document.getElementById('saveAudioButton');
-    const debugMsg = document.getElementById('debugMsg');
-    const recordingCanvas = document.getElementById('recordingCanvas');
-    const playbackVideo = document.getElementById('playbackVideo');
-    const recordingCtx = recordingCanvas.getContext('2d');
-
-    let isRecording = false;
-    let mediaRecorder = null;
-    let mediaStream = null;
-    let audioChunks = [];
-    let audioUrl = null;
-    let audioBlob = null;
-    let audioContext = null;
-    let analyser = null;
-    let visualizer = null;
-    let animationId = null;
-    let playbackAnimationId = null;
-
-    let videoMediaRecorder = null;
-    let videoChunks = [];
-    let videoUrl = null;
-    let videoBlob = null;
-
-    const adjectives = [
+class VoiceRecorderApp {
+    static adjectives = [
         'swift', 'bright', 'gentle', 'calm', 'wild',
         'quiet', 'bold', 'soft', 'warm', 'cool',
         'happy', 'clever', 'brave', 'kind', 'free',
         'pure', 'neat', 'clear', 'smooth', 'crisp'
     ];
 
-    const nouns = [
+    static nouns = [
         'river', 'cloud', 'forest', 'wave', 'star',
         'moon', 'sky', 'wind', 'rain', 'snow',
         'bird', 'leaf', 'stone', 'light', 'dream',
         'song', 'path', 'lake', 'fire', 'echo'
     ];
 
-    const preferredTypes = [
+    static debugMimeTypes = [
         'audio/mp4',
         'audio/webm;codecs=opus',
         'audio/webm'
     ];
 
-    const preferredVideoTypes = [
+    static preferredVideoTypes = [
         'video/mp4',
         'video/webm'
     ];
 
-    const canRecord = () => {
-        return navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder;
-    };
+    constructor() {
+        this.recordButton = document.getElementById('recordButton');
+        this.playButton = document.getElementById('playButton');
+        this.saveVideoButton = document.getElementById('saveVideoButton');
+        this.saveAudioButton = document.getElementById('saveAudioButton');
+        this.debugMsg = document.getElementById('debugMsg');
+        this.recordingCanvas = document.getElementById('recordingCanvas');
+        this.playbackVideo = document.getElementById('playbackVideo');
 
-    const pickMimeType = () => {
-        if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) {
-            return '';
+        this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
+
+        this.isRecording = false;
+
+        this.mediaRecorder = null;
+        this.mediaStream = null;
+        this.audioChunks = [];
+        this.audioUrl = null;
+        this.audioBlob = null;
+
+        this.audioContext = null;
+        this.analyser = null;
+        this.visualizer = null;
+        this.animationId = null;
+
+        this.videoMediaRecorder = null;
+        this.videoChunks = [];
+        this.videoUrl = null;
+        this.videoBlob = null;
+        this.playbackAnimationId = null;
+
+        if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
+            || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
+            return;
         }
-        for (const type of preferredTypes) {
-            if (MediaRecorder.isTypeSupported(type)) {
+
+        this.playButton.disabled = true;
+        this.saveVideoButton.disabled = true;
+        this.saveAudioButton.disabled = true;
+
+        this.recordButton.onclick = () => this.onRecordClick();
+        this.playButton.onclick = () => this.togglePlayback();
+        this.saveVideoButton.onclick = () => this.saveVideo();
+        this.saveAudioButton.onclick = () => this.saveAudio();
+
+        this.playbackVideo.onended = () => {
+            this.stopPlaybackRender();
+            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.setStatus('Playback finished.');
+        };
+
+        this.playbackVideo.onpause = () => {
+            this.stopPlaybackRender();
+        };
+
+        this.visualizer = new AudioVisualizer(this.recordingCanvas, null);
+        this.visualizer.clear();
+        this.showBrowserCapabilities();
+    }
+
+    pickSupportedType(types) {
+        for (const type of types) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
                 return type;
             }
         }
         return '';
-    };
+    }
 
-    const pickVideoMimeType = () => {
-        if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) {
-            return '';
-        }
-        for (const type of preferredVideoTypes) {
-            if (MediaRecorder.isTypeSupported(type)) {
-                return type;
-            }
-        }
-        return '';
-    };
-
-    const getTimestamp = () => {
+    setStatus(message, details = null) {
         const now = new Date();
-        return now.toLocaleTimeString('en-US', { hour12: false });
-    };
-
-    const generateRandomFilename = () => {
-        const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-        const noun = nouns[Math.floor(Math.random() * nouns.length)];
-        return `${adjective}-${noun}`;
-    };
-
-    const getFileExtension = (mimeType) => {
-        if (!mimeType) return '.audio';
-        if (mimeType.startsWith('video/mp4')) return '.mp4';
-        if (mimeType.startsWith('video/webm')) return '.webm';
-        if (mimeType.startsWith('audio/mp4')) return '.m4a';
-        if (mimeType.startsWith('audio/webm')) return '.webm';
-        return '.audio';
-    };
-
-    const setStatus = (message, details = null) => {
-        const timestamp = `[${getTimestamp()}] `;
+        const timestamp = `[${now.toLocaleTimeString('en-US', { hour12: false })}] `;
         let output = timestamp + message;
         if (details) {
             output += `\n${details}`;
         }
-        debugMsg.textContent = output;
-    };
+        this.debugMsg.textContent = output;
+    }
 
-    const setButtonIcon = (button, iconClass) => {
+    setButtonIcon(button, iconClass) {
         button.innerHTML = `<span class="icon ${iconClass}"></span>`;
-    };
+    }
 
-    const setButtonText = (button, text) => {
-        button.textContent = text;
-    };
+    generateRandomFilename() {
+        const { adjectives, nouns } = VoiceRecorderApp;
+        const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const noun = nouns[Math.floor(Math.random() * nouns.length)];
+        return `${adjective}-${noun}`;
+    }
 
-    const showBrowserCapabilities = () => {
+    downloadBlob(blob, filename, existingUrl = null) {
+        const url = existingUrl || URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        if (!existingUrl) {
+            window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+    }
+
+    downloadWithStatus(blob, filename, existingUrl = null) {
+        const type = blob.type || 'application/octet-stream';
+        this.downloadBlob(blob, filename, existingUrl);
+        this.setStatus('Download started.', `Filename: ${filename}\nType: ${type}`);
+    }
+
+    async shareOrDownload({ blob, filename, existingUrl, successMessage }) {
+        const type = blob.type || 'application/octet-stream';
+
+        if (navigator.share) {
+            try {
+                if (!window.File) {
+                    throw new Error('File API not available');
+                }
+
+                const file = new File([blob], filename, { type });
+                const shareData = { files: [file] };
+
+                if (navigator.canShare && !navigator.canShare(shareData)) {
+                    this.downloadWithStatus(blob, filename, existingUrl);
+                    return;
+                }
+
+                await navigator.share(shareData);
+                this.setStatus(successMessage, `Filename: ${filename}`);
+                return;
+            } catch (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+            }
+        }
+
+        this.downloadWithStatus(blob, filename, existingUrl);
+    }
+
+    showBrowserCapabilities() {
         const lines = [];
         lines.push('=== BROWSER CAPABILITIES ===');
 
@@ -200,334 +179,281 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (hasMediaRecorder && MediaRecorder.isTypeSupported) {
             lines.push('\nSupported MIME types:');
-            for (const type of preferredTypes) {
+            for (const type of VoiceRecorderApp.debugMimeTypes) {
                 const supported = MediaRecorder.isTypeSupported(type);
                 lines.push(`  ${type}: ${supported ? '✓' : '✗'}`);
             }
         }
 
         lines.push(`\nUser Agent: ${navigator.userAgent.substring(0, 80)}...`);
+        this.setStatus('Browser capabilities checked', lines.join('\n'));
+    }
 
-        setStatus('Browser capabilities checked', lines.join('\n'));
-    };
+    stopVisualizer() {
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        if (this.visualizer) {
+            this.visualizer.clear();
+        }
+    }
 
-    const stopVisualizer = () => {
-        if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-        }
-        if (visualizer) {
-            visualizer.clear();
-        }
-    };
+    startVisualizer() {
+        if (!this.visualizer) return;
+        const loop = () => {
+            this.visualizer.render();
+            this.animationId = requestAnimationFrame(loop);
+        };
+        this.animationId = requestAnimationFrame(loop);
+    }
 
-    const stopPlaybackRender = () => {
-        if (playbackAnimationId) {
-            cancelAnimationFrame(playbackAnimationId);
-            playbackAnimationId = null;
+    stopPlaybackRender() {
+        if (this.playbackAnimationId) {
+            cancelAnimationFrame(this.playbackAnimationId);
+            this.playbackAnimationId = null;
         }
-        if (visualizer) {
-            visualizer.clear();
-        } else {
-            recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-        }
-    };
+        this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+    }
 
-    const startPlaybackRender = () => {
-        if (!playbackVideo) return;
+    startPlaybackRender() {
         const drawFrame = () => {
-            if (playbackVideo.paused || playbackVideo.ended) {
+            if (this.playbackVideo.paused || this.playbackVideo.ended) {
                 return;
             }
-            recordingCtx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-            recordingCtx.drawImage(playbackVideo, 0, 0, recordingCanvas.width, recordingCanvas.height);
-            playbackAnimationId = requestAnimationFrame(drawFrame);
+            this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.recordingCtx.drawImage(this.playbackVideo, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.playbackAnimationId = requestAnimationFrame(drawFrame);
         };
-        playbackAnimationId = requestAnimationFrame(drawFrame);
-    };
+        this.playbackAnimationId = requestAnimationFrame(drawFrame);
+    }
 
-    const startVisualizer = () => {
-        if (!visualizer) return;
-        const loop = () => {
-            visualizer.render();
-            animationId = requestAnimationFrame(loop);
-        };
-        animationId = requestAnimationFrame(loop);
-    };
+    stopStream() {
+        if (!this.mediaStream) return;
+        this.mediaStream.getTracks().forEach((track) => track.stop());
+        this.mediaStream = null;
+    }
 
-    const stopStream = () => {
-        if (mediaStream) {
-            mediaStream.getTracks().forEach((track) => track.stop());
-            mediaStream = null;
+    async onRecordClick() {
+        if (this.isRecording) {
+            this.stopRecording();
+            return;
         }
-    };
+        await this.startRecording();
+    }
 
-    const startRecording = async () => {
-        if (!canRecord()) {
-            setStatus('Recording not supported in this browser.',
-                `Missing: ${!navigator.mediaDevices ? 'MediaDevices' : !window.MediaRecorder ? 'MediaRecorder' : 'getUserMedia'}`);
+    async startRecording() {
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) {
+            this.setStatus(
+                'Recording not supported in this browser.',
+                `Missing: ${!navigator.mediaDevices ? 'MediaDevices' : !window.MediaRecorder ? 'MediaRecorder' : 'getUserMedia'}`
+            );
             return;
         }
 
         try {
-            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (error) {
             const details = `Error: ${error.name}\nMessage: ${error.message}\n\nTip: Check browser permissions or use HTTPS`;
-            setStatus('Microphone permission denied.', details);
+            this.setStatus('Microphone permission denied.', details);
             return;
         }
 
-        const mimeType = pickMimeType();
-        const options = mimeType ? { mimeType } : undefined;
+        const mimeType = this.pickSupportedType(['audio/mp4']);
+        if (!mimeType) {
+            this.setStatus(
+                'Unable to start recorder.',
+                'Required: audio/mp4 (.mp4), but it is not supported in this browser.'
+            );
+            this.stopStream();
+            return;
+        }
 
         try {
-            mediaRecorder = new MediaRecorder(mediaStream, options);
+            this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType });
         } catch (error) {
-            const details = `Error: ${error.name}\nMessage: ${error.message}\nAttempted MIME: ${mimeType || 'default'}`;
-            setStatus('Unable to start recorder.', details);
-            stopStream();
+            const details = `Error: ${error.name}\nMessage: ${error.message}\nAttempted MIME: ${mimeType}`;
+            this.setStatus('Unable to start recorder.', details);
+            this.stopStream();
             return;
         }
 
-        audioChunks = [];
+        this.audioChunks = [];
         let totalBytes = 0;
 
-        mediaRecorder.ondataavailable = (event) => {
+        this.mediaRecorder.ondataavailable = (event) => {
             if (event.data && event.data.size > 0) {
-                audioChunks.push(event.data);
+                this.audioChunks.push(event.data);
                 totalBytes += event.data.size;
             }
         };
 
-        mediaRecorder.onerror = (event) => {
-            setStatus('MediaRecorder error occurred', `Error: ${event.error}`);
+        this.mediaRecorder.onerror = (event) => {
+            this.setStatus('MediaRecorder error occurred', `Error: ${event.error}`);
         };
 
-        mediaRecorder.onstop = () => {
-            const blobType = mimeType || (audioChunks[0] && audioChunks[0].type) || 'audio/webm';
-            audioBlob = new Blob(audioChunks, { type: blobType });
-            if (audioUrl) {
-                URL.revokeObjectURL(audioUrl);
+        this.mediaRecorder.onstop = () => {
+            const blobType = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || 'audio/mp4';
+            this.audioBlob = new Blob(this.audioChunks, { type: blobType });
+            if (this.audioUrl) {
+                URL.revokeObjectURL(this.audioUrl);
             }
-            audioUrl = URL.createObjectURL(audioBlob);
-            saveAudioButton.disabled = false;
+            this.audioUrl = URL.createObjectURL(this.audioBlob);
+            this.saveAudioButton.disabled = false;
 
-            const details = `Chunks: ${audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
-            setStatus('Recording ready.', details);
-            stopVisualizer();
-            stopStream();
+            const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
+            this.setStatus('Recording ready.', details);
+            this.stopVisualizer();
+            this.stopStream();
         };
 
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 1024;
-        const source = audioContext.createMediaStreamSource(mediaStream);
-        source.connect(analyser);
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 1024;
+        const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+        source.connect(this.analyser);
+        this.visualizer.setAnalyser(this.analyser);
 
-        if (!visualizer) {
-            visualizer = new AudioVisualizer(recordingCanvas, analyser);
-        } else {
-            visualizer.setAnalyser(analyser);
-        }
+        this.mediaRecorder.start();
+        this.isRecording = true;
+        this.setButtonIcon(this.recordButton, 'icon-square');
+        this.playButton.disabled = true;
+        this.saveAudioButton.disabled = true;
+        this.saveVideoButton.disabled = true;
 
-        mediaRecorder.start();
-        isRecording = true;
-        setButtonIcon(recordButton, 'icon-square');
-        playButton.disabled = true;
-        saveAudioButton.disabled = true;
-        saveVideoButton.disabled = true;
+        const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
+        this.setStatus('Recording started.', details);
+        this.startVisualizer();
 
-        const details = `MIME type: ${mimeType || 'default'}\nSample rate: ${audioContext.sampleRate} Hz\nFFT size: ${analyser.fftSize}\nState: ${mediaRecorder.state}`;
-        setStatus('Recording started.', details);
-        startVisualizer();
+        this.startVideoRecording();
+    }
 
-        startVideoRecording(mimeType);
-    };
-
-    const startVideoRecording = (audioMimeType) => {
+    startVideoRecording() {
         try {
-            const canvasStream = recordingCanvas.captureStream(30);
+            const canvasStream = this.recordingCanvas.captureStream(30);
             const videoTrack = canvasStream.getVideoTracks()[0];
-            const audioTrack = mediaStream.getAudioTracks()[0];
-
+            const audioTrack = this.mediaStream.getAudioTracks()[0];
             const combinedStream = new MediaStream([videoTrack, audioTrack]);
 
-            const videoMimeType = pickVideoMimeType();
+            const videoMimeType = this.pickSupportedType(VoiceRecorderApp.preferredVideoTypes);
             const videoOptions = videoMimeType ? { mimeType: videoMimeType } : undefined;
 
-            videoMediaRecorder = new MediaRecorder(combinedStream, videoOptions);
-            videoChunks = [];
+            this.videoMediaRecorder = new MediaRecorder(combinedStream, videoOptions);
+            this.videoChunks = [];
             let totalVideoBytes = 0;
 
-            videoMediaRecorder.ondataavailable = (event) => {
+            this.videoMediaRecorder.ondataavailable = (event) => {
                 if (event.data && event.data.size > 0) {
-                    videoChunks.push(event.data);
+                    this.videoChunks.push(event.data);
                     totalVideoBytes += event.data.size;
                 }
             };
 
-            videoMediaRecorder.onerror = (event) => {
-                setStatus('Video MediaRecorder error occurred', `Error: ${event.error}`);
+            this.videoMediaRecorder.onerror = (event) => {
+                this.setStatus('Video MediaRecorder error occurred', `Error: ${event.error}`);
             };
 
-            videoMediaRecorder.onstop = () => {
-                const blobType = videoMimeType || (videoChunks[0] && videoChunks[0].type) || 'video/webm';
-                videoBlob = new Blob(videoChunks, { type: blobType });
-                if (videoUrl) {
-                    URL.revokeObjectURL(videoUrl);
+            this.videoMediaRecorder.onstop = () => {
+                const blobType = videoMimeType || (this.videoChunks[0] && this.videoChunks[0].type) || 'video/webm';
+                this.videoBlob = new Blob(this.videoChunks, { type: blobType });
+                if (this.videoUrl) {
+                    URL.revokeObjectURL(this.videoUrl);
                 }
-                videoUrl = URL.createObjectURL(videoBlob);
-                saveVideoButton.disabled = false;
-                playButton.disabled = false;
-                playbackVideo.src = videoUrl;
-                playbackVideo.load();
+                this.videoUrl = URL.createObjectURL(this.videoBlob);
+                this.saveVideoButton.disabled = false;
+                this.playButton.disabled = false;
+                this.playbackVideo.src = this.videoUrl;
+                this.playbackVideo.load();
 
-                const videoDetails = `Video chunks: ${videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
-                setStatus('Video ready.', videoDetails);
+                const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
+                this.setStatus('Video ready.', videoDetails);
             };
 
-            videoMediaRecorder.start();
+            this.videoMediaRecorder.start();
         } catch (error) {
-            setStatus('Video recording failed', `Error: ${error.message}\nCanvas recording may not be supported.`);
+            this.setStatus('Video recording failed', `Error: ${error.message}\nCanvas recording may not be supported.`);
         }
-    };
+    }
 
-    const stopRecording = () => {
-        if (!mediaRecorder || mediaRecorder.state !== 'recording') {
-            return;
-        }
-        mediaRecorder.stop();
-
-        if (videoMediaRecorder && videoMediaRecorder.state === 'recording') {
-            videoMediaRecorder.stop();
-        }
-
-        isRecording = false;
-        setButtonIcon(recordButton, 'icon-circle');
-        setStatus('Processing recording...');
-    };
-
-    const togglePlayback = () => {
-        if (!videoUrl || !playbackVideo) {
-            setStatus('No video recording yet.');
+    stopRecording() {
+        if (!this.mediaRecorder || this.mediaRecorder.state !== 'recording') {
             return;
         }
 
-        if (!playbackVideo.paused && !playbackVideo.ended) {
-            playbackVideo.pause();
-            playbackVideo.currentTime = 0;
-            stopPlaybackRender();
-            setButtonIcon(playButton, 'icon-triangle');
-            setStatus('Playback stopped.');
+        this.mediaRecorder.stop();
+        if (this.videoMediaRecorder && this.videoMediaRecorder.state === 'recording') {
+            this.videoMediaRecorder.stop();
+        }
+
+        this.isRecording = false;
+        this.setButtonIcon(this.recordButton, 'icon-circle');
+        this.setStatus('Processing recording...');
+    }
+
+    togglePlayback() {
+        if (!this.videoUrl) {
+            this.setStatus('No video recording yet.');
             return;
         }
 
-        playbackVideo.currentTime = 0;
-        const playPromise = playbackVideo.play();
+        if (!this.playbackVideo.paused && !this.playbackVideo.ended) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.setStatus('Playback stopped.');
+            return;
+        }
+
+        this.playbackVideo.currentTime = 0;
+        const playPromise = this.playbackVideo.play();
         if (playPromise && playPromise.catch) {
             playPromise.catch((error) => {
-                setButtonIcon(playButton, 'icon-triangle');
-                setStatus('Playback failed.', `Error: ${error.message}`);
+                this.setButtonIcon(this.playButton, 'icon-triangle');
+                this.setStatus('Playback failed.', `Error: ${error.message}`);
             });
         }
-        setButtonIcon(playButton, 'icon-square');
-        setStatus('Playback started.');
-        stopPlaybackRender();
-        startPlaybackRender();
-    };
+        this.setButtonIcon(this.playButton, 'icon-square');
+        this.setStatus('Playback started.');
+        this.stopPlaybackRender();
+        this.startPlaybackRender();
+    }
 
-    playbackVideo.onended = () => {
-        stopPlaybackRender();
-        setButtonIcon(playButton, 'icon-triangle');
-        setStatus('Playback finished.');
-    };
-
-    playbackVideo.onpause = () => {
-        stopPlaybackRender();
-    };
-
-    recordButton.onclick = () => {
-        if (isRecording) {
-            stopRecording();
-            return;
-        }
-        startRecording();
-    };
-
-    playButton.onclick = () => {
-        togglePlayback();
-    };
-
-    saveVideoButton.onclick = async () => {
-        if (!videoBlob) {
-            setStatus('No video recording available to save.');
+    async saveVideo() {
+        if (!this.videoBlob) {
+            this.setStatus('No video recording available to save.');
             return;
         }
 
-        const filename = generateRandomFilename() + getFileExtension(videoBlob.type);
+        const videoExt = (this.videoBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = this.generateRandomFilename() + (videoExt ? `.${videoExt}` : '');
+        await this.shareOrDownload({
+            blob: this.videoBlob,
+            filename,
+            existingUrl: this.videoUrl,
+            successMessage: 'Video share completed.'
+        });
+    }
 
-        if (navigator.share && navigator.canShare) {
-            try {
-                const file = new File([videoBlob], filename, { type: videoBlob.type });
-                const shareData = {
-                    files: [file]
-                };
-
-                if (navigator.canShare(shareData)) {
-                    await navigator.share(shareData);
-                    setStatus('Video share completed.', `Filename: ${filename}`);
-                } else {
-                    setStatus('Sharing not supported for this file type.');
-                }
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    setStatus('Video share failed.', `Error: ${error.message}`);
-                }
-            }
-        } else {
-            setStatus('Web Share API not available on this device.');
-        }
-    };
-
-    saveAudioButton.onclick = async () => {
-        if (!audioBlob) {
-            setStatus('No recording available to save.');
+    async saveAudio() {
+        if (!this.audioBlob) {
+            this.setStatus('No recording available to save.');
             return;
         }
 
-        const filename = generateRandomFilename() + getFileExtension(audioBlob.type);
+        const audioExt = (this.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = this.generateRandomFilename() + (audioExt ? `.${audioExt}` : '');
+        await this.shareOrDownload({
+            blob: this.audioBlob,
+            filename,
+            existingUrl: this.audioUrl,
+            successMessage: 'Share completed.'
+        });
+    }
+}
 
-        if (navigator.share && navigator.canShare) {
-            try {
-                const file = new File([audioBlob], filename, { type: audioBlob.type });
-                const shareData = {
-                    files: [file]
-                };
-
-                if (navigator.canShare(shareData)) {
-                    await navigator.share(shareData);
-                    setStatus('Share completed.', `Filename: ${filename}`);
-                } else {
-                    setStatus('Sharing not supported for this file type.');
-                }
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    setStatus('Share failed.', `Error: ${error.message}`);
-                }
-            }
-        } else {
-            setStatus('Web Share API not available on this device.');
-        }
-    };
-
-    playButton.disabled = true;
-    saveVideoButton.disabled = true;
-    saveAudioButton.disabled = true;
-
-    visualizer = new AudioVisualizer(recordingCanvas, null);
-    visualizer.clear();
-
-    showBrowserCapabilities();
+document.addEventListener('DOMContentLoaded', () => {
+    new VoiceRecorderApp();
 });
