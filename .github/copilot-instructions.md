@@ -15,6 +15,11 @@
 - Asking unnecessary questions about server status instead of checking directly.
 
 **Always follow these steps to avoid blank pages and ensure reliable previews.**
+
+## Tooling Preflight (Copilot Agent)
+
+- Before making file edits, confirm the patch/edit tool is enabled.
+- Switching between Plan/Agent mode (or reconnecting) may disable editing tools without notification; if an edit tool call fails, ask the user to re-enable it and retry.
 # eloise.rip - Personal Blog Codebase Guide
 
 ## Project Architecture
@@ -145,7 +150,7 @@ thumbnail: images/preview.avif
 
 ## Configuration Details
 
-- **Pelican config**: [pelicanconf.py](pelicanconf.py) - sets paths, theme, plugins, markdown extensions
+- **Pelican config**: [pelicanconf.py](../pelicanconf.py) - sets paths, theme, plugins, markdown extensions
 - **Pagination**: 8 posts per page (`DEFAULT_PAGINATION = 8`)
 - **URL structure**: Articles → `/blog/{slug}.html`, Pages → `/{slug}.html`
 - **Static files**: `content/extra/` files (CNAME, favicons) copied to output root via `EXTRA_PATH_METADATA`
@@ -153,15 +158,15 @@ thumbnail: images/preview.avif
 ## Development Notes
 
 - **Virtual environment**: Use `.venv/` - activate before running any commands (`source .venv/bin/activate` or `.venv\Scripts\activate` on Windows)
-- **Dependencies**: [requirements.txt](requirements.txt) - Pelican 4.10.1, Pillow 11.1.0, pillow-heif for HEIC support, beautifulsoup4 and requests for validation
+- **Dependencies**: [requirements.txt](../requirements.txt) - Pelican 4.10.1, Pillow 11.1.0, pillow-heif for HEIC support, beautifulsoup4 and requests for validation
 - **Media transcoding** requires `ffmpeg` on PATH
-- **CSS analysis**: [analyze_styles.py](analyze_styles.py) generates reports matching HTML elements to CSS rules
-- **Link validation**: [validate_output.py](validate_output.py) - post-build checker for broken links and missing media
+- **CSS analysis**: [analyze_styles.py](../analyze_styles.py) generates reports matching HTML elements to CSS rules
+- **Link validation**: [validate_output.py](../validate_output.py) - post-build checker for broken links and missing media
 - **Output directory** (`output/`) is gitignored - only source content is versioned
 
 ## Plugin Development
 
-Plugins use Pelican's signal system. Example from [video_embed.py](pelican-plugins/video_embed/video_embed.py):
+Plugins use Pelican's signal system. Example from [video_embed.py](../pelican-plugins/video_embed/video_embed.py):
 ```python
 def register():
     signals.content_object_init.connect(replace_markers)

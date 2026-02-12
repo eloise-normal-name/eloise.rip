@@ -13,16 +13,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
     gap: 1.2rem;
-    width: 100%;
     margin-bottom: 1.2rem;
-}
-
-@media (max-width: 520px) {
-    .recorder-actions {
-        gap: 1rem;
-    }
 }
 
 .button-stack {
