@@ -1,3 +1,30 @@
+## Agent Identification
+
+**All agents working on this repository MUST identify themselves at the start of their interaction.**
+
+### Identification Format
+When beginning work, agents should identify themselves using this format:
+```
+Agent: {model_name} ({model_id})
+```
+
+### Supported Agent Models
+See [agent-models.json](agent-models.json) for the complete list of registered agent models and their capabilities.
+
+**Examples:**
+- Agent: Claude 3.5 Sonnet (claude-3.5-sonnet)
+- Agent: GPT-4 Optimized (gpt-4o)
+- Agent: Claude 3 Haiku (claude-3-haiku)
+- Agent: OpenAI o1 Preview (o1-preview)
+
+**Why this matters:**
+- Helps track which models are performing which tasks
+- Enables analysis of model performance and suitability for different work types
+- Provides transparency in the development process
+- Allows for better collaboration between different agent types
+
+---
+
 ## Pelican Preview Workflow: Requirements & Common Mistakes
 
 ### Requirements for Correct Preview

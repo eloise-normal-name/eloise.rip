@@ -1,0 +1,54 @@
+{
+  "agent_models": [
+    {
+      "id": "gpt-4o",
+      "name": "GPT-4 Optimized",
+      "provider": "OpenAI",
+      "capabilities": ["code_generation", "code_review", "documentation", "testing"],
+      "preferred_for": ["complex_reasoning", "multi_file_changes", "architecture"]
+    },
+    {
+      "id": "gpt-4o-mini",
+      "name": "GPT-4 Optimized Mini",
+      "provider": "OpenAI",
+      "capabilities": ["code_generation", "code_review", "documentation"],
+      "preferred_for": ["simple_tasks", "quick_edits", "single_file_changes"]
+    },
+    {
+      "id": "claude-3.5-sonnet",
+      "name": "Claude 3.5 Sonnet",
+      "provider": "Anthropic",
+      "capabilities": ["code_generation", "code_review", "documentation", "testing", "analysis"],
+      "preferred_for": ["code_quality", "security", "detailed_analysis"]
+    },
+    {
+      "id": "claude-3-haiku",
+      "name": "Claude 3 Haiku",
+      "provider": "Anthropic",
+      "capabilities": ["code_generation", "simple_review"],
+      "preferred_for": ["quick_tasks", "exploration", "simple_commands"]
+    },
+    {
+      "id": "o1-preview",
+      "name": "OpenAI o1 Preview",
+      "provider": "OpenAI",
+      "capabilities": ["advanced_reasoning", "complex_problem_solving"],
+      "preferred_for": ["algorithm_design", "optimization", "complex_debugging"]
+    },
+    {
+      "id": "o1-mini",
+      "name": "OpenAI o1 Mini",
+      "provider": "OpenAI",
+      "capabilities": ["reasoning", "problem_solving"],
+      "preferred_for": ["focused_reasoning", "mathematical_problems"]
+    }
+  ],
+  "identification_format": {
+    "description": "Agents should identify themselves using this format",
+    "template": "Agent: {model_name} ({model_id})",
+    "examples": [
+      "Agent: Claude 3.5 Sonnet (claude-3.5-sonnet)",
+      "Agent: GPT-4 Optimized (gpt-4o)"
+    ]
+  }
+}
