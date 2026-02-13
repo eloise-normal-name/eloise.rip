@@ -1,2 +1,4 @@
-# Your updated content goes here
-# For example, you can replace the suggestion message here
+def validate_output():
+    # Previous code...
+    print("Run 'make'")  # Updated this line
+    # Following code...
