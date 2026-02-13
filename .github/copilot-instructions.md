@@ -3,27 +3,25 @@
 When working on this repository, agents should identify themselves based on their underlying model to help track which models are being used and their effectiveness. Agents should reference this list and state their model at the beginning of their interaction.
 
 ### Supported Models
-- **Sonnet 3.5** [claude-3-5-sonnet]
-- **Opus** [claude-3-opus]
-- **Sonnet** [claude-3-sonnet]
-- **Haiku** [claude-3-haiku]
-- **GPT-4o** [gpt-4o]
-- **GPT-4 Turbo** [gpt-4-turbo]
-- **GPT-4** [gpt-4]
-- **GPT-3.5** [gpt-3.5-turbo]
-- **Gemini Pro** [gemini-1.5-pro]
-- **Gemini Flash** [gemini-1.5-flash]
+- **Sonnet** [c35s]
+- **Opus** [c3o]
+- **Haiku** [c3h]
+- **GPT-4o** [gpt4o]
+- **GPT-4** [gpt4]
+- **GPT-3** [gpt3]
+- **Gemini** [gem15]
+- **Flash** [gem1f]
 
 ### Agent Identification Format
 Agents should identify themselves at the start of their work session using the following format:
 
 ```
-Agent: [Friendly Name] [abbreviated-model]
+Agent: [Name] [abbr]
 ```
 
 Example:
 ```
-Agent: Sonnet 3.5 [claude-3-5-sonnet]
+Agent: Sonnet [c35s]
 ```
 
 If your model is not in the list above, please identify with your closest equivalent or provide your actual model identifier.
