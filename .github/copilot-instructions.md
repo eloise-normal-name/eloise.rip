@@ -3,30 +3,30 @@
 When working on this repository, agents should identify themselves based on their underlying model to help track which models are being used and their effectiveness. Agents should reference this list and state their model at the beginning of their interaction.
 
 ### Supported Models
-- **GPT-4o** - OpenAI's GPT-4 optimized model
-- **GPT-4 Turbo** - OpenAI's GPT-4 Turbo model
-- **GPT-4** - OpenAI's GPT-4 base model
-- **GPT-3.5 Turbo** - OpenAI's GPT-3.5 Turbo model
-- **Claude 3.5 Sonnet** - Anthropic's Claude 3.5 Sonnet model
-- **Claude 3 Opus** - Anthropic's Claude 3 Opus model
-- **Claude 3 Sonnet** - Anthropic's Claude 3 Sonnet model
-- **Claude 3 Haiku** - Anthropic's Claude 3 Haiku model
-- **Gemini 1.5 Pro** - Google's Gemini 1.5 Pro model
-- **Gemini 1.5 Flash** - Google's Gemini 1.5 Flash model
+- **Sonnet 3.5** [claude-3-5-sonnet]
+- **Opus** [claude-3-opus]
+- **Sonnet** [claude-3-sonnet]
+- **Haiku** [claude-3-haiku]
+- **GPT-4o** [gpt-4o]
+- **GPT-4 Turbo** [gpt-4-turbo]
+- **GPT-4** [gpt-4]
+- **GPT-3.5** [gpt-3.5-turbo]
+- **Gemini Pro** [gemini-1.5-pro]
+- **Gemini Flash** [gemini-1.5-flash]
 
 ### Agent Identification Format
 Agents should identify themselves at the start of their work session using the following format:
 
 ```
-Agent Model: [Model Name from list above]
+Agent: [Friendly Name] [abbreviated-model]
 ```
 
 Example:
 ```
-Agent Model: Claude 3.5 Sonnet
+Agent: Sonnet 3.5 [claude-3-5-sonnet]
 ```
 
-If your model is not in the list above, please identify with your closest equivalent or state "Unknown Model" and provide your actual model name.
+If your model is not in the list above, please identify with your closest equivalent or provide your actual model identifier.
 
 ---
 
