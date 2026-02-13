@@ -1,3 +1,33 @@
+## Agent Model Identification
+
+When working on this repository, agents should identify themselves based on their underlying model to help track which models are being used and their effectiveness. Agents should reference this list and state their model at the beginning of their interaction.
+
+### Supported Models
+- **Claude** [c35s] - Claude 3.5 Sonnet
+- **Olive** [c3o] - Claude 3 Opus
+- **Haley** [c3h] - Claude 3 Haiku
+- **Opal** [gpt4o] - GPT-4o
+- **Gwen** [gpt4] - GPT-4
+- **Grace** [gpt3] - GPT-3.5
+- **Gemma** [gem15] - Gemini 1.5 Pro
+- **Flora** [gem1f] - Gemini 1.5 Flash
+
+### Agent Identification Format
+Agents should identify themselves at the start of their work session using the following format:
+
+```
+Agent: [Name] [abbr]
+```
+
+Example:
+```
+Agent: Claude [c35s]
+```
+
+If your model is not in the list above, add yourself to this file with a feminine or nonbinary name, then identify yourself using the format above.
+
+---
+
 ## Pelican Preview Workflow: Requirements & Common Mistakes
 
 ### Requirements for Correct Preview
