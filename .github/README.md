@@ -6,6 +6,7 @@ This directory contains configuration and documentation for GitHub Copilot agent
 
 - **copilot-instructions.md**: Main instruction file for all agents with project-specific guidelines, workflows, and conventions
 - **agent-models.json**: Registry of supported AI agent models and their capabilities
+- **agent-identification-example.py**: Example script demonstrating how to use the agent identification system
 - **README.md**: This file - overview of agent configuration
 
 ## Agent Identification System
@@ -41,6 +42,25 @@ The current registry includes:
 - **OpenAI o1 Mini (o1-mini)**: Focused reasoning, mathematical problems
 
 See `agent-models.json` for detailed capabilities and preferred use cases.
+
+### Testing the System
+
+You can test the agent identification system using the example script:
+
+```bash
+python .github/agent-identification-example.py <model_id>
+```
+
+**Examples:**
+```bash
+# Identify as Claude 3.5 Sonnet
+python .github/agent-identification-example.py claude-3.5-sonnet
+
+# Identify as GPT-4 Optimized
+python .github/agent-identification-example.py gpt-4o
+```
+
+The script will display the agent's identification string, provider, capabilities, and preferred use cases.
 
 ## Adding New Models
 
