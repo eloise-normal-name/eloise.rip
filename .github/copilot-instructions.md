@@ -9,7 +9,7 @@ Agent: {model_name} ({model_id})
 ```
 
 ### Supported Agent Models
-See [agent-models.json](agent-models.json) for the complete list of registered agent models and their capabilities.
+See [agent-models.json](./agent-models.json) for the complete list of registered agent models and their capabilities.
 
 **Examples:**
 - Agent: Claude 3.5 Sonnet (claude-3.5-sonnet)

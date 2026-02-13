@@ -57,8 +57,8 @@ def identify_agent(model_id: str, registry: dict) -> None:
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python agent-identification-example.py <model_id>")
-        print("\nExample: python agent-identification-example.py claude-3.5-sonnet")
+        print("Usage: python .github/agent-identification-example.py <model_id>")
+        print("\nExample: python .github/agent-identification-example.py claude-3.5-sonnet")
         sys.exit(1)
     
     model_id = sys.argv[1]
