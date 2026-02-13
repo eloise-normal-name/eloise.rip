@@ -1,3 +1,35 @@
+## Agent Model Identification
+
+When working on this repository, agents should identify themselves based on their underlying model to help track which models are being used and their effectiveness. Agents should reference this list and state their model at the beginning of their interaction.
+
+### Supported Models
+- **GPT-4o** - OpenAI's GPT-4 optimized model
+- **GPT-4 Turbo** - OpenAI's GPT-4 Turbo model
+- **GPT-4** - OpenAI's GPT-4 base model
+- **GPT-3.5 Turbo** - OpenAI's GPT-3.5 Turbo model
+- **Claude 3.5 Sonnet** - Anthropic's Claude 3.5 Sonnet model
+- **Claude 3 Opus** - Anthropic's Claude 3 Opus model
+- **Claude 3 Sonnet** - Anthropic's Claude 3 Sonnet model
+- **Claude 3 Haiku** - Anthropic's Claude 3 Haiku model
+- **Gemini 1.5 Pro** - Google's Gemini 1.5 Pro model
+- **Gemini 1.5 Flash** - Google's Gemini 1.5 Flash model
+
+### Agent Identification Format
+Agents should identify themselves at the start of their work session using the following format:
+
+```
+Agent Model: [Model Name from list above]
+```
+
+Example:
+```
+Agent Model: Claude 3.5 Sonnet
+```
+
+If your model is not in the list above, please identify with your closest equivalent or state "Unknown Model" and provide your actual model name.
+
+---
+
 ## Pelican Preview Workflow: Requirements & Common Mistakes
 
 ### Requirements for Correct Preview
