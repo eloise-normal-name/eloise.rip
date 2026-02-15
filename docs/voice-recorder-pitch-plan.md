@@ -54,7 +54,7 @@ Draw a second layer on the canvas, on top of the existing waveform:
 - Map a useful Hz range (e.g. 80–400 Hz for typical voice) to the canvas
   height.
 - Plot the rolling pitch samples as a connected line or series of dots.
-- Use a distinct colour so the pitch trace is visually separable from the
+- Use a distinct color so the pitch trace is visually separable from the
   waveform.
 - Skip or grey out frames where no pitch was detected (silence / noise).
 
