@@ -58,13 +58,13 @@ videoBlob → <video> (hidden) → drawImage onto <canvas> each frame
 
 | Member | Description |
 |--------|-------------|
-| `constructor(canvas, analyserNode)` | Stores references, sets colours, calls `setAnalyser`. |
+| `constructor(canvas, analyserNode)` | Stores references, sets colors, calls `setAnalyser`. |
 | `setAnalyser(node)` | Attach or detach an `AnalyserNode`. Allocates the `Uint8Array` data buffer when a node is provided. |
 | `paintFrame()` | Fills the background and draws the border. Called by both `render` and `clear`. |
 | `render()` | Calls `paintFrame`, reads `getByteTimeDomainData`, and draws a pink waveform line. |
 | `clear()` | Redraws the empty background frame (no waveform). |
 
-Colours and border width are instance properties set in the constructor.
+Colors and border width are instance properties set in the constructor.
 
 ## VoiceRecorderApp Class
 
