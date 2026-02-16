@@ -34,3 +34,6 @@
 
 ## Voice Recorder
 - Reference doc: docs/voice-recorder.md
+
+## Custom Agents
+- **gh-project-manager**: Specialized agent for managing GitHub Projects using the GitHub CLI. Located at `.github/agents/gh-project-manager.md`.
