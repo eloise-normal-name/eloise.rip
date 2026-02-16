@@ -24,6 +24,8 @@ function detectPitch(buffer, sampleRate) {
     const minLag = Math.max(1, Math.floor(sampleRate / maxHz));
     const maxLag = Math.min(Math.floor(sampleRate / minHz), buffer.length - 1);
 
+    const energy = rms * rms;
+
     let bestCorrelation = 0;
     let bestLag = -1;
 
@@ -33,6 +35,7 @@ function detectPitch(buffer, sampleRate) {
             correlation += (buffer[i] - mean) * (buffer[i + lag] - mean);
         }
         correlation /= (buffer.length - lag);
+        correlation /= energy;
 
         if (correlation > bestCorrelation) {
             bestCorrelation = correlation;

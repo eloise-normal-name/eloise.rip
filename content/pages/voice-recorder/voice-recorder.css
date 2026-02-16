@@ -81,6 +81,17 @@
     border-color: rgba(32, 201, 151, 0.3);
 }
 
+.btn-test {
+    background: linear-gradient(180deg, #ffffff 0%, #fffbe6 100%);
+    border-color: rgba(255, 193, 7, 0.35);
+}
+
+.btn-test.active {
+    background: linear-gradient(180deg, #fff8e1 0%, #ffecb3 100%);
+    border-color: rgba(255, 193, 7, 0.6);
+    box-shadow: 0 6px 14px rgba(255, 193, 7, 0.25);
+}
+
 .btn-save {
     flex-direction: column;
     gap: 0.2rem;
@@ -120,6 +131,12 @@
     background-color: #ff6b6b;
     border: 2px solid #ff6b6b;
     border-radius: 2px;
+}
+
+.icon-sine {
+    width: 28px;
+    height: 16px;
+    background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 16'%3E%3Cpath d='M0 8 C3 2, 5 2, 7 8 S11 14, 14 8 S18 2, 21 8 S25 14, 28 8' fill='none' stroke='%23f0a020' stroke-width='2'/%3E%3C/svg%3E");
 }
 
 .emoji-icon {

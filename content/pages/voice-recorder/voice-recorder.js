@@ -29,6 +29,7 @@ class VoiceRecorderApp {
         this.playButton = document.getElementById('playButton');
         this.saveVideoButton = document.getElementById('saveVideoButton');
         this.saveAudioButton = document.getElementById('saveAudioButton');
+        this.testSignalButton = document.getElementById('testSignalButton');
         this.debugMsg = document.getElementById('debugMsg');
         this.recordingCanvas = document.getElementById('recordingCanvas');
         this.playbackVideo = document.getElementById('playbackVideo');
@@ -54,8 +55,12 @@ class VoiceRecorderApp {
         this.videoBlob = null;
         this.playbackAnimationId = null;
 
+        this.testOscillator = null;
+        this.testGain = null;
+        this.isTestSignalActive = false;
+
         if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
-            || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
+            || !this.testSignalButton || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
             return;
         }
 
@@ -67,6 +72,7 @@ class VoiceRecorderApp {
         this.playButton.onclick = () => this.togglePlayback();
         this.saveVideoButton.onclick = () => this.saveVideo();
         this.saveAudioButton.onclick = () => this.saveAudio();
+        this.testSignalButton.onclick = () => this.toggleTestSignal();
 
         this.playbackVideo.onended = () => {
             this.stopPlaybackRender();
@@ -189,6 +195,64 @@ class VoiceRecorderApp {
         this.setStatus('Browser capabilities checked', lines.join('\n'));
     }
 
+    toggleTestSignal() {
+        if (this.isTestSignalActive) {
+            this.stopTestSignal();
+            return;
+        }
+        this.startTestSignal();
+    }
+
+    startTestSignal() {
+        if (this.isRecording) return;
+
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 2048;
+
+        this.testOscillator = this.audioContext.createOscillator();
+        this.testOscillator.type = 'sine';
+        this.testOscillator.frequency.value = 220;
+
+        const gain = this.audioContext.createGain();
+        gain.gain.value = 0.3;
+        this.testOscillator.connect(gain);
+        gain.connect(this.analyser);
+        gain.connect(this.audioContext.destination);
+        this.testGain = gain;
+
+        this.testOscillator.start();
+        this.isTestSignalActive = true;
+
+        this.visualizer.setAnalyser(this.analyser);
+        this.startVisualizer();
+
+        this.recordButton.disabled = true;
+        this.testSignalButton.classList.add('active');
+        this.setStatus('Test signal active.', `Frequency: ${this.testOscillator.frequency.value} Hz\nWaveform: sine\nSample rate: ${this.audioContext.sampleRate} Hz`);
+    }
+
+    stopTestSignal() {
+        if (this.testOscillator) {
+            this.testOscillator.stop();
+            this.testOscillator.disconnect();
+            this.testOscillator = null;
+        }
+        if (this.testGain) {
+            this.testGain.disconnect();
+            this.testGain = null;
+        }
+        this.isTestSignalActive = false;
+        this.stopVisualizer();
+        this.visualizer.setAnalyser(null);
+        this.recordButton.disabled = false;
+        this.testSignalButton.classList.remove('active');
+        this.setStatus('Test signal stopped.');
+    }
+
     stopVisualizer() {
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
@@ -305,6 +369,7 @@ class VoiceRecorderApp {
             this.setStatus('Recording ready.', details);
             this.stopVisualizer();
             this.stopStream();
+            this.testSignalButton.disabled = false;
         };
 
         if (!this.audioContext) {
@@ -322,6 +387,7 @@ class VoiceRecorderApp {
         this.playButton.disabled = true;
         this.saveAudioButton.disabled = true;
         this.saveVideoButton.disabled = true;
+        this.testSignalButton.disabled = true;
 
         const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
         this.setStatus('Recording started.', details);
