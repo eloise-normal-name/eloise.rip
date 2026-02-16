@@ -1,3 +1,13 @@
+/**
+ * Voice Recorder App - Multi-clip recording with pitch visualization
+ * 
+ * DOM Element Dependencies:
+ * This class requires specific HTML element IDs defined in voice-recorder.md.
+ * When modifying the UI, ensure all getElementById() calls have matching HTML elements.
+ * See docs/voice-recorder-dom-elements.md for the complete reference and maintenance guide.
+ * 
+ * A GitHub Actions workflow validates DOM elements on every PR to prevent initialization failures.
+ */
 class VoiceRecorderApp {
     static adjectives = [
         'swift', 'bright', 'gentle', 'calm', 'wild',
@@ -69,7 +79,6 @@ class VoiceRecorderApp {
         }
 
         this.recordButton.onclick = () => this.onRecordClick();
-        this.testSignalButton.onclick = () => this.toggleTestSignal();
         this.testSignalButton.onclick = () => this.toggleTestSignal();
 
         this.playbackVideo.onended = () => {
@@ -449,9 +458,6 @@ class VoiceRecorderApp {
         this.isRecording = true;
         this.recordingStartTime = Date.now();
         this.setButtonIcon(this.recordButton, 'icon-square');
-        this.playButton.disabled = true;
-        this.saveAudioButton.disabled = true;
-        this.saveVideoButton.disabled = true;
         this.testSignalButton.disabled = true;
 
         const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
