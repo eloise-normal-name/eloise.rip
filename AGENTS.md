@@ -13,7 +13,6 @@
 - Site content lives in `content/`.
 - Theme-related files are under `themes/`.
 - Generated site output is written to `output/`.
-- Source media is in `media-source/`.
 
 ## Python Environment
 - Use the existing virtual environment at `.venv` when running scripts.
