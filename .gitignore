@@ -16,5 +16,5 @@ venv/
 Thumbs.db
 desktop.ini
 
-# Local media source (not tracked - very large files)
+# Local media source (in media-source branch only)
 media-source/
