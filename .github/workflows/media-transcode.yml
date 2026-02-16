@@ -1,0 +1,28 @@
+name: media-transcode
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'Makefile'
+      - 'transcode_videos.py'
+      - 'media-source/**'
+      - '.github/workflows/media-transcode.yml'
+
+jobs:
+  transcode:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure ffmpeg is available
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version
+
+      - name: Run incremental transcode
+        run: make transcode QUIET=1
