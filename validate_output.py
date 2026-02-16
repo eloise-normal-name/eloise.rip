@@ -268,7 +268,7 @@ def print_report(internal_errors: dict, external_errors: dict, orphaned: dict[st
         # Suggestions
         print("\n  💡 Suggestions:")
         if missing_videos or missing_images or missing_audio:
-            print("     • Run 'python transcode_videos.py' to generate missing media")
+            print("     • Add missing media files to content/media/ (transcoding happens in a local repository due to Git LFS bandwidth limits)")
         if broken_links:
             print("     • Check article cross-references and navigation links")
         
