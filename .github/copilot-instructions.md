@@ -55,12 +55,12 @@ If your model is not in the list above, add yourself to this file with a feminin
 
 ## Project Architecture
 
-This is a **Pelican static site generator** project for a personal blog at [eloise.rip](https://eloise.rip). Content is authored in Markdown with custom media embedding, transcoded for web delivery, and deployed to GitHub Pages.
+This is a **Pelican static site generator** project for a personal blog at [eloise.rip](https://eloise.rip). Content is authored in Markdown with custom media embedding and deployed to GitHub Pages.
 
 ### Key Components
 
 - **Content Pipeline**: `content/articles/*.md` → Pelican → `output/` (static HTML)
-- **Media Workflow**: `media-source/` → `transcode_videos.py` → `content/media/{video,images,voice}/`
+- **Media Files**: Web-optimized media stored in `content/media/{video,images,voice}/` (transcoded locally to avoid Git LFS bandwidth limits)
 - **Custom Plugins**: `pelican-plugins/{video_embed,carousel_embed}/` for `[[video:name]]` and `[[carousel:...]]` syntax
 - **Theme**: `themes/cute-theme/` (custom Jinja2 templates + CSS)
 
@@ -104,15 +104,6 @@ pelican -l  # Starts local server at http://localhost:8000
 ```
 Never open a localhost address unless the server is running.
 
-### Media Transcoding
-```bash
-python transcode_videos.py  # Convert media-source/ → content/media/
-```
-- Creates HEVC MP4 + JPG poster for videos
-- Creates AVIF for images (including HEIC sources via pillow-heif)
-- Creates AAC M4A for audio files
-- Files ending with `_hq` suffix get lower CRF (higher quality) encoding
-
 ### Validation
 ```bash
 python validate_output.py                  # Check for broken links & missing media
@@ -121,7 +112,7 @@ python validate_output.py --check-external # Include external link validation (s
 - Validates all internal links (`<a href>`), media files (`<img>`, `<video>`, `<audio>`)
 - Checks video poster pairs (both `.mp4` + `.jpg` must exist)
 - Reports orphaned/unused media files in `content/media/`
-- Run before deployment to catch missing transcoded assets
+- Run before deployment to catch missing media
 
 ### Deployment
 ```bash
@@ -133,17 +124,6 @@ publish.bat  # Uses ghp-import to push output/ to gh-pages branch
 **Type Annotations**: Use modern Python syntax - `list[str]`, `dict[str, int]`, `tuple[Path, Path]` - **NOT** the typing module (`List`, `Dict`, `Tuple`).
 
 **Type Checking**: Avoid `isinstance()` for type validation. Rely on duck typing and structural patterns.
-
-**Example from transcode_videos.py**:
-```python
-def discover_sources(src_dir: Path) -> list[tuple[Path, Path]]:
-    results = []
-    for p in sorted(src_dir.rglob('*')):
-        if p.is_file() and p.suffix.lower() in ALLOWED_EXT:
-            rel_parent = p.parent.relative_to(src_dir)
-            results.append((p, rel_parent))
-    return results
-```
 
 ## Custom Content Syntax
 
@@ -174,10 +154,10 @@ thumbnail: images/preview.avif
 
 ## Media Paths
 
-- **Source masters**: `media-source/` (original quality videos/images)
-- **Web-optimized outputs**: `content/media/video/`, `content/media/images/`, `content/media/voice/`
+- **Web-optimized media**: `content/media/video/`, `content/media/images/`, `content/media/voice/`
 - **In Markdown**: Reference as `media/video/name.mp4` or `images/name.avif` (plugin normalizes paths)
-- **Subdirectories**: Media can be organized in subdirs - `media-source/comics/page1.png` → `content/media/images/comics/page1.avif`
+- **Subdirectories**: Media can be organized in subdirs (e.g., `content/media/images/comics/page1.avif`)
+- **Note**: Media transcoding happens in a local git repository due to limited Git LFS bandwidth. Only web-optimized files are committed to this repository.
 
 ## Configuration Details
 
