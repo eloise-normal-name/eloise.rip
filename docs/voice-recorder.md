@@ -98,5 +98,6 @@ and save/share.
 
 ## Future Work
 
-See [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) for the plan to
-add a pitch-signal visualizer overlay.
+The pitch visualizer has been completed! See [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) for the original implementation plan.
+
+For upcoming features and sprint planning, see [voice-recorder-roadmap.md](voice-recorder-roadmap.md).
