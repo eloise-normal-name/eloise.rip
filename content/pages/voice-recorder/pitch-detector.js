@@ -1,7 +1,12 @@
-function detectPitch(buffer, sampleRate, detectSecondary = false) {
+function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) {
     if (!buffer || buffer.length === 0 || !sampleRate) {
         return null;
     }
+
+    const minHz = options.minHz || 80;
+    const maxHz = options.maxHz || 400;
+    const primaryThreshold = options.primaryThreshold || 0.2;
+    const secondaryThreshold = options.secondaryThreshold || 0.15;
 
     let mean = 0;
     for (let i = 0; i < buffer.length; i += 1) {
@@ -19,8 +24,6 @@ function detectPitch(buffer, sampleRate, detectSecondary = false) {
         return null;
     }
 
-    const minHz = 80;
-    const maxHz = 400;
     const minLag = Math.max(1, Math.floor(sampleRate / maxHz));
     const maxLag = Math.min(Math.floor(sampleRate / minHz), buffer.length - 1);
 
@@ -46,7 +49,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false) {
         }
     }
 
-    if (bestLag === -1 || bestCorrelation < 0.2) {
+    if (bestLag === -1 || bestCorrelation < primaryThreshold) {
         return null;
     }
 
@@ -73,7 +76,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false) {
         }
     }
 
-    if (secondBestLag !== -1 && secondBestCorrelation > 0.15) {
+    if (secondBestLag !== -1 && secondBestCorrelation > secondaryThreshold) {
         const secondaryPitch = sampleRate / secondBestLag;
         return {
             primary: primaryPitch,

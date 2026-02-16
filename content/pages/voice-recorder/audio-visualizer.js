@@ -19,6 +19,13 @@ class AudioVisualizer {
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = true;
 
+        this.pitchDetectionOptions = {
+            minHz: 80,
+            maxHz: 400,
+            primaryThreshold: 0.2,
+            secondaryThreshold: 0.15
+        };
+
         this.setAnalyser(analyserNode);
     }
 
@@ -35,6 +42,25 @@ class AudioVisualizer {
     resetPitchHistory() {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
+    }
+
+    updatePitchRange(minHz, maxHz) {
+        this.pitchMinHz = minHz;
+        this.pitchMaxHz = maxHz;
+        this.pitchDetectionOptions.minHz = minHz;
+        this.pitchDetectionOptions.maxHz = maxHz;
+    }
+
+    updatePrimaryThreshold(threshold) {
+        this.pitchDetectionOptions.primaryThreshold = threshold;
+    }
+
+    updateSecondaryThreshold(threshold) {
+        this.pitchDetectionOptions.secondaryThreshold = threshold;
+    }
+
+    updateSmoothing(smoothing) {
+        this.pitchSmoothing = smoothing;
     }
 
     pushPitchSample(pitchData) {
@@ -116,7 +142,12 @@ class AudioVisualizer {
 
         if (this.floatData && typeof detectPitch === 'function') {
             this.analyserNode.getFloatTimeDomainData(this.floatData);
-            const pitchData = detectPitch(this.floatData, this.analyserNode.context.sampleRate, this.showSecondaryPitch);
+            const pitchData = detectPitch(
+                this.floatData, 
+                this.analyserNode.context.sampleRate, 
+                this.showSecondaryPitch,
+                this.pitchDetectionOptions
+            );
             this.pushPitchSample(pitchData);
         } else {
             this.pushPitchSample(null);
