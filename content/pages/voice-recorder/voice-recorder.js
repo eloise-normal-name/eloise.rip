@@ -86,7 +86,69 @@ class VoiceRecorderApp {
 
         this.visualizer = new AudioVisualizer(this.recordingCanvas, null);
         this.visualizer.clear();
+        this.setupConfigurationSliders();
         this.showBrowserCapabilities();
+    }
+
+    setupConfigurationSliders() {
+        const minHzSlider = document.getElementById('minHzSlider');
+        const maxHzSlider = document.getElementById('maxHzSlider');
+        const primaryThresholdSlider = document.getElementById('primaryThresholdSlider');
+        const secondaryThresholdSlider = document.getElementById('secondaryThresholdSlider');
+        const smoothingSlider = document.getElementById('smoothingSlider');
+
+        const minHzValue = document.getElementById('minHzValue');
+        const maxHzValue = document.getElementById('maxHzValue');
+        const primaryThresholdValue = document.getElementById('primaryThresholdValue');
+        const secondaryThresholdValue = document.getElementById('secondaryThresholdValue');
+        const smoothingValue = document.getElementById('smoothingValue');
+
+        if (!minHzSlider || !maxHzSlider || !primaryThresholdSlider || 
+            !secondaryThresholdSlider || !smoothingSlider) {
+            return;
+        }
+
+        minHzSlider.oninput = () => {
+            const minHz = parseInt(minHzSlider.value, 10);
+            const maxHz = parseInt(maxHzSlider.value, 10);
+            if (minHz >= maxHz) {
+                minHzSlider.value = maxHz - 10;
+                minHzValue.textContent = minHzSlider.value;
+                return;
+            }
+            minHzValue.textContent = minHz;
+            this.visualizer.updatePitchRange(minHz, maxHz);
+        };
+
+        maxHzSlider.oninput = () => {
+            const minHz = parseInt(minHzSlider.value, 10);
+            const maxHz = parseInt(maxHzSlider.value, 10);
+            if (maxHz <= minHz) {
+                maxHzSlider.value = minHz + 10;
+                maxHzValue.textContent = maxHzSlider.value;
+                return;
+            }
+            maxHzValue.textContent = maxHz;
+            this.visualizer.updatePitchRange(minHz, maxHz);
+        };
+
+        primaryThresholdSlider.oninput = () => {
+            const threshold = parseFloat(primaryThresholdSlider.value);
+            primaryThresholdValue.textContent = threshold.toFixed(2);
+            this.visualizer.updatePrimaryThreshold(threshold);
+        };
+
+        secondaryThresholdSlider.oninput = () => {
+            const threshold = parseFloat(secondaryThresholdSlider.value);
+            secondaryThresholdValue.textContent = threshold.toFixed(2);
+            this.visualizer.updateSecondaryThreshold(threshold);
+        };
+
+        smoothingSlider.oninput = () => {
+            const smoothing = parseInt(smoothingSlider.value, 10);
+            smoothingValue.textContent = smoothing;
+            this.visualizer.updateSmoothing(smoothing / 100);
+        };
     }
 
     pickSupportedType(types) {

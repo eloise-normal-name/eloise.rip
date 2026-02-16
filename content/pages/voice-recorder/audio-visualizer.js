@@ -10,11 +10,21 @@ class AudioVisualizer {
         this.borderWidth = 2;
 
         this.pitchHistory = [];
+        this.secondaryPitchHistory = [];
         this.pitchMaxSamples = 200;
         this.pitchMinHz = 80;
         this.pitchMaxHz = 400;
         this.pitchColor = 'rgba(116, 192, 252, 0.9)';
+        this.secondaryPitchColor = 'rgba(255, 180, 100, 0.7)';
         this.pitchSmoothing = 0.35;
+        this.showSecondaryPitch = true;
+
+        this.pitchDetectionOptions = {
+            minHz: 80,
+            maxHz: 400,
+            primaryThreshold: 0.2,
+            secondaryThreshold: 0.15
+        };
 
         this.setAnalyser(analyserNode);
     }
@@ -31,25 +41,73 @@ class AudioVisualizer {
 
     resetPitchHistory() {
         this.pitchHistory = [];
+        this.secondaryPitchHistory = [];
     }
 
-    pushPitchSample(hz) {
-        const isValid = typeof hz === 'number' && Number.isFinite(hz);
-        let value = isValid ? hz : null;
+    updatePitchRange(minHz, maxHz) {
+        this.pitchMinHz = minHz;
+        this.pitchMaxHz = maxHz;
+        this.pitchDetectionOptions.minHz = minHz;
+        this.pitchDetectionOptions.maxHz = maxHz;
+    }
 
-        if (value !== null) {
-            value = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, value));
-            if (this.pitchHistory.length) {
-                const previous = this.pitchHistory[this.pitchHistory.length - 1];
-                if (previous !== null) {
-                    value = previous + (value - previous) * this.pitchSmoothing;
-                }
+    updatePrimaryThreshold(threshold) {
+        this.pitchDetectionOptions.primaryThreshold = threshold;
+    }
+
+    updateSecondaryThreshold(threshold) {
+        this.pitchDetectionOptions.secondaryThreshold = threshold;
+    }
+
+    updateSmoothing(smoothing) {
+        this.pitchSmoothing = smoothing;
+    }
+
+    pushPitchSample(pitchData) {
+        let primaryValue = null;
+        let secondaryValue = null;
+
+        if (pitchData !== null) {
+            if (typeof pitchData === 'number') {
+                primaryValue = pitchData;
+            } else if (typeof pitchData === 'object') {
+                primaryValue = pitchData.primary;
+                secondaryValue = pitchData.secondary;
             }
         }
 
-        this.pitchHistory.push(value);
+        if (primaryValue !== null && Number.isFinite(primaryValue)) {
+            primaryValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
+            if (this.pitchHistory.length) {
+                const previous = this.pitchHistory[this.pitchHistory.length - 1];
+                if (previous !== null) {
+                    primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
+                }
+            }
+        } else {
+            primaryValue = null;
+        }
+
+        if (secondaryValue !== null && Number.isFinite(secondaryValue)) {
+            secondaryValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, secondaryValue));
+            if (this.secondaryPitchHistory.length) {
+                const previous = this.secondaryPitchHistory[this.secondaryPitchHistory.length - 1];
+                if (previous !== null) {
+                    secondaryValue = previous + (secondaryValue - previous) * this.pitchSmoothing;
+                }
+            }
+        } else {
+            secondaryValue = null;
+        }
+
+        this.pitchHistory.push(primaryValue);
         if (this.pitchHistory.length > this.pitchMaxSamples) {
             this.pitchHistory.shift();
+        }
+
+        this.secondaryPitchHistory.push(secondaryValue);
+        if (this.secondaryPitchHistory.length > this.pitchMaxSamples) {
+            this.secondaryPitchHistory.shift();
         }
     }
 
@@ -84,8 +142,13 @@ class AudioVisualizer {
 
         if (this.floatData && typeof detectPitch === 'function') {
             this.analyserNode.getFloatTimeDomainData(this.floatData);
-            const pitchHz = detectPitch(this.floatData, this.analyserNode.context.sampleRate);
-            this.pushPitchSample(pitchHz);
+            const pitchData = detectPitch(
+                this.floatData, 
+                this.analyserNode.context.sampleRate, 
+                this.showSecondaryPitch,
+                this.pitchDetectionOptions
+            );
+            this.pushPitchSample(pitchData);
         } else {
             this.pushPitchSample(null);
         }
@@ -135,6 +198,41 @@ class AudioVisualizer {
 
         if (pathOpen) {
             this.ctx.stroke();
+        }
+
+        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
+            this.ctx.strokeStyle = this.secondaryPitchColor;
+            this.ctx.lineWidth = 1.2;
+
+            pathOpen = false;
+            for (let i = 0; i < this.secondaryPitchHistory.length; i += 1) {
+                const sample = this.secondaryPitchHistory[i];
+                const x = (i + offset) * step;
+
+                if (sample === null) {
+                    if (pathOpen) {
+                        this.ctx.stroke();
+                        pathOpen = false;
+                    }
+                    continue;
+                }
+
+                const ratio = (sample - this.pitchMinHz) / range;
+                const clamped = Math.min(1, Math.max(0, ratio));
+                const y = padding + (1 - clamped) * usableHeight;
+
+                if (!pathOpen) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    pathOpen = true;
+                } else {
+                    this.ctx.lineTo(x, y);
+                }
+            }
+
+            if (pathOpen) {
+                this.ctx.stroke();
+            }
         }
     }
 }
