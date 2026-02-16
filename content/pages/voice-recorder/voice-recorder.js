@@ -33,6 +33,7 @@ class VoiceRecorderApp {
         this.debugMsg = document.getElementById('debugMsg');
         this.recordingCanvas = document.getElementById('recordingCanvas');
         this.playbackVideo = document.getElementById('playbackVideo');
+        this.clipsList = document.getElementById('clipsList');
 
         this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
 
@@ -59,8 +60,12 @@ class VoiceRecorderApp {
         this.testGain = null;
         this.isTestSignalActive = false;
 
+        this.clips = [];
+        this.selectedClipId = null;
+        this.recordingStartTime = null;
+
         if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
-            || !this.testSignalButton || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
+            || !this.testSignalButton || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
         }
 
@@ -88,6 +93,7 @@ class VoiceRecorderApp {
         this.visualizer.clear();
         this.setupConfigurationSliders();
         this.showBrowserCapabilities();
+        this.renderClipsList();
     }
 
     setupConfigurationSliders() {
@@ -425,7 +431,9 @@ class VoiceRecorderApp {
                 URL.revokeObjectURL(this.audioUrl);
             }
             this.audioUrl = URL.createObjectURL(this.audioBlob);
-            this.saveAudioButton.disabled = false;
+
+            const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
+            this.addClip(this.audioBlob, this.audioUrl, duration);
 
             const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
             this.setStatus('Recording ready.', details);
@@ -445,6 +453,7 @@ class VoiceRecorderApp {
 
         this.mediaRecorder.start();
         this.isRecording = true;
+        this.recordingStartTime = Date.now();
         this.setButtonIcon(this.recordButton, 'icon-square');
         this.playButton.disabled = true;
         this.saveAudioButton.disabled = true;
@@ -490,10 +499,14 @@ class VoiceRecorderApp {
                     URL.revokeObjectURL(this.videoUrl);
                 }
                 this.videoUrl = URL.createObjectURL(this.videoBlob);
-                this.saveVideoButton.disabled = false;
-                this.playButton.disabled = false;
-                this.playbackVideo.src = this.videoUrl;
-                this.playbackVideo.load();
+
+                if (this.selectedClipId !== null) {
+                    const clip = this.clips.find((c) => c.id === this.selectedClipId);
+                    if (clip) {
+                        clip.videoBlob = this.videoBlob;
+                        clip.videoUrl = this.videoUrl;
+                    }
+                }
 
                 const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
                 this.setStatus('Video ready.', videoDetails);
@@ -579,6 +592,176 @@ class VoiceRecorderApp {
             existingUrl: this.audioUrl,
             successMessage: 'Share completed.'
         });
+    }
+
+    addClip(audioBlob, audioUrl, duration) {
+        const id = Date.now();
+        const name = this.generateRandomFilename();
+        const timestamp = new Date();
+        
+        const clip = {
+            id,
+            name,
+            timestamp,
+            duration,
+            audioBlob,
+            audioUrl,
+            videoBlob: null,
+            videoUrl: null
+        };
+        
+        this.clips.push(clip);
+        this.selectedClipId = id;
+        this.renderClipsList();
+        this.updateButtonsState();
+    }
+
+    deleteClip(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (clip) {
+            if (clip.audioUrl) {
+                URL.revokeObjectURL(clip.audioUrl);
+            }
+            if (clip.videoUrl) {
+                URL.revokeObjectURL(clip.videoUrl);
+            }
+        }
+        
+        this.clips = this.clips.filter((c) => c.id !== id);
+        
+        if (this.selectedClipId === id) {
+            this.selectedClipId = this.clips.length > 0 ? this.clips[0].id : null;
+        }
+        
+        this.renderClipsList();
+        this.updateButtonsState();
+    }
+
+    selectClip(id) {
+        this.selectedClipId = id;
+        const clip = this.clips.find((c) => c.id === id);
+        
+        if (clip) {
+            this.audioBlob = clip.audioBlob;
+            this.audioUrl = clip.audioUrl;
+            this.videoBlob = clip.videoBlob;
+            this.videoUrl = clip.videoUrl;
+            
+            if (clip.videoUrl) {
+                this.playbackVideo.src = clip.videoUrl;
+                this.playbackVideo.load();
+            }
+        }
+        
+        this.renderClipsList();
+        this.updateButtonsState();
+    }
+
+    renameClip(id, newName) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (clip) {
+            clip.name = newName;
+            this.renderClipsList();
+        }
+    }
+
+    formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    formatTimestamp(date) {
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+        
+        if (isToday) {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+        
+        if (isYesterday) {
+            return 'Yesterday';
+        }
+        
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    renderClipsList() {
+        if (!this.clipsList) return;
+        
+        if (this.clips.length === 0) {
+            this.clipsList.innerHTML = '<div class="clips-empty">No recordings yet</div>';
+            return;
+        }
+        
+        const clipsHtml = this.clips.map((clip) => {
+            const isSelected = clip.id === this.selectedClipId;
+            return `
+                <div class="clip-item ${isSelected ? 'selected' : ''}" data-clip-id="${clip.id}">
+                    <div class="clip-info">
+                        <div class="clip-name" data-clip-id="${clip.id}">${clip.name}</div>
+                        <div class="clip-meta">
+                            <span class="clip-timestamp">${this.formatTimestamp(clip.timestamp)}</span>
+                            <span class="clip-duration">${this.formatDuration(clip.duration)}</span>
+                        </div>
+                    </div>
+                    <button class="clip-delete" data-clip-id="${clip.id}" title="Delete">✕</button>
+                </div>
+            `;
+        }).join('');
+        
+        this.clipsList.innerHTML = clipsHtml;
+        
+        this.clipsList.querySelectorAll('.clip-item').forEach((item) => {
+            item.addEventListener('click', (event) => {
+                if (!event.target.classList.contains('clip-delete')) {
+                    const id = parseInt(item.dataset.clipId, 10);
+                    this.selectClip(id);
+                }
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-delete').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.deleteClip(id);
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-name').forEach((nameEl) => {
+            nameEl.addEventListener('dblclick', (event) => {
+                event.stopPropagation();
+                const id = parseInt(nameEl.dataset.clipId, 10);
+                const clip = this.clips.find((c) => c.id === id);
+                if (clip) {
+                    const newName = prompt('Rename recording:', clip.name);
+                    if (newName && newName.trim()) {
+                        this.renameClip(id, newName.trim());
+                    }
+                }
+            });
+        });
+    }
+
+    updateButtonsState() {
+        const hasClips = this.clips.length > 0;
+        const hasSelectedClip = this.selectedClipId !== null;
+        
+        if (hasSelectedClip) {
+            const clip = this.clips.find((c) => c.id === this.selectedClipId);
+            this.playButton.disabled = !clip || !clip.videoUrl;
+            this.saveAudioButton.disabled = !clip || !clip.audioBlob;
+            this.saveVideoButton.disabled = !clip || !clip.videoBlob;
+        } else {
+            this.playButton.disabled = true;
+            this.saveAudioButton.disabled = true;
+            this.saveVideoButton.disabled = true;
+        }
     }
 }
 

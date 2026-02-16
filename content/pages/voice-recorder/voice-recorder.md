@@ -46,6 +46,10 @@ Status: hidden
             </button>
         </div>
     </div>
+    <div class="clips-container">
+        <h3 class="clips-title">Recordings</h3>
+        <div id="clipsList" class="clips-list"></div>
+    </div>
     <details class="recorder-settings" closed>
         <summary>Settings</summary>
         <div class="settings-grid">
