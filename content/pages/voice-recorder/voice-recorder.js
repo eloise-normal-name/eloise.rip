@@ -26,13 +26,11 @@ class VoiceRecorderApp {
 
     constructor() {
         this.recordButton = document.getElementById('recordButton');
-        this.playButton = document.getElementById('playButton');
-        this.saveVideoButton = document.getElementById('saveVideoButton');
-        this.saveAudioButton = document.getElementById('saveAudioButton');
         this.testSignalButton = document.getElementById('testSignalButton');
         this.debugMsg = document.getElementById('debugMsg');
         this.recordingCanvas = document.getElementById('recordingCanvas');
         this.playbackVideo = document.getElementById('playbackVideo');
+        this.clipsList = document.getElementById('clipsList');
 
         this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
 
@@ -59,24 +57,25 @@ class VoiceRecorderApp {
         this.testGain = null;
         this.isTestSignalActive = false;
 
-        if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
-            || !this.testSignalButton || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
+        this.clips = [];
+        this.selectedClipId = null;
+        this.currentRecordingClipId = null;
+        this.recordingStartTime = null;
+        this.playingClipId = null;
+
+        if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
+            || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
         }
 
-        this.playButton.disabled = true;
-        this.saveVideoButton.disabled = true;
-        this.saveAudioButton.disabled = true;
-
         this.recordButton.onclick = () => this.onRecordClick();
-        this.playButton.onclick = () => this.togglePlayback();
-        this.saveVideoButton.onclick = () => this.saveVideo();
-        this.saveAudioButton.onclick = () => this.saveAudio();
+        this.testSignalButton.onclick = () => this.toggleTestSignal();
         this.testSignalButton.onclick = () => this.toggleTestSignal();
 
         this.playbackVideo.onended = () => {
             this.stopPlaybackRender();
-            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.playingClipId = null;
+            this.renderClipsList();
             this.setStatus('Playback finished.');
         };
 
@@ -88,6 +87,7 @@ class VoiceRecorderApp {
         this.visualizer.clear();
         this.setupConfigurationSliders();
         this.showBrowserCapabilities();
+        this.renderClipsList();
     }
 
     setupConfigurationSliders() {
@@ -425,7 +425,9 @@ class VoiceRecorderApp {
                 URL.revokeObjectURL(this.audioUrl);
             }
             this.audioUrl = URL.createObjectURL(this.audioBlob);
-            this.saveAudioButton.disabled = false;
+
+            const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
+            this.addClip(this.audioBlob, this.audioUrl, duration);
 
             const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
             this.setStatus('Recording ready.', details);
@@ -445,6 +447,7 @@ class VoiceRecorderApp {
 
         this.mediaRecorder.start();
         this.isRecording = true;
+        this.recordingStartTime = Date.now();
         this.setButtonIcon(this.recordButton, 'icon-square');
         this.playButton.disabled = true;
         this.saveAudioButton.disabled = true;
@@ -490,10 +493,19 @@ class VoiceRecorderApp {
                     URL.revokeObjectURL(this.videoUrl);
                 }
                 this.videoUrl = URL.createObjectURL(this.videoBlob);
-                this.saveVideoButton.disabled = false;
-                this.playButton.disabled = false;
-                this.playbackVideo.src = this.videoUrl;
-                this.playbackVideo.load();
+
+                if (this.currentRecordingClipId !== null) {
+                    const clip = this.clips.find((c) => c.id === this.currentRecordingClipId);
+                    if (clip) {
+                        clip.videoBlob = this.videoBlob;
+                        clip.videoUrl = this.videoUrl;
+                        if (this.selectedClipId === clip.id) {
+                            this.playbackVideo.src = this.videoUrl;
+                            this.playbackVideo.load();
+                        }
+                        this.renderClipsList();
+                    }
+                }
 
                 const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
                 this.setStatus('Video ready.', videoDetails);
@@ -520,68 +532,274 @@ class VoiceRecorderApp {
         this.setStatus('Processing recording...');
     }
 
-    togglePlayback() {
-        if (!this.videoUrl) {
-            this.setStatus('No video recording yet.');
+    toggleClipPlayback(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoUrl) {
+            this.setStatus('No video available for this clip.');
             return;
         }
 
-        if (!this.playbackVideo.paused && !this.playbackVideo.ended) {
+        if (this.playingClipId === id && !this.playbackVideo.paused) {
             this.playbackVideo.pause();
             this.playbackVideo.currentTime = 0;
             this.stopPlaybackRender();
-            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.playingClipId = null;
             this.setStatus('Playback stopped.');
+            this.renderClipsList();
             return;
         }
 
+        if (this.playingClipId !== null && this.playingClipId !== id) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+        }
+
+        this.playbackVideo.src = clip.videoUrl;
+        this.playbackVideo.load();
         this.playbackVideo.currentTime = 0;
+        
         const playPromise = this.playbackVideo.play();
         if (playPromise && playPromise.catch) {
             playPromise.catch((error) => {
-                this.setButtonIcon(this.playButton, 'icon-triangle');
+                this.playingClipId = null;
                 this.setStatus('Playback failed.', `Error: ${error.message}`);
+                this.renderClipsList();
             });
         }
-        this.setButtonIcon(this.playButton, 'icon-square');
+        
+        this.playingClipId = id;
+        this.selectedClipId = id;
         this.setStatus('Playback started.');
         this.stopPlaybackRender();
         this.startPlaybackRender();
+        this.renderClipsList();
     }
 
-    async saveVideo() {
-        if (!this.videoBlob) {
+    async shareClipVideo(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoBlob) {
             this.setStatus('No video recording available to save.');
             return;
         }
 
-        const videoExt = (this.videoBlob.type.split(/\/|;/)[1] || '').trim();
-        const filename = this.generateRandomFilename() + (videoExt ? `.${videoExt}` : '');
+        const videoExt = (clip.videoBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = clip.name + (videoExt ? `.${videoExt}` : '');
         await this.shareOrDownload({
-            blob: this.videoBlob,
+            blob: clip.videoBlob,
             filename,
-            existingUrl: this.videoUrl,
+            existingUrl: clip.videoUrl,
             successMessage: 'Video share completed.'
         });
     }
 
-    async saveAudio() {
-        if (!this.audioBlob) {
+    async shareClipAudio(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.audioBlob) {
             this.setStatus('No recording available to save.');
             return;
         }
 
-        const audioExt = (this.audioBlob.type.split(/\/|;/)[1] || '').trim();
-        const filename = this.generateRandomFilename() + (audioExt ? `.${audioExt}` : '');
+        const audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = clip.name + (audioExt ? `.${audioExt}` : '');
         await this.shareOrDownload({
-            blob: this.audioBlob,
+            blob: clip.audioBlob,
             filename,
-            existingUrl: this.audioUrl,
+            existingUrl: clip.audioUrl,
             successMessage: 'Share completed.'
+        });
+    }
+
+    addClip(audioBlob, audioUrl, duration) {
+        const id = Date.now() + Math.floor(Math.random() * 1000);
+        const name = this.generateRandomFilename();
+        const timestamp = new Date();
+        
+        const clip = {
+            id,
+            name,
+            timestamp,
+            duration,
+            audioBlob,
+            audioUrl,
+            videoBlob: null,
+            videoUrl: null
+        };
+        
+        this.clips.push(clip);
+        this.selectedClipId = id;
+        this.currentRecordingClipId = id;
+        this.renderClipsList();
+    }
+
+    deleteClip(id) {
+        const clipIndex = this.clips.findIndex((c) => c.id === id);
+        if (clipIndex === -1) return;
+        
+        const clip = this.clips[clipIndex];
+        if (clip.audioUrl) {
+            URL.revokeObjectURL(clip.audioUrl);
+        }
+        if (clip.videoUrl) {
+            URL.revokeObjectURL(clip.videoUrl);
+        }
+        
+        this.clips.splice(clipIndex, 1);
+        
+        if (this.selectedClipId === id) {
+            if (this.clips.length > 0) {
+                const newIndex = Math.min(clipIndex, this.clips.length - 1);
+                this.selectedClipId = this.clips[newIndex].id;
+            } else {
+                this.selectedClipId = null;
+            }
+        }
+        
+        if (this.playingClipId === id) {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+        }
+        
+        this.renderClipsList();
+    }
+
+    selectClip(id) {
+        this.selectedClipId = id;
+        this.renderClipsList();
+    }
+
+    renameClip(id, newName) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (clip) {
+            clip.name = newName;
+            this.renderClipsList();
+        }
+    }
+
+    formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    formatTimestamp(date) {
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+        
+        if (isToday) {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+        
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+        
+        if (isYesterday) {
+            return 'Yesterday';
+        }
+        
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    renderClipsList() {
+        if (!this.clipsList) return;
+        
+        if (this.clips.length === 0) {
+            this.clipsList.innerHTML = '<div class="clips-empty">No recordings yet</div>';
+            return;
+        }
+        
+        const clipsHtml = this.clips.map((clip) => {
+            const isSelected = clip.id === this.selectedClipId;
+            const isPlaying = clip.id === this.playingClipId;
+            const hasVideo = !!clip.videoUrl;
+            const hasAudio = !!clip.audioUrl;
+            
+            return `
+                <div class="clip-item ${isSelected ? 'selected' : ''}" data-clip-id="${clip.id}">
+                    <div class="clip-info">
+                        <div class="clip-name" data-clip-id="${clip.id}">${clip.name}</div>
+                        <div class="clip-meta">
+                            <span class="clip-timestamp">${this.formatTimestamp(clip.timestamp)}</span>
+                            <span class="clip-duration">${this.formatDuration(clip.duration)}</span>
+                        </div>
+                    </div>
+                    <div class="clip-actions">
+                        <button class="clip-play" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="${isPlaying ? 'Stop' : 'Play'}">
+                            <span class="icon ${isPlaying ? 'icon-square-small' : 'icon-triangle-small'}"></span>
+                        </button>
+                        <button class="clip-share-video" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="Share Video">
+                            🎬
+                        </button>
+                        <button class="clip-share-audio" data-clip-id="${clip.id}" ${!hasAudio ? 'disabled' : ''} title="Share Audio">
+                            🎵
+                        </button>
+                        <button class="clip-delete" data-clip-id="${clip.id}" title="Delete">✕</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        this.clipsList.innerHTML = clipsHtml;
+        
+        this.clipsList.querySelectorAll('.clip-item').forEach((item) => {
+            item.addEventListener('click', (event) => {
+                if (!event.target.closest('.clip-actions')) {
+                    const id = parseInt(item.dataset.clipId, 10);
+                    this.selectClip(id);
+                }
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-play').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.toggleClipPlayback(id);
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-share-video').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipVideo(id);
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-share-audio').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipAudio(id);
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-delete').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.deleteClip(id);
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-name').forEach((nameEl) => {
+            nameEl.addEventListener('dblclick', (event) => {
+                event.stopPropagation();
+                const id = parseInt(nameEl.dataset.clipId, 10);
+                const clip = this.clips.find((c) => c.id === id);
+                if (clip) {
+                    const newName = prompt('Rename recording:', clip.name);
+                    if (newName && newName.trim()) {
+                        this.renameClip(id, newName.trim());
+                    }
+                }
+            });
         });
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new VoiceRecorderApp();
+    window.voiceRecorderApp = new VoiceRecorderApp();
 });
