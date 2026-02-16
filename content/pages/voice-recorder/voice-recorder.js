@@ -113,6 +113,7 @@ class VoiceRecorderApp {
             const maxHz = parseInt(maxHzSlider.value, 10);
             if (minHz >= maxHz) {
                 minHzSlider.value = maxHz - 10;
+                minHzValue.textContent = minHzSlider.value;
                 return;
             }
             minHzValue.textContent = minHz;
@@ -124,6 +125,7 @@ class VoiceRecorderApp {
             const maxHz = parseInt(maxHzSlider.value, 10);
             if (maxHz <= minHz) {
                 maxHzSlider.value = minHz + 10;
+                maxHzValue.textContent = maxHzSlider.value;
                 return;
             }
             maxHzValue.textContent = maxHz;
