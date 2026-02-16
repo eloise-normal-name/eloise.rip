@@ -56,6 +56,7 @@ class VoiceRecorderApp {
         this.playbackAnimationId = null;
 
         this.testOscillator = null;
+        this.testGain = null;
         this.isTestSignalActive = false;
 
         if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
@@ -221,6 +222,7 @@ class VoiceRecorderApp {
         this.testOscillator.connect(gain);
         gain.connect(this.analyser);
         gain.connect(this.audioContext.destination);
+        this.testGain = gain;
 
         this.testOscillator.start();
         this.isTestSignalActive = true;
@@ -239,8 +241,13 @@ class VoiceRecorderApp {
             this.testOscillator.disconnect();
             this.testOscillator = null;
         }
+        if (this.testGain) {
+            this.testGain.disconnect();
+            this.testGain = null;
+        }
         this.isTestSignalActive = false;
         this.stopVisualizer();
+        this.visualizer.setAnalyser(null);
         this.recordButton.disabled = false;
         this.testSignalButton.classList.remove('active');
         this.setStatus('Test signal stopped.');
