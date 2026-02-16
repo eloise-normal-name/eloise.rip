@@ -140,6 +140,17 @@
     border-color: rgba(32, 201, 151, 0.3);
 }
 
+.btn-test {
+    background: linear-gradient(180deg, #ffffff 0%, #fffbe6 100%);
+    border-color: rgba(255, 193, 7, 0.35);
+}
+
+.btn-test.active {
+    background: linear-gradient(180deg, #fff8e1 0%, #ffecb3 100%);
+    border-color: rgba(255, 193, 7, 0.6);
+    box-shadow: 0 6px 14px rgba(255, 193, 7, 0.25);
+}
+
 .btn-save {
     flex-direction: column;
     gap: 0.2rem;
@@ -179,6 +190,12 @@
     background-color: #ff6b6b;
     border: 2px solid #ff6b6b;
     border-radius: 2px;
+}
+
+.icon-sine {
+    width: 28px;
+    height: 16px;
+    background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 16'%3E%3Cpath d='M0 8 C3 2, 5 2, 7 8 S11 14, 14 8 S18 2, 21 8 S25 14, 28 8' fill='none' stroke='%23f0a020' stroke-width='2'/%3E%3C/svg%3E");
 }
 
 .emoji-icon {
@@ -266,6 +283,8 @@ function detectPitch(buffer, sampleRate) {
     const minLag = Math.max(1, Math.floor(sampleRate / maxHz));
     const maxLag = Math.min(Math.floor(sampleRate / minHz), buffer.length - 1);
 
+    const energy = rms * rms;
+
     let bestCorrelation = 0;
     let bestLag = -1;
 
@@ -275,6 +294,7 @@ function detectPitch(buffer, sampleRate) {
             correlation += (buffer[i] - mean) * (buffer[i + lag] - mean);
         }
         correlation /= (buffer.length - lag);
+        correlation /= energy;
 
         if (correlation > bestCorrelation) {
             bestCorrelation = correlation;
@@ -457,6 +477,7 @@ function detectPitch(buffer, sampleRate) {
         this.playButton = document.getElementById('playButton');
         this.saveVideoButton = document.getElementById('saveVideoButton');
         this.saveAudioButton = document.getElementById('saveAudioButton');
+        this.testSignalButton = document.getElementById('testSignalButton');
         this.debugMsg = document.getElementById('debugMsg');
         this.recordingCanvas = document.getElementById('recordingCanvas');
         this.playbackVideo = document.getElementById('playbackVideo');
@@ -482,8 +503,12 @@ function detectPitch(buffer, sampleRate) {
         this.videoBlob = null;
         this.playbackAnimationId = null;
 
+        this.testOscillator = null;
+        this.testGain = null;
+        this.isTestSignalActive = false;
+
         if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
-            || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
+            || !this.testSignalButton || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
             return;
         }
 
@@ -495,6 +520,7 @@ function detectPitch(buffer, sampleRate) {
         this.playButton.onclick = () => this.togglePlayback();
         this.saveVideoButton.onclick = () => this.saveVideo();
         this.saveAudioButton.onclick = () => this.saveAudio();
+        this.testSignalButton.onclick = () => this.toggleTestSignal();
 
         this.playbackVideo.onended = () => {
             this.stopPlaybackRender();
@@ -617,6 +643,64 @@ function detectPitch(buffer, sampleRate) {
         this.setStatus('Browser capabilities checked', lines.join('\n'));
     }
 
+    toggleTestSignal() {
+        if (this.isTestSignalActive) {
+            this.stopTestSignal();
+            return;
+        }
+        this.startTestSignal();
+    }
+
+    startTestSignal() {
+        if (this.isRecording) return;
+
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 2048;
+
+        this.testOscillator = this.audioContext.createOscillator();
+        this.testOscillator.type = 'sine';
+        this.testOscillator.frequency.value = 220;
+
+        const gain = this.audioContext.createGain();
+        gain.gain.value = 0.3;
+        this.testOscillator.connect(gain);
+        gain.connect(this.analyser);
+        gain.connect(this.audioContext.destination);
+        this.testGain = gain;
+
+        this.testOscillator.start();
+        this.isTestSignalActive = true;
+
+        this.visualizer.setAnalyser(this.analyser);
+        this.startVisualizer();
+
+        this.recordButton.disabled = true;
+        this.testSignalButton.classList.add('active');
+        this.setStatus('Test signal active.', `Frequency: ${this.testOscillator.frequency.value} Hz\nWaveform: sine\nSample rate: ${this.audioContext.sampleRate} Hz`);
+    }
+
+    stopTestSignal() {
+        if (this.testOscillator) {
+            this.testOscillator.stop();
+            this.testOscillator.disconnect();
+            this.testOscillator = null;
+        }
+        if (this.testGain) {
+            this.testGain.disconnect();
+            this.testGain = null;
+        }
+        this.isTestSignalActive = false;
+        this.stopVisualizer();
+        this.visualizer.setAnalyser(null);
+        this.recordButton.disabled = false;
+        this.testSignalButton.classList.remove('active');
+        this.setStatus('Test signal stopped.');
+    }
+
     stopVisualizer() {
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
@@ -733,6 +817,7 @@ function detectPitch(buffer, sampleRate) {
             this.setStatus('Recording ready.', details);
             this.stopVisualizer();
             this.stopStream();
+            this.testSignalButton.disabled = false;
         };
 
         if (!this.audioContext) {
@@ -750,6 +835,7 @@ function detectPitch(buffer, sampleRate) {
         this.playButton.disabled = true;
         this.saveAudioButton.disabled = true;
         this.saveVideoButton.disabled = true;
+        this.testSignalButton.disabled = true;
 
         const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
         this.setStatus('Recording started.', details);
@@ -898,6 +984,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <button id="playButton" class="btn btn-play" disabled>
             <span class="icon icon-triangle"></span>
         </button>
+        <div class="button-stack">
+            <button id="testSignalButton" class="btn btn-test" title="Test Signal (220 Hz sine wave)">
+                <span class="icon icon-sine"></span>
+            </button>
+        </div>
         <div class="button-stack">
             <button id="saveVideoButton" class="btn btn-download btn-save" disabled title="Download Video">
                 <span class="emoji-icon" aria-hidden="true">🎬</span>
