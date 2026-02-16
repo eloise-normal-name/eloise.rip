@@ -766,5 +766,5 @@ class VoiceRecorderApp {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new VoiceRecorderApp();
+    window.voiceRecorderApp = new VoiceRecorderApp();
 });
