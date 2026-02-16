@@ -163,23 +163,48 @@ value = previous + (value - previous) * 0.35;
 
 ## Possible Enhancements
 
-### 1. **Secondary Pitch Detection**
-The current algorithm could be extended to detect a second pitch by:
-1. After finding the best correlation peak
-2. Zero out correlations near the first peak (±10% frequency)
-3. Find the second-best peak
-4. Validate it's strong enough (correlation > threshold)
-5. Display both pitches as separate traces
+### 1. **Secondary Pitch Detection** ✅ **IMPLEMENTED**
+
+The algorithm has been extended to detect a second pitch! When `detectSecondary` parameter is `true`:
+
+**Algorithm**:
+1. After finding the best correlation peak (primary pitch)
+2. Store all correlation values during the search
+3. Find the second-best correlation peak with constraints:
+   - **Exclusion range**: Must be >15% different lag from primary (avoids detecting noise near the fundamental)
+   - **Harmonic filter**: Reject peaks at exact octaves (2x frequency ratio between 1.9-2.1)
+   - **Minimum strength**: Secondary correlation must be >0.15 (15%)
+4. Return object with both pitches and their correlation strengths
 
 **Use cases**:
-- Detecting vocal harmonics (octaves, overtones)
+- Detecting vocal harmonics (overtones in rich voices)
 - Showing vibrato range (pitch modulation)
 - Identifying weak secondary resonances
+- Visualizing complex tones with multiple frequency components
 
-**Challenges**:
-- Distinguishing true secondary pitch from noise
-- Avoiding detection of harmonic multiples (2x, 3x fundamental)
-- Visual clarity with two traces on same canvas
+**Visualization**:
+- Primary pitch: Blue trace (`rgba(116, 192, 252, 0.9)`)
+- Secondary pitch: Orange trace (`rgba(255, 180, 100, 0.7)`)
+- Both traces are smoothed independently
+- Secondary trace only appears when detected
+
+**Implementation details**:
+```javascript
+// Enable secondary detection
+const pitchData = detectPitch(buffer, sampleRate, true);
+// Returns: { primary: 220, secondary: 155, primaryStrength: 0.85, secondaryStrength: 0.22 }
+// Or: { primary: 220, secondary: null, primaryStrength: 0.85, secondaryStrength: 0 }
+
+// Disable secondary detection (backward compatible)
+const pitch = detectPitch(buffer, sampleRate, false);
+// Returns: 220 (just the number)
+```
+
+**Benefits**:
+- Richer visualization of voice characteristics
+- Helps identify voice quality and resonance
+- Useful for vocal training and analysis
+- Maintains backward compatibility when disabled
 
 ### 2. **Adaptive Frequency Range**
 - Auto-adjust min/max Hz based on detected pitch history
