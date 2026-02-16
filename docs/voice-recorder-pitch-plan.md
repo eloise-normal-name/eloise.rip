@@ -36,6 +36,9 @@ function detectPitch(buffer, sampleRate) → number | null
 - Must be dependency-free so it can be `{% include %}`-inlined like the other
   scripts.
 
+Current implementation: lightweight autocorrelation tuned for ~80–400 Hz with a
+simple smoothing pass inside the visualizer.
+
 ### 3. Collect pitch samples during recording
 
 In the `AudioVisualizer` render loop (or a parallel `requestAnimationFrame`
