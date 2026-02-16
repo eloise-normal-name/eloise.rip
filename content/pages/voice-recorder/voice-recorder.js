@@ -62,6 +62,7 @@ class VoiceRecorderApp {
 
         this.clips = [];
         this.selectedClipId = null;
+        this.currentRecordingClipId = null;
         this.recordingStartTime = null;
 
         if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
@@ -500,11 +501,16 @@ class VoiceRecorderApp {
                 }
                 this.videoUrl = URL.createObjectURL(this.videoBlob);
 
-                if (this.selectedClipId !== null) {
-                    const clip = this.clips.find((c) => c.id === this.selectedClipId);
+                if (this.currentRecordingClipId !== null) {
+                    const clip = this.clips.find((c) => c.id === this.currentRecordingClipId);
                     if (clip) {
                         clip.videoBlob = this.videoBlob;
                         clip.videoUrl = this.videoUrl;
+                        if (this.selectedClipId === clip.id) {
+                            this.playbackVideo.src = this.videoUrl;
+                            this.playbackVideo.load();
+                        }
+                        this.updateButtonsState();
                     }
                 }
 
@@ -595,7 +601,7 @@ class VoiceRecorderApp {
     }
 
     addClip(audioBlob, audioUrl, duration) {
-        const id = Date.now();
+        const id = Date.now() + Math.floor(Math.random() * 1000);
         const name = this.generateRandomFilename();
         const timestamp = new Date();
         
@@ -612,25 +618,32 @@ class VoiceRecorderApp {
         
         this.clips.push(clip);
         this.selectedClipId = id;
+        this.currentRecordingClipId = id;
         this.renderClipsList();
         this.updateButtonsState();
     }
 
     deleteClip(id) {
-        const clip = this.clips.find((c) => c.id === id);
-        if (clip) {
-            if (clip.audioUrl) {
-                URL.revokeObjectURL(clip.audioUrl);
-            }
-            if (clip.videoUrl) {
-                URL.revokeObjectURL(clip.videoUrl);
-            }
+        const clipIndex = this.clips.findIndex((c) => c.id === id);
+        if (clipIndex === -1) return;
+        
+        const clip = this.clips[clipIndex];
+        if (clip.audioUrl) {
+            URL.revokeObjectURL(clip.audioUrl);
+        }
+        if (clip.videoUrl) {
+            URL.revokeObjectURL(clip.videoUrl);
         }
         
-        this.clips = this.clips.filter((c) => c.id !== id);
+        this.clips.splice(clipIndex, 1);
         
         if (this.selectedClipId === id) {
-            this.selectedClipId = this.clips.length > 0 ? this.clips[0].id : null;
+            if (this.clips.length > 0) {
+                const newIndex = Math.min(clipIndex, this.clips.length - 1);
+                this.selectedClipId = this.clips[newIndex].id;
+            } else {
+                this.selectedClipId = null;
+            }
         }
         
         this.renderClipsList();
@@ -718,7 +731,7 @@ class VoiceRecorderApp {
         
         this.clipsList.querySelectorAll('.clip-item').forEach((item) => {
             item.addEventListener('click', (event) => {
-                if (!event.target.classList.contains('clip-delete')) {
+                if (!event.target.closest('.clip-delete')) {
                     const id = parseInt(item.dataset.clipId, 10);
                     this.selectClip(id);
                 }
