@@ -22,7 +22,7 @@ A browser-based voice recorder with live waveform and pitch visualization.
 - Autocorrelation-based pitch detection
 - No dependencies, all client-side
 
-[Try it out](../voice-recorder.html) | [Technical Docs](https://github.com/eloise-normal-name/eloise.rip/blob/main/docs/voice-recorder.md)
+[Try it out](./voice-recorder.html) | [Technical Docs](https://github.com/eloise-normal-name/eloise.rip/blob/main/docs/voice-recorder.md)
 
 **Future Enhancements:**
 - Adjustable pitch range UI
@@ -40,7 +40,7 @@ Systematic voice practice using Harvard sentences.
 
 **Goal:** Record 720 Harvard sentences for voice training and comparison.
 
-[View Progress](../voice.html)
+[View Progress](./voice.html)
 
 ---
 
@@ -50,4 +50,4 @@ Systematic voice practice using Harvard sentences.
 - Art projects
 - Tech experiments
 
-Want to collaborate or have suggestions? [Get in touch!](../about.html)
+Want to collaborate or have suggestions? [Get in touch!](./about.html)
