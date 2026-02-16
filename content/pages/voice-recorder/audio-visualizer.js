@@ -3,7 +3,6 @@ class AudioVisualizer {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.analyserNode = null;
-        this.data = null;
         this.floatData = null;
 
         this.backgroundColor = 'rgba(16, 12, 20, 1)';
@@ -23,10 +22,8 @@ class AudioVisualizer {
     setAnalyser(analyserNode) {
         this.analyserNode = analyserNode;
         if (this.analyserNode) {
-            this.data = new Uint8Array(this.analyserNode.fftSize);
             this.floatData = new Float32Array(this.analyserNode.fftSize);
         } else {
-            this.data = null;
             this.floatData = null;
         }
         this.resetPitchHistory();
@@ -81,14 +78,10 @@ class AudioVisualizer {
     render() {
         this.paintFrame();
         if (!this.analyserNode) return;
-        if (!this.data || this.data.length !== this.analyserNode.fftSize) {
-            this.data = new Uint8Array(this.analyserNode.fftSize);
-        }
         if (!this.floatData || this.floatData.length !== this.analyserNode.fftSize) {
             this.floatData = new Float32Array(this.analyserNode.fftSize);
         }
 
-        this.analyserNode.getByteTimeDomainData(this.data);
         if (this.floatData && typeof detectPitch === 'function') {
             this.analyserNode.getFloatTimeDomainData(this.floatData);
             const pitchHz = detectPitch(this.floatData, this.analyserNode.context.sampleRate);
@@ -96,25 +89,6 @@ class AudioVisualizer {
         } else {
             this.pushPitchSample(null);
         }
-
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-        const mid = height / 2;
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeStyle = 'rgba(255, 107, 157, 0.9)';
-
-        this.ctx.beginPath();
-        for (let i = 0; i < this.data.length; i += 1) {
-            const x = (i / (this.data.length - 1)) * width;
-            const v = (this.data[i] - 128) / 128;
-            const y = mid + v * (mid - 6);
-            if (i === 0) {
-                this.ctx.moveTo(x, y);
-            } else {
-                this.ctx.lineTo(x, y);
-            }
-        }
-        this.ctx.stroke();
 
         this.renderPitchTrace();
     }
@@ -129,6 +103,9 @@ class AudioVisualizer {
         const step = this.pitchMaxSamples > 1 ? width / (this.pitchMaxSamples - 1) : width;
         const offset = Math.max(this.pitchMaxSamples - this.pitchHistory.length, 0);
         const range = this.pitchMaxHz - this.pitchMinHz || 1;
+
+        this.ctx.strokeStyle = this.pitchColor;
+        this.ctx.lineWidth = 1.5;
 
         let pathOpen = false;
         for (let i = 0; i < this.pitchHistory.length; i += 1) {
@@ -149,8 +126,6 @@ class AudioVisualizer {
 
             if (!pathOpen) {
                 this.ctx.beginPath();
-                this.ctx.strokeStyle = this.pitchColor;
-                this.ctx.lineWidth = 1.5;
                 this.ctx.moveTo(x, y);
                 pathOpen = true;
             } else {
