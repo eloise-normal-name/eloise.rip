@@ -105,6 +105,19 @@ and save/share.
 - Secondary pitch detection identifies additional frequency components but may not always find a valid secondary pitch.
 - Canvas playback re-renders the recorded video; there is no live waveform during playback.
 
+## Maintenance & Development
+
+### DOM Element Safety
+
+**⚠️ Important:** The JavaScript code relies on specific HTML element IDs. When modifying the UI, always ensure DOM elements and JavaScript references stay in sync.
+
+See [voice-recorder-dom-elements.md](voice-recorder-dom-elements.md) for:
+- Complete mapping of HTML elements to JavaScript references
+- Maintenance checklist when modifying the UI
+- Historical context (PR #21 removed global playback buttons)
+
+A GitHub Actions workflow (`.github/workflows/validate-dom-elements.yml`) automatically validates that all `getElementById()` calls have matching HTML elements on every PR.
+
 ## Future Work
 
 The pitch visualizer has been completed! See [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) for the original implementation plan.
