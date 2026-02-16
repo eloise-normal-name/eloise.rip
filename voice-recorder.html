@@ -325,6 +325,205 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     box-shadow: 0 2px 8px var(--shadow);
+}
+
+.clips-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 1.5rem auto 1rem;
+}
+
+.clips-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-color);
+    letter-spacing: 0.02em;
+}
+
+.clips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    padding: 0.75rem;
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.clips-empty {
+    text-align: center;
+    color: var(--text-light);
+    padding: 2rem;
+    font-size: 0.9rem;
+}
+
+.clip-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.clip-item:hover {
+    background: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.clip-item.selected {
+    background: linear-gradient(180deg, #eef6ff 0%, #e0f2fe 100%);
+    border-color: rgba(116, 192, 252, 0.4);
+    box-shadow: 0 2px 8px rgba(116, 192, 252, 0.2);
+}
+
+.clip-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.clip-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clip-item.selected .clip-name {
+    color: #1971c2;
+}
+
+.clip-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.clip-timestamp::after {
+    content: '•';
+    margin-left: 0.75rem;
+    color: var(--text-light);
+}
+
+.clip-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 0.5rem;
+}
+
+.clip-play {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%);
+    border: 1px solid rgba(116, 192, 252, 0.35);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.clip-play:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(116, 192, 252, 0.3);
+}
+
+.clip-play:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.clip-share-video,
+.clip-share-audio {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.clip-share-video:hover:not(:disabled),
+.clip-share-audio:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.clip-share-video:disabled,
+.clip-share-audio:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.icon-triangle-small {
+    width: 0;
+    height: 0;
+    border-left: 9px solid #74c0fc;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    margin-left: 2px;
+}
+
+.icon-square-small {
+    width: 10px;
+    height: 10px;
+    background-color: #ff6b6b;
+    border: 1px solid #ff6b6b;
+    border-radius: 2px;
+}
+
+.clip-delete {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    line-height: 1;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.clip-delete:hover {
+    background: rgba(255, 107, 107, 0.2);
+    transform: scale(1.1);
 }</style>
 <script>
 function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) {
@@ -681,13 +880,11 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
 
     constructor() {
         this.recordButton = document.getElementById('recordButton');
-        this.playButton = document.getElementById('playButton');
-        this.saveVideoButton = document.getElementById('saveVideoButton');
-        this.saveAudioButton = document.getElementById('saveAudioButton');
         this.testSignalButton = document.getElementById('testSignalButton');
         this.debugMsg = document.getElementById('debugMsg');
         this.recordingCanvas = document.getElementById('recordingCanvas');
         this.playbackVideo = document.getElementById('playbackVideo');
+        this.clipsList = document.getElementById('clipsList');
 
         this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
 
@@ -714,24 +911,25 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         this.testGain = null;
         this.isTestSignalActive = false;
 
-        if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
-            || !this.testSignalButton || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx) {
+        this.clips = [];
+        this.selectedClipId = null;
+        this.currentRecordingClipId = null;
+        this.recordingStartTime = null;
+        this.playingClipId = null;
+
+        if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
+            || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
         }
 
-        this.playButton.disabled = true;
-        this.saveVideoButton.disabled = true;
-        this.saveAudioButton.disabled = true;
-
         this.recordButton.onclick = () => this.onRecordClick();
-        this.playButton.onclick = () => this.togglePlayback();
-        this.saveVideoButton.onclick = () => this.saveVideo();
-        this.saveAudioButton.onclick = () => this.saveAudio();
+        this.testSignalButton.onclick = () => this.toggleTestSignal();
         this.testSignalButton.onclick = () => this.toggleTestSignal();
 
         this.playbackVideo.onended = () => {
             this.stopPlaybackRender();
-            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.playingClipId = null;
+            this.renderClipsList();
             this.setStatus('Playback finished.');
         };
 
@@ -743,6 +941,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         this.visualizer.clear();
         this.setupConfigurationSliders();
         this.showBrowserCapabilities();
+        this.renderClipsList();
     }
 
     setupConfigurationSliders() {
@@ -1080,7 +1279,9 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
                 URL.revokeObjectURL(this.audioUrl);
             }
             this.audioUrl = URL.createObjectURL(this.audioBlob);
-            this.saveAudioButton.disabled = false;
+
+            const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
+            this.addClip(this.audioBlob, this.audioUrl, duration);
 
             const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
             this.setStatus('Recording ready.', details);
@@ -1100,6 +1301,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
 
         this.mediaRecorder.start();
         this.isRecording = true;
+        this.recordingStartTime = Date.now();
         this.setButtonIcon(this.recordButton, 'icon-square');
         this.playButton.disabled = true;
         this.saveAudioButton.disabled = true;
@@ -1145,10 +1347,19 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
                     URL.revokeObjectURL(this.videoUrl);
                 }
                 this.videoUrl = URL.createObjectURL(this.videoBlob);
-                this.saveVideoButton.disabled = false;
-                this.playButton.disabled = false;
-                this.playbackVideo.src = this.videoUrl;
-                this.playbackVideo.load();
+
+                if (this.currentRecordingClipId !== null) {
+                    const clip = this.clips.find((c) => c.id === this.currentRecordingClipId);
+                    if (clip) {
+                        clip.videoBlob = this.videoBlob;
+                        clip.videoUrl = this.videoUrl;
+                        if (this.selectedClipId === clip.id) {
+                            this.playbackVideo.src = this.videoUrl;
+                            this.playbackVideo.load();
+                        }
+                        this.renderClipsList();
+                    }
+                }
 
                 const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
                 this.setStatus('Video ready.', videoDetails);
@@ -1175,70 +1386,276 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         this.setStatus('Processing recording...');
     }
 
-    togglePlayback() {
-        if (!this.videoUrl) {
-            this.setStatus('No video recording yet.');
+    toggleClipPlayback(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoUrl) {
+            this.setStatus('No video available for this clip.');
             return;
         }
 
-        if (!this.playbackVideo.paused && !this.playbackVideo.ended) {
+        if (this.playingClipId === id && !this.playbackVideo.paused) {
             this.playbackVideo.pause();
             this.playbackVideo.currentTime = 0;
             this.stopPlaybackRender();
-            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.playingClipId = null;
             this.setStatus('Playback stopped.');
+            this.renderClipsList();
             return;
         }
 
+        if (this.playingClipId !== null && this.playingClipId !== id) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+        }
+
+        this.playbackVideo.src = clip.videoUrl;
+        this.playbackVideo.load();
         this.playbackVideo.currentTime = 0;
+
         const playPromise = this.playbackVideo.play();
         if (playPromise && playPromise.catch) {
             playPromise.catch((error) => {
-                this.setButtonIcon(this.playButton, 'icon-triangle');
+                this.playingClipId = null;
                 this.setStatus('Playback failed.', `Error: ${error.message}`);
+                this.renderClipsList();
             });
         }
-        this.setButtonIcon(this.playButton, 'icon-square');
+
+        this.playingClipId = id;
+        this.selectedClipId = id;
         this.setStatus('Playback started.');
         this.stopPlaybackRender();
         this.startPlaybackRender();
+        this.renderClipsList();
     }
 
-    async saveVideo() {
-        if (!this.videoBlob) {
+    async shareClipVideo(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoBlob) {
             this.setStatus('No video recording available to save.');
             return;
         }
 
-        const videoExt = (this.videoBlob.type.split(/\/|;/)[1] || '').trim();
-        const filename = this.generateRandomFilename() + (videoExt ? `.${videoExt}` : '');
+        const videoExt = (clip.videoBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = clip.name + (videoExt ? `.${videoExt}` : '');
         await this.shareOrDownload({
-            blob: this.videoBlob,
+            blob: clip.videoBlob,
             filename,
-            existingUrl: this.videoUrl,
+            existingUrl: clip.videoUrl,
             successMessage: 'Video share completed.'
         });
     }
 
-    async saveAudio() {
-        if (!this.audioBlob) {
+    async shareClipAudio(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.audioBlob) {
             this.setStatus('No recording available to save.');
             return;
         }
 
-        const audioExt = (this.audioBlob.type.split(/\/|;/)[1] || '').trim();
-        const filename = this.generateRandomFilename() + (audioExt ? `.${audioExt}` : '');
+        const audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = clip.name + (audioExt ? `.${audioExt}` : '');
         await this.shareOrDownload({
-            blob: this.audioBlob,
+            blob: clip.audioBlob,
             filename,
-            existingUrl: this.audioUrl,
+            existingUrl: clip.audioUrl,
             successMessage: 'Share completed.'
+        });
+    }
+
+    addClip(audioBlob, audioUrl, duration) {
+        const id = Date.now() + Math.floor(Math.random() * 1000);
+        const name = this.generateRandomFilename();
+        const timestamp = new Date();
+
+        const clip = {
+            id,
+            name,
+            timestamp,
+            duration,
+            audioBlob,
+            audioUrl,
+            videoBlob: null,
+            videoUrl: null
+        };
+
+        this.clips.push(clip);
+        this.selectedClipId = id;
+        this.currentRecordingClipId = id;
+        this.renderClipsList();
+    }
+
+    deleteClip(id) {
+        const clipIndex = this.clips.findIndex((c) => c.id === id);
+        if (clipIndex === -1) return;
+
+        const clip = this.clips[clipIndex];
+        if (clip.audioUrl) {
+            URL.revokeObjectURL(clip.audioUrl);
+        }
+        if (clip.videoUrl) {
+            URL.revokeObjectURL(clip.videoUrl);
+        }
+
+        this.clips.splice(clipIndex, 1);
+
+        if (this.selectedClipId === id) {
+            if (this.clips.length > 0) {
+                const newIndex = Math.min(clipIndex, this.clips.length - 1);
+                this.selectedClipId = this.clips[newIndex].id;
+            } else {
+                this.selectedClipId = null;
+            }
+        }
+
+        if (this.playingClipId === id) {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+        }
+
+        this.renderClipsList();
+    }
+
+    selectClip(id) {
+        this.selectedClipId = id;
+        this.renderClipsList();
+    }
+
+    renameClip(id, newName) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (clip) {
+            clip.name = newName;
+            this.renderClipsList();
+        }
+    }
+
+    formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    formatTimestamp(date) {
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+
+        if (isToday) {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+
+        if (isYesterday) {
+            return 'Yesterday';
+        }
+
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    renderClipsList() {
+        if (!this.clipsList) return;
+
+        if (this.clips.length === 0) {
+            this.clipsList.innerHTML = '<div class="clips-empty">No recordings yet</div>';
+            return;
+        }
+
+        const clipsHtml = this.clips.map((clip) => {
+            const isSelected = clip.id === this.selectedClipId;
+            const isPlaying = clip.id === this.playingClipId;
+            const hasVideo = !!clip.videoUrl;
+            const hasAudio = !!clip.audioUrl;
+
+            return `
+                <div class="clip-item ${isSelected ? 'selected' : ''}" data-clip-id="${clip.id}">
+                    <div class="clip-info">
+                        <div class="clip-name" data-clip-id="${clip.id}">${clip.name}</div>
+                        <div class="clip-meta">
+                            <span class="clip-timestamp">${this.formatTimestamp(clip.timestamp)}</span>
+                            <span class="clip-duration">${this.formatDuration(clip.duration)}</span>
+                        </div>
+                    </div>
+                    <div class="clip-actions">
+                        <button class="clip-play" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="${isPlaying ? 'Stop' : 'Play'}">
+                            <span class="icon ${isPlaying ? 'icon-square-small' : 'icon-triangle-small'}"></span>
+                        </button>
+                        <button class="clip-share-video" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="Share Video">
+                            🎬
+                        </button>
+                        <button class="clip-share-audio" data-clip-id="${clip.id}" ${!hasAudio ? 'disabled' : ''} title="Share Audio">
+                            🎵
+                        </button>
+                        <button class="clip-delete" data-clip-id="${clip.id}" title="Delete">✕</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.clipsList.innerHTML = clipsHtml;
+
+        this.clipsList.querySelectorAll('.clip-item').forEach((item) => {
+            item.addEventListener('click', (event) => {
+                if (!event.target.closest('.clip-actions')) {
+                    const id = parseInt(item.dataset.clipId, 10);
+                    this.selectClip(id);
+                }
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-play').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.toggleClipPlayback(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-share-video').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipVideo(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-share-audio').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipAudio(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-delete').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.deleteClip(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-name').forEach((nameEl) => {
+            nameEl.addEventListener('dblclick', (event) => {
+                event.stopPropagation();
+                const id = parseInt(nameEl.dataset.clipId, 10);
+                const clip = this.clips.find((c) => c.id === id);
+                if (clip) {
+                    const newName = prompt('Rename recording:', clip.name);
+                    if (newName && newName.trim()) {
+                        this.renameClip(id, newName.trim());
+                    }
+                }
+            });
         });
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new VoiceRecorderApp();
+    window.voiceRecorderApp = new VoiceRecorderApp();
 });</script>
 
 <section class="voice-recorder">
@@ -1250,26 +1667,15 @@ document.addEventListener('DOMContentLoaded', () => {
         <button id="recordButton" class="btn btn-record">
             <span class="icon icon-circle"></span>
         </button>
-        <button id="playButton" class="btn btn-play" disabled>
-            <span class="icon icon-triangle"></span>
-        </button>
         <div class="button-stack">
             <button id="testSignalButton" class="btn btn-test" title="Test Signal (220 Hz sine wave)">
                 <span class="icon icon-sine"></span>
             </button>
         </div>
-        <div class="button-stack">
-            <button id="saveVideoButton" class="btn btn-download btn-save" disabled title="Download Video">
-                <span class="emoji-icon" aria-hidden="true">🎬</span>
-                <span class="btn-save-text">Save</span>
-            </button>
-        </div>
-        <div class="button-stack">
-            <button id="saveAudioButton" class="btn btn-download-audio btn-save" disabled title="Download Audio">
-                <span class="emoji-icon" aria-hidden="true">🎵</span>
-                <span class="btn-save-text">Save</span>
-            </button>
-        </div>
+    </div>
+    <div class="clips-container">
+        <h3 class="clips-title">Recordings</h3>
+        <div id="clipsList" class="clips-list"></div>
     </div>
     <details class="recorder-settings" closed>
         <summary>Settings</summary>
