@@ -60,12 +60,21 @@ videoBlob → <video> (hidden) → drawImage onto <canvas> each frame
 | Member | Description |
 |--------|-------------|
 | `constructor(canvas, analyserNode)` | Stores references, sets colors, calls `setAnalyser`. |
-| `setAnalyser(node)` | Attach or detach an `AnalyserNode`. Allocates the `Uint8Array` data buffer when a node is provided. |
+| `setAnalyser(node)` | Attach or detach an `AnalyserNode`. Allocates the `Float32Array` data buffer when a node is provided. |
 | `paintFrame()` | Fills the background and draws the border. Called by both `render` and `clear`. |
-| `render()` | Calls `paintFrame`, reads `getByteTimeDomainData`, draws a pink waveform line, and overlays the pitch trace. |
-| `clear()` | Redraws the empty background frame (no waveform) and clears pitch history. |
+| `render()` | Calls `paintFrame`, reads `getFloatTimeDomainData`, detects pitch(es), and renders the pitch trace(s). |
+| `clear()` | Redraws the empty background frame and clears pitch history. |
+| `pushPitchSample(pitchData)` | Adds pitch data to history buffers. Accepts a number (primary only) or object with `primary` and `secondary` fields. |
+| `renderPitchTrace()` | Draws primary pitch (blue) and optionally secondary pitch (orange) traces on the canvas. |
 
 Colors and border width are instance properties set in the constructor.
+
+### Pitch Visualization
+
+- **Primary pitch**: Blue trace (`rgba(116, 192, 252, 0.9)`)
+- **Secondary pitch**: Orange trace (`rgba(255, 180, 100, 0.7)`)
+- Both traces use exponential smoothing (35%) to reduce jitter
+- Secondary pitch detection can be toggled via `showSecondaryPitch` property
 
 ## VoiceRecorderApp Class
 
@@ -93,8 +102,8 @@ and save/share.
 
 - No backend storage or upload.
 - Pitch overlay uses a lightweight autocorrelation tuned for ~80–400 Hz; unvoiced/noisy segments may drop out rather than show a stable line.
-- Canvas playback re-renders the recorded video; there is no live waveform during
-  playback.
+- Secondary pitch detection identifies additional frequency components but may not always find a valid secondary pitch.
+- Canvas playback re-renders the recorded video; there is no live waveform during playback.
 
 ## Future Work
 
