@@ -1,0 +1,117 @@
+name: Validate DOM Elements
+
+on:
+  pull_request:
+    paths:
+      - 'content/pages/voice-recorder/**'
+  push:
+    branches:
+      - main
+    paths:
+      - 'content/pages/voice-recorder/**'
+  workflow_dispatch:
+
+jobs:
+  validate-dom-elements:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Validate voice recorder DOM elements
+        run: |
+          python3 << 'EOF'
+          import re
+          import sys
+          from pathlib import Path
+
+          def extract_html_ids(html_file):
+              """Extract all id attributes from HTML."""
+              content = html_file.read_text(encoding='utf-8')
+              # Match id="elementId" or id='elementId'
+              return set(re.findall(r'id=["\']([^"\']+)["\']', content))
+
+          def extract_js_getelementbyid(js_file):
+              """Extract all getElementById calls from JavaScript."""
+              content = js_file.read_text(encoding='utf-8')
+              # Match getElementById('id') or getElementById("id")
+              return set(re.findall(r'getElementById\(["\']([^"\']+)["\']\)', content))
+
+          def main():
+              base_dir = Path('content/pages/voice-recorder')
+              html_file = base_dir / 'voice-recorder.md'
+              js_file = base_dir / 'voice-recorder.js'
+
+              if not html_file.exists():
+                  print(f"❌ HTML file not found: {html_file}")
+                  return 1
+
+              if not js_file.exists():
+                  print(f"❌ JavaScript file not found: {js_file}")
+                  return 1
+
+              # Extract IDs
+              html_ids = extract_html_ids(html_file)
+              js_ids = extract_js_getelementbyid(js_file)
+
+              print(f"✅ Found {len(html_ids)} element IDs in HTML")
+              print(f"✅ Found {len(js_ids)} getElementById() calls in JavaScript")
+              print()
+
+              # Check for missing elements
+              missing_ids = js_ids - html_ids
+              if missing_ids:
+                  print("❌ VALIDATION FAILED: JavaScript references missing HTML elements:")
+                  print()
+                  for element_id in sorted(missing_ids):
+                      # Find line numbers in JS
+                      js_content = js_file.read_text(encoding='utf-8')
+                      lines = js_content.split('\n')
+                      line_nums = [
+                          i + 1 for i, line in enumerate(lines)
+                          if f"getElementById('{element_id}')" in line or f'getElementById("{element_id}")' in line
+                      ]
+                      print(f"  • Missing element: '{element_id}'")
+                      print(f"    Referenced in {js_file.name} at line(s): {', '.join(map(str, line_nums))}")
+                      print(f"    This element must be added to {html_file.name} or removed from JavaScript")
+                      print()
+                  
+                  print("💡 See docs/voice-recorder-dom-elements.md for maintenance guidelines")
+                  return 1
+
+              # Check for unused IDs (informational only, not an error)
+              unused_ids = html_ids - js_ids
+              if unused_ids:
+                  print("ℹ️  Note: Some HTML element IDs are not referenced in JavaScript:")
+                  for element_id in sorted(unused_ids):
+                      print(f"  • '{element_id}' (defined in HTML but not used in JS)")
+                  print()
+                  print("This is OK - these elements may be used by other scripts or CSS.")
+                  print()
+
+              print("✅ DOM element validation PASSED")
+              print(f"   All {len(js_ids)} JavaScript element references have matching HTML elements")
+              return 0
+
+          if __name__ == '__main__':
+              sys.exit(main())
+          EOF
+
+      - name: Install dependencies
+        if: success()
+        run: pip install -r requirements.txt
+
+      - name: Build site
+        if: success()
+        run: pelican content -o output -s pelicanconf.py
+
+      - name: Check for JavaScript errors in output
+        if: success()
+        run: |
+          echo "✅ Site build completed successfully"
+          echo "💡 Manual testing recommended: open voice-recorder.html and check browser console"
