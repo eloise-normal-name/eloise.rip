@@ -8,6 +8,7 @@ Status: hidden
 {% include 'pages/voice-recorder/voice-recorder.css' %}
 </style>
 <script>
+{% include 'pages/voice-recorder/pitch-detector.js' %}
 {% include 'pages/voice-recorder/audio-visualizer.js' %}
 {% include 'pages/voice-recorder/voice-recorder.js' %}
 </script>

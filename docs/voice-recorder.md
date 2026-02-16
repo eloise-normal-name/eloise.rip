@@ -14,6 +14,7 @@ is involved.
 | `content/pages/voice-recorder/voice-recorder.md` | Jinja page template — includes the CSS and JS below via `{% include %}`. |
 | `content/pages/voice-recorder/voice-recorder.css` | Styles, inlined into the page. |
 | `content/pages/voice-recorder/audio-visualizer.js` | `AudioVisualizer` class — canvas rendering for the live waveform. Inlined before `voice-recorder.js`. |
+| `content/pages/voice-recorder/pitch-detector.js` | Dependency-free `detectPitch(buffer, sampleRate)` helper used by the visualizer. |
 | `content/pages/voice-recorder/voice-recorder.js` | `VoiceRecorderApp` class — recording, playback, save/share, and UI state. Inlined after the visualizer. |
 
 ## Architecture
@@ -61,8 +62,8 @@ videoBlob → <video> (hidden) → drawImage onto <canvas> each frame
 | `constructor(canvas, analyserNode)` | Stores references, sets colors, calls `setAnalyser`. |
 | `setAnalyser(node)` | Attach or detach an `AnalyserNode`. Allocates the `Uint8Array` data buffer when a node is provided. |
 | `paintFrame()` | Fills the background and draws the border. Called by both `render` and `clear`. |
-| `render()` | Calls `paintFrame`, reads `getByteTimeDomainData`, and draws a pink waveform line. |
-| `clear()` | Redraws the empty background frame (no waveform). |
+| `render()` | Calls `paintFrame`, reads `getByteTimeDomainData`, draws a pink waveform line, and overlays the pitch trace. |
+| `clear()` | Redraws the empty background frame (no waveform) and clears pitch history. |
 
 Colors and border width are instance properties set in the constructor.
 
@@ -91,7 +92,7 @@ and save/share.
 ## Current Limitations
 
 - No backend storage or upload.
-- Waveform is time-domain only — no pitch or frequency information is displayed.
+- Pitch overlay uses a lightweight autocorrelation tuned for ~80–400 Hz; unvoiced/noisy segments may drop out rather than show a stable line.
 - Canvas playback re-renders the recorded video; there is no live waveform during
   playback.
 

@@ -311,7 +311,7 @@ class VoiceRecorderApp {
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         }
         this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 1024;
+        this.analyser.fftSize = 2048;
         const source = this.audioContext.createMediaStreamSource(this.mediaStream);
         source.connect(this.analyser);
         this.visualizer.setAnalyser(this.analyser);
