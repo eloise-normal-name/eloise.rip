@@ -267,3 +267,121 @@
     word-wrap: break-word;
     box-shadow: 0 2px 8px var(--shadow);
 }
+
+.clips-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 1.5rem auto 1rem;
+}
+
+.clips-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-color);
+    letter-spacing: 0.02em;
+}
+
+.clips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    padding: 0.75rem;
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.clips-empty {
+    text-align: center;
+    color: var(--text-light);
+    padding: 2rem;
+    font-size: 0.9rem;
+}
+
+.clip-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.clip-item:hover {
+    background: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.clip-item.selected {
+    background: linear-gradient(180deg, #eef6ff 0%, #e0f2fe 100%);
+    border-color: rgba(116, 192, 252, 0.4);
+    box-shadow: 0 2px 8px rgba(116, 192, 252, 0.2);
+}
+
+.clip-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.clip-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clip-item.selected .clip-name {
+    color: #1971c2;
+}
+
+.clip-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.clip-timestamp::after {
+    content: '•';
+    margin-left: 0.75rem;
+    color: var(--text-light);
+}
+
+.clip-delete {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    line-height: 1;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.clip-delete:hover {
+    background: rgba(255, 107, 107, 0.2);
+    transform: scale(1.1);
+}
