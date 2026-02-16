@@ -70,7 +70,6 @@ class VoiceRecorderApp {
 
         this.recordButton.onclick = () => this.onRecordClick();
         this.testSignalButton.onclick = () => this.toggleTestSignal();
-        this.testSignalButton.onclick = () => this.toggleTestSignal();
 
         this.playbackVideo.onended = () => {
             this.stopPlaybackRender();
@@ -449,9 +448,6 @@ class VoiceRecorderApp {
         this.isRecording = true;
         this.recordingStartTime = Date.now();
         this.setButtonIcon(this.recordButton, 'icon-square');
-        this.playButton.disabled = true;
-        this.saveAudioButton.disabled = true;
-        this.saveVideoButton.disabled = true;
         this.testSignalButton.disabled = true;
 
         const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
