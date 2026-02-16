@@ -7,6 +7,28 @@ waveform on a canvas, records the canvas and audio as a video, and lets the user
 play back or save the result. Everything runs in the browser — no server upload
 is involved.
 
+## Architecture Overview
+
+The voice recorder consists of three main components:
+
+1. **VoiceRecorderApp** - Main application class managing recording, playback, clip storage, and UI state
+2. **AudioVisualizer** - Canvas rendering engine that draws waveforms and pitch traces in real-time
+3. **Pitch Detector** - Autocorrelation-based pitch detection algorithm (80-400 Hz range)
+
+**Recording Flow:**
+- Microphone audio → MediaRecorder → audio file (MP4)
+- Microphone audio → AudioContext/AnalyserNode → AudioVisualizer → canvas animation
+- Canvas stream + audio → MediaRecorder → video file (MP4/WebM)
+
+**Clip Storage:**
+Each recording is stored as a clip object containing audio blob, video blob, and their object URLs. Clips are kept in memory only (no persistence). Multiple clips can be recorded, played back, renamed, and deleted independently.
+
+**Key Features:**
+- Real-time waveform visualization with pitch overlay
+- Multi-clip management (record multiple clips in one session)
+- Web Share API integration for easy sharing
+- Configurable pitch detection parameters
+
 ## File Map
 
 | File | Role |
@@ -17,7 +39,9 @@ is involved.
 | `content/pages/voice-recorder/pitch-detector.js` | Dependency-free `detectPitch(buffer, sampleRate)` helper used by the visualizer. |
 | `content/pages/voice-recorder/voice-recorder.js` | `VoiceRecorderApp` class — recording, playback, save/share, and UI state. Inlined after the visualizer. |
 
-## Architecture
+## Detailed Architecture
+
+### UI Layout
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -117,6 +141,15 @@ See [voice-recorder-dom-elements.md](voice-recorder-dom-elements.md) for:
 - Historical context (PR #21 removed global playback buttons)
 
 A GitHub Actions workflow (`.github/workflows/validate-dom-elements.yml`) automatically validates that all `getElementById()` calls have matching HTML elements on every PR.
+
+### Testing
+
+Before making significant changes or releases, run through the manual test scenarios documented in [voice-recorder-test-scenarios.md](voice-recorder-test-scenarios.md).
+
+Critical regression tests:
+- **Multi-Clip Recording and Playback** - ensures video/audio blob URLs are managed correctly
+- **Basic Recording** - ensures core functionality works
+- **Playback** - ensures video rendering works
 
 ## Future Work
 

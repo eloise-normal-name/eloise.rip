@@ -49,8 +49,6 @@ class VoiceRecorderApp {
         this.mediaRecorder = null;
         this.mediaStream = null;
         this.audioChunks = [];
-        this.audioUrl = null;
-        this.audioBlob = null;
 
         this.audioContext = null;
         this.analyser = null;
@@ -59,8 +57,6 @@ class VoiceRecorderApp {
 
         this.videoMediaRecorder = null;
         this.videoChunks = [];
-        this.videoUrl = null;
-        this.videoBlob = null;
         this.playbackAnimationId = null;
 
         this.testOscillator = null;
@@ -429,14 +425,11 @@ class VoiceRecorderApp {
 
         this.mediaRecorder.onstop = () => {
             const blobType = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || 'audio/mp4';
-            this.audioBlob = new Blob(this.audioChunks, { type: blobType });
-            if (this.audioUrl) {
-                URL.revokeObjectURL(this.audioUrl);
-            }
-            this.audioUrl = URL.createObjectURL(this.audioBlob);
+            const audioBlob = new Blob(this.audioChunks, { type: blobType });
+            const audioUrl = URL.createObjectURL(audioBlob);
 
             const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
-            this.addClip(this.audioBlob, this.audioUrl, duration);
+            this.addClip(audioBlob, audioUrl, duration);
 
             const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
             this.setStatus('Recording ready.', details);
@@ -494,19 +487,16 @@ class VoiceRecorderApp {
 
             this.videoMediaRecorder.onstop = () => {
                 const blobType = videoMimeType || (this.videoChunks[0] && this.videoChunks[0].type) || 'video/webm';
-                this.videoBlob = new Blob(this.videoChunks, { type: blobType });
-                if (this.videoUrl) {
-                    URL.revokeObjectURL(this.videoUrl);
-                }
-                this.videoUrl = URL.createObjectURL(this.videoBlob);
+                const videoBlob = new Blob(this.videoChunks, { type: blobType });
+                const videoUrl = URL.createObjectURL(videoBlob);
 
                 if (this.currentRecordingClipId !== null) {
                     const clip = this.clips.find((c) => c.id === this.currentRecordingClipId);
                     if (clip) {
-                        clip.videoBlob = this.videoBlob;
-                        clip.videoUrl = this.videoUrl;
+                        clip.videoBlob = videoBlob;
+                        clip.videoUrl = videoUrl;
                         if (this.selectedClipId === clip.id) {
-                            this.playbackVideo.src = this.videoUrl;
+                            this.playbackVideo.src = videoUrl;
                             this.playbackVideo.load();
                         }
                         this.renderClipsList();

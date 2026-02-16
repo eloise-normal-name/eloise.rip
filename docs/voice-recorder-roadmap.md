@@ -160,6 +160,12 @@ Improve sharing and export options
 - Integration tests for recording flow
 - Performance profiling and optimization
 
+### Testing
+- [x] Manual test scenarios documented (see [voice-recorder-test-scenarios.md](voice-recorder-test-scenarios.md))
+- [ ] Automated test infrastructure
+- [ ] Browser compatibility testing matrix
+- [ ] Performance benchmarks
+
 ### Browser Compatibility
 - Test across all major browsers
 - Polyfills for older browsers
