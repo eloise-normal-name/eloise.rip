@@ -118,6 +118,15 @@ See [voice-recorder-dom-elements.md](voice-recorder-dom-elements.md) for:
 
 A GitHub Actions workflow (`.github/workflows/validate-dom-elements.yml`) automatically validates that all `getElementById()` calls have matching HTML elements on every PR.
 
+### Testing
+
+Before making significant changes or releases, run through the manual test scenarios documented in [voice-recorder-test-scenarios.md](voice-recorder-test-scenarios.md).
+
+Critical regression tests:
+- **Multi-Clip Recording and Playback** - ensures video/audio blob URLs are managed correctly
+- **Basic Recording** - ensures core functionality works
+- **Playback** - ensures video rendering works
+
 ## Future Work
 
 The pitch visualizer has been completed! See [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) for the original implementation plan.
