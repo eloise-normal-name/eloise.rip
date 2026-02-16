@@ -26,9 +26,6 @@ class VoiceRecorderApp {
 
     constructor() {
         this.recordButton = document.getElementById('recordButton');
-        this.playButton = document.getElementById('playButton');
-        this.saveVideoButton = document.getElementById('saveVideoButton');
-        this.saveAudioButton = document.getElementById('saveAudioButton');
         this.testSignalButton = document.getElementById('testSignalButton');
         this.debugMsg = document.getElementById('debugMsg');
         this.recordingCanvas = document.getElementById('recordingCanvas');
@@ -64,25 +61,21 @@ class VoiceRecorderApp {
         this.selectedClipId = null;
         this.currentRecordingClipId = null;
         this.recordingStartTime = null;
+        this.playingClipId = null;
 
-        if (!this.recordButton || !this.playButton || !this.saveVideoButton || !this.saveAudioButton
-            || !this.testSignalButton || !this.debugMsg || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
+        if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
+            || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
         }
 
-        this.playButton.disabled = true;
-        this.saveVideoButton.disabled = true;
-        this.saveAudioButton.disabled = true;
-
         this.recordButton.onclick = () => this.onRecordClick();
-        this.playButton.onclick = () => this.togglePlayback();
-        this.saveVideoButton.onclick = () => this.saveVideo();
-        this.saveAudioButton.onclick = () => this.saveAudio();
+        this.testSignalButton.onclick = () => this.toggleTestSignal();
         this.testSignalButton.onclick = () => this.toggleTestSignal();
 
         this.playbackVideo.onended = () => {
             this.stopPlaybackRender();
-            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.playingClipId = null;
+            this.renderClipsList();
             this.setStatus('Playback finished.');
         };
 
@@ -510,7 +503,7 @@ class VoiceRecorderApp {
                             this.playbackVideo.src = this.videoUrl;
                             this.playbackVideo.load();
                         }
-                        this.updateButtonsState();
+                        this.renderClipsList();
                     }
                 }
 
@@ -539,63 +532,80 @@ class VoiceRecorderApp {
         this.setStatus('Processing recording...');
     }
 
-    togglePlayback() {
-        if (!this.videoUrl) {
-            this.setStatus('No video recording yet.');
+    toggleClipPlayback(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoUrl) {
+            this.setStatus('No video available for this clip.');
             return;
         }
 
-        if (!this.playbackVideo.paused && !this.playbackVideo.ended) {
+        if (this.playingClipId === id && !this.playbackVideo.paused) {
             this.playbackVideo.pause();
             this.playbackVideo.currentTime = 0;
             this.stopPlaybackRender();
-            this.setButtonIcon(this.playButton, 'icon-triangle');
+            this.playingClipId = null;
             this.setStatus('Playback stopped.');
+            this.renderClipsList();
             return;
         }
 
+        if (this.playingClipId !== null && this.playingClipId !== id) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+        }
+
+        this.playbackVideo.src = clip.videoUrl;
+        this.playbackVideo.load();
         this.playbackVideo.currentTime = 0;
+        
         const playPromise = this.playbackVideo.play();
         if (playPromise && playPromise.catch) {
             playPromise.catch((error) => {
-                this.setButtonIcon(this.playButton, 'icon-triangle');
+                this.playingClipId = null;
                 this.setStatus('Playback failed.', `Error: ${error.message}`);
+                this.renderClipsList();
             });
         }
-        this.setButtonIcon(this.playButton, 'icon-square');
+        
+        this.playingClipId = id;
+        this.selectedClipId = id;
         this.setStatus('Playback started.');
         this.stopPlaybackRender();
         this.startPlaybackRender();
+        this.renderClipsList();
     }
 
-    async saveVideo() {
-        if (!this.videoBlob) {
+    async shareClipVideo(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoBlob) {
             this.setStatus('No video recording available to save.');
             return;
         }
 
-        const videoExt = (this.videoBlob.type.split(/\/|;/)[1] || '').trim();
-        const filename = this.generateRandomFilename() + (videoExt ? `.${videoExt}` : '');
+        const videoExt = (clip.videoBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = clip.name + (videoExt ? `.${videoExt}` : '');
         await this.shareOrDownload({
-            blob: this.videoBlob,
+            blob: clip.videoBlob,
             filename,
-            existingUrl: this.videoUrl,
+            existingUrl: clip.videoUrl,
             successMessage: 'Video share completed.'
         });
     }
 
-    async saveAudio() {
-        if (!this.audioBlob) {
+    async shareClipAudio(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.audioBlob) {
             this.setStatus('No recording available to save.');
             return;
         }
 
-        const audioExt = (this.audioBlob.type.split(/\/|;/)[1] || '').trim();
-        const filename = this.generateRandomFilename() + (audioExt ? `.${audioExt}` : '');
+        const audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = clip.name + (audioExt ? `.${audioExt}` : '');
         await this.shareOrDownload({
-            blob: this.audioBlob,
+            blob: clip.audioBlob,
             filename,
-            existingUrl: this.audioUrl,
+            existingUrl: clip.audioUrl,
             successMessage: 'Share completed.'
         });
     }
@@ -620,7 +630,6 @@ class VoiceRecorderApp {
         this.selectedClipId = id;
         this.currentRecordingClipId = id;
         this.renderClipsList();
-        this.updateButtonsState();
     }
 
     deleteClip(id) {
@@ -646,28 +655,18 @@ class VoiceRecorderApp {
             }
         }
         
+        if (this.playingClipId === id) {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+        }
+        
         this.renderClipsList();
-        this.updateButtonsState();
     }
 
     selectClip(id) {
         this.selectedClipId = id;
-        const clip = this.clips.find((c) => c.id === id);
-        
-        if (clip) {
-            this.audioBlob = clip.audioBlob;
-            this.audioUrl = clip.audioUrl;
-            this.videoBlob = clip.videoBlob;
-            this.videoUrl = clip.videoUrl;
-            
-            if (clip.videoUrl) {
-                this.playbackVideo.src = clip.videoUrl;
-                this.playbackVideo.load();
-            }
-        }
-        
         this.renderClipsList();
-        this.updateButtonsState();
     }
 
     renameClip(id, newName) {
@@ -713,6 +712,10 @@ class VoiceRecorderApp {
         
         const clipsHtml = this.clips.map((clip) => {
             const isSelected = clip.id === this.selectedClipId;
+            const isPlaying = clip.id === this.playingClipId;
+            const hasVideo = !!clip.videoUrl;
+            const hasAudio = !!clip.audioUrl;
+            
             return `
                 <div class="clip-item ${isSelected ? 'selected' : ''}" data-clip-id="${clip.id}">
                     <div class="clip-info">
@@ -722,7 +725,18 @@ class VoiceRecorderApp {
                             <span class="clip-duration">${this.formatDuration(clip.duration)}</span>
                         </div>
                     </div>
-                    <button class="clip-delete" data-clip-id="${clip.id}" title="Delete">✕</button>
+                    <div class="clip-actions">
+                        <button class="clip-play" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="${isPlaying ? 'Stop' : 'Play'}">
+                            <span class="icon ${isPlaying ? 'icon-square-small' : 'icon-triangle-small'}"></span>
+                        </button>
+                        <button class="clip-share-video" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="Share Video">
+                            🎬
+                        </button>
+                        <button class="clip-share-audio" data-clip-id="${clip.id}" ${!hasAudio ? 'disabled' : ''} title="Share Audio">
+                            🎵
+                        </button>
+                        <button class="clip-delete" data-clip-id="${clip.id}" title="Delete">✕</button>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -731,10 +745,34 @@ class VoiceRecorderApp {
         
         this.clipsList.querySelectorAll('.clip-item').forEach((item) => {
             item.addEventListener('click', (event) => {
-                if (!event.target.closest('.clip-delete')) {
+                if (!event.target.closest('.clip-actions')) {
                     const id = parseInt(item.dataset.clipId, 10);
                     this.selectClip(id);
                 }
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-play').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.toggleClipPlayback(id);
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-share-video').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipVideo(id);
+            });
+        });
+        
+        this.clipsList.querySelectorAll('.clip-share-audio').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipAudio(id);
             });
         });
         
@@ -759,22 +797,6 @@ class VoiceRecorderApp {
                 }
             });
         });
-    }
-
-    updateButtonsState() {
-        const hasClips = this.clips.length > 0;
-        const hasSelectedClip = this.selectedClipId !== null;
-        
-        if (hasSelectedClip) {
-            const clip = this.clips.find((c) => c.id === this.selectedClipId);
-            this.playButton.disabled = !clip || !clip.videoUrl;
-            this.saveAudioButton.disabled = !clip || !clip.audioBlob;
-            this.saveVideoButton.disabled = !clip || !clip.videoBlob;
-        } else {
-            this.playButton.disabled = true;
-            this.saveAudioButton.disabled = true;
-            this.saveVideoButton.disabled = true;
-        }
     }
 }
 
