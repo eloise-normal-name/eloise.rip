@@ -11,6 +11,9 @@ on:
       - 'content/pages/voice-recorder/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   validate-dom-elements:
     runs-on: ubuntu-latest
