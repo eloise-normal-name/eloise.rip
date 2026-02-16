@@ -29,6 +29,11 @@ Status: hidden
             <span class="icon icon-triangle"></span>
         </button>
         <div class="button-stack">
+            <button id="testSignalButton" class="btn btn-test" title="Test Signal (220 Hz sine wave)">
+                <span class="icon icon-sine"></span>
+            </button>
+        </div>
+        <div class="button-stack">
             <button id="saveVideoButton" class="btn btn-download btn-save" disabled title="Download Video">
                 <span class="emoji-icon" aria-hidden="true">🎬</span>
                 <span class="btn-save-text">Save</span>
