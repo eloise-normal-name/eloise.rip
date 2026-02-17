@@ -26,6 +26,10 @@ class AudioVisualizer {
         this.secondaryPitchColor = 'rgba(255, 180, 100, 0.7)';
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = false;
+        
+        // Scrolling visualization settings
+        this.currentX = 0; // Current X position where next sample will be drawn
+        this.pixelsPerSample = 2; // Width in pixels for each sample
 
         this.pitchDetectionOptions = {
             minHz: 70,
@@ -85,6 +89,7 @@ class AudioVisualizer {
     resetPitchHistory() {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
+        this.currentX = 0;
     }
 
     updatePitchRange(minHz, maxHz) {
@@ -239,76 +244,110 @@ class AudioVisualizer {
         const height = this.canvas.height;
         const padding = 6;
         const usableHeight = height - padding * 2;
-        const step = this.pitchMaxSamples > 1 ? width / (this.pitchMaxSamples - 1) : width;
-        const offset = Math.max(this.pitchMaxSamples - this.pitchHistory.length, 0);
         const range = this.pitchMaxHz - this.pitchMinHz || 1;
-
-        this.ctx.strokeStyle = this.pitchColor;
-        this.ctx.lineWidth = 1.5;
-
-        let pathOpen = false;
-        for (let i = 0; i < this.pitchHistory.length; i += 1) {
-            const sample = this.pitchHistory[i];
-            const x = (i + offset) * step;
-
-            if (sample === null) {
-                if (pathOpen) {
-                    this.ctx.stroke();
-                    pathOpen = false;
-                }
-                continue;
-            }
-
-            const ratio = (sample - this.pitchMinHz) / range;
+        
+        // Check if we need to scroll (currentX has reached the right edge)
+        if (this.currentX >= width) {
+            // Use drawImage to efficiently copy and shift the canvas content
+            // First, save the current canvas state to a temporary canvas
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(this.canvas, 0, 0);
+            
+            // Redraw the background
+            this.paintFrame();
+            
+            // Draw the saved content shifted left by pixelsPerSample
+            this.ctx.drawImage(tempCanvas, -this.pixelsPerSample, 0);
+            
+            // Reset currentX to continue drawing at the right edge
+            this.currentX = width - this.pixelsPerSample;
+        }
+        
+        // Get the most recent sample (the one we just added)
+        const latestIndex = this.pitchHistory.length - 1;
+        const primarySample = this.pitchHistory[latestIndex];
+        const secondarySample = this.secondaryPitchHistory[latestIndex];
+        
+        // Draw the new primary pitch sample
+        if (primarySample !== null) {
+            const ratio = (primarySample - this.pitchMinHz) / range;
             const clamped = Math.min(1, Math.max(0, ratio));
             const y = padding + (1 - clamped) * usableHeight;
-
-            if (!pathOpen) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                pathOpen = true;
+            
+            this.ctx.strokeStyle = this.pitchColor;
+            this.ctx.lineWidth = 1.5;
+            
+            // If we have a previous sample, draw a line from it to the new one
+            if (latestIndex > 0) {
+                const prevSample = this.pitchHistory[latestIndex - 1];
+                if (prevSample !== null) {
+                    const prevRatio = (prevSample - this.pitchMinHz) / range;
+                    const prevClamped = Math.min(1, Math.max(0, prevRatio));
+                    const prevY = padding + (1 - prevClamped) * usableHeight;
+                    const prevX = this.currentX - this.pixelsPerSample;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(prevX, prevY);
+                    this.ctx.lineTo(this.currentX, y);
+                    this.ctx.stroke();
+                } else {
+                    // Previous sample was null, just draw a point
+                    this.ctx.fillStyle = this.pitchColor;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                }
             } else {
-                this.ctx.lineTo(x, y);
+                // First sample, just draw a point
+                this.ctx.fillStyle = this.pitchColor;
+                this.ctx.beginPath();
+                this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
             }
         }
-
-        if (pathOpen) {
-            this.ctx.stroke();
-        }
-
-        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
+        
+        // Draw the new secondary pitch sample
+        if (this.showSecondaryPitch && secondarySample !== null) {
+            const ratio = (secondarySample - this.pitchMinHz) / range;
+            const clamped = Math.min(1, Math.max(0, ratio));
+            const y = padding + (1 - clamped) * usableHeight;
+            
             this.ctx.strokeStyle = this.secondaryPitchColor;
             this.ctx.lineWidth = 1.2;
-
-            pathOpen = false;
-            for (let i = 0; i < this.secondaryPitchHistory.length; i += 1) {
-                const sample = this.secondaryPitchHistory[i];
-                const x = (i + offset) * step;
-
-                if (sample === null) {
-                    if (pathOpen) {
-                        this.ctx.stroke();
-                        pathOpen = false;
-                    }
-                    continue;
-                }
-
-                const ratio = (sample - this.pitchMinHz) / range;
-                const clamped = Math.min(1, Math.max(0, ratio));
-                const y = padding + (1 - clamped) * usableHeight;
-
-                if (!pathOpen) {
+            
+            // If we have a previous sample, draw a line from it to the new one
+            if (latestIndex > 0) {
+                const prevSample = this.secondaryPitchHistory[latestIndex - 1];
+                if (prevSample !== null) {
+                    const prevRatio = (prevSample - this.pitchMinHz) / range;
+                    const prevClamped = Math.min(1, Math.max(0, prevRatio));
+                    const prevY = padding + (1 - prevClamped) * usableHeight;
+                    const prevX = this.currentX - this.pixelsPerSample;
+                    
                     this.ctx.beginPath();
-                    this.ctx.moveTo(x, y);
-                    pathOpen = true;
+                    this.ctx.moveTo(prevX, prevY);
+                    this.ctx.lineTo(this.currentX, y);
+                    this.ctx.stroke();
                 } else {
-                    this.ctx.lineTo(x, y);
+                    // Previous sample was null, just draw a point
+                    this.ctx.fillStyle = this.secondaryPitchColor;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                    this.ctx.fill();
                 }
-            }
-
-            if (pathOpen) {
-                this.ctx.stroke();
+            } else {
+                // First sample, just draw a point
+                this.ctx.fillStyle = this.secondaryPitchColor;
+                this.ctx.beginPath();
+                this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
             }
         }
+        
+        // Advance the X position for the next sample
+        this.currentX += this.pixelsPerSample;
     }
 }
