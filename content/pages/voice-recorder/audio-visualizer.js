@@ -30,6 +30,10 @@ class AudioVisualizer {
         // Scrolling visualization settings
         this.currentX = 0; // Current X position where next sample will be drawn
         this.pixelsPerSample = 2; // Width in pixels for each sample
+        
+        // Cached offscreen canvas for efficient scrolling (avoids allocation/GC on every frame)
+        this.offscreenCanvas = null;
+        this.offscreenCtx = null;
 
         // Pitch statistics tracking
         this.pitchStats = {
@@ -203,6 +207,23 @@ class AudioVisualizer {
             return false; // Context was lost, skip this frame
         }
         return true; // Context is valid
+    }
+
+    ensureOffscreenCanvas(width, height) {
+        // Create or resize the cached offscreen canvas to match the main canvas dimensions
+        // This is called during scrolling to avoid allocating a new canvas every frame
+        if (!this.offscreenCanvas || this.offscreenCanvas.width !== width || this.offscreenCanvas.height !== height) {
+            // Use OffscreenCanvas if available (better performance in some browsers)
+            if (typeof OffscreenCanvas !== 'undefined') {
+                this.offscreenCanvas = new OffscreenCanvas(width, height);
+            } else {
+                this.offscreenCanvas = document.createElement('canvas');
+                this.offscreenCanvas.width = width;
+                this.offscreenCanvas.height = height;
+            }
+            this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+        }
+        return this.offscreenCtx;
     }
 
     setAnalyser(analyserNode) {
@@ -451,20 +472,17 @@ class AudioVisualizer {
         
         // Check if we need to scroll (currentX has reached the right edge)
         if (this.currentX >= width) {
-            // Use drawImage to efficiently copy and shift the canvas content
-            // First, save the current canvas state to a temporary canvas
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = width;
-            tempCanvas.height = height;
-            const tempCtx = tempCanvas.getContext('2d');
+            // Use cached offscreen canvas to efficiently copy and shift the canvas content
+            // This avoids allocating a new canvas on every scroll frame
+            const tempCtx = this.ensureOffscreenCanvas(width, height);
             
             if (tempCtx) {
-                // Preferred path: use an offscreen canvas for efficient scrolling
+                // Preferred path: use cached offscreen canvas for efficient scrolling
                 tempCtx.drawImage(this.canvas, 0, 0);
                 
                 // Shift the existing content left by pixelsPerSample without
                 // clearing the entire canvas, so the trace is preserved
-                this.ctx.drawImage(tempCanvas, -this.pixelsPerSample, 0);
+                this.ctx.drawImage(this.offscreenCanvas, -this.pixelsPerSample, 0);
                 
                 // Clear and repaint only the newly revealed rightmost strip with
                 // the background and voice range bands
