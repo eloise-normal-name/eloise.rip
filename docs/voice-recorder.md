@@ -99,7 +99,7 @@ Colors and border width are instance properties set in the constructor.
 - **Secondary pitch**: Orange trace (`rgba(255, 180, 100, 0.7)`)
 - Both traces use exponential smoothing (35%) to reduce jitter
 - Secondary pitch detection can be toggled via `showSecondaryPitch` property
-- **Scrolling behavior**: The pitch trace starts at the left edge and grows to the right at 2 pixels per sample. When the trace reaches the right edge, the entire visualization scrolls left to make room for new samples, creating a continuous real-time display similar to an oscilloscope
+- **Scrolling behavior**: The pitch trace starts at the left edge and grows to the right at `pixelsPerSample` pixels per sample (currently 2px). When the trace reaches the right edge, the entire visualization scrolls left to make room for new samples, creating a continuous real-time display similar to an oscilloscope
 
 ## VoiceRecorderApp Class
 
