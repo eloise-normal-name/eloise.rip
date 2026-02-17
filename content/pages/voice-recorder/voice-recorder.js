@@ -600,7 +600,7 @@ class VoiceRecorderApp {
             blob: clip.audioBlob,
             filename,
             existingUrl: clip.audioUrl,
-            successMessage: 'Share completed.'
+            successMessage: 'Audio share completed.'
         });
     }
 
