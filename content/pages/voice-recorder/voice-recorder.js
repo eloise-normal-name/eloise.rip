@@ -715,9 +715,11 @@ class VoiceRecorderApp {
             const hasAudio = !!clip.audioUrl;
             
             let pitchInfo = '';
-            if (clip.pitchStats) {
+            if (clip.pitchStats && typeof clip.pitchStats === 'object') {
                 const { min, max, average } = clip.pitchStats;
-                pitchInfo = `<div class="clip-pitch-stats">Pitch: ${min.toFixed(1)} - ${max.toFixed(1)} Hz (avg: ${average.toFixed(1)} Hz)</div>`;
+                if (Number.isFinite(min) && Number.isFinite(max) && Number.isFinite(average)) {
+                    pitchInfo = `<div class="clip-pitch-stats">Pitch: ${min.toFixed(1)} - ${max.toFixed(1)} Hz (avg: ${average.toFixed(1)} Hz)</div>`;
+                }
             }
             
             return `
