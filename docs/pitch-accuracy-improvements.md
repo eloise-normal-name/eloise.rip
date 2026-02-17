@@ -206,13 +206,18 @@ For typical recordings (300-3600 samples), this takes < 1ms and only runs once w
 ### 1. Very Few Samples
 If there are fewer than 10 samples, outlier filtering is skipped and basic statistics are returned. This prevents spurious filtering when data is sparse.
 
-### 2. Over-Aggressive Filtering
-If filtering removes more than 50% of samples (leaving < 5), the algorithm falls back to unfiltered statistics. This prevents the statistics from becoming meaningless.
+### 2. Zero IQR (Stable/Quantized Signal)
+When IQR = 0 (all samples tightly clustered, e.g., test signal), IQR filtering is skipped to avoid filtering everything. The algorithm still computes confidence-weighted average over all samples, providing better statistics than simple mean.
 
-### 3. No Valid Samples
+### 3. Over-Aggressive Filtering
+If filtering removes more than 50% of samples OR leaves fewer than 5 samples, the algorithm falls back to unfiltered statistics. This prevents the statistics from becoming meaningless. The fallback uses both conditions:
+- **Minimum absolute threshold**: At least 5 samples needed for statistical validity
+- **Maximum percentage threshold**: No more than 50% of samples can be filtered
+
+### 4. No Valid Samples
 If no pitch was detected during recording, `getPitchStatistics()` returns `null` (same as before).
 
-### 4. Backward Compatibility
+### 5. Backward Compatibility
 The statistics object still includes `min`, `max`, and `average` fields. The additional `sampleCount` and `filteredCount` fields are optional and only used when outlier filtering is active.
 
 ## Testing Recommendations

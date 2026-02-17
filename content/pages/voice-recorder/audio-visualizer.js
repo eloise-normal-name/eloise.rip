@@ -153,6 +153,26 @@ class AudioVisualizer {
         const q3 = sortedSamples[q3Index];
         const iqr = q3 - q1;
         
+        // Handle case where IQR is 0 (very stable/quantized signal)
+        // Skip IQR filtering but still compute confidence-weighted average
+        if (iqr === 0) {
+            let weightedSum = 0;
+            let totalWeight = 0;
+            for (let i = 0; i < this.pitchStats.samples.length; i++) {
+                const sample = this.pitchStats.samples[i];
+                const strength = this.pitchStats.strengths[i] || 1.0;
+                weightedSum += sample * strength;
+                totalWeight += strength;
+            }
+            return {
+                min: this.pitchStats.min,
+                max: this.pitchStats.max,
+                average: weightedSum / totalWeight,
+                sampleCount: this.pitchStats.count,
+                filteredCount: this.pitchStats.count
+            };
+        }
+        
         // Define outlier bounds (using 1.5 * IQR, standard method)
         const lowerBound = q1 - 1.5 * iqr;
         const upperBound = q3 + 1.5 * iqr;
@@ -184,7 +204,9 @@ class AudioVisualizer {
         }
         
         // Fall back to unfiltered stats if filtering removed too many samples
-        if (filteredCount < 5) {
+        // Use >50% threshold as documented (but minimum of 5 samples for statistical validity)
+        const removalPercentage = (this.pitchStats.count - filteredCount) / this.pitchStats.count;
+        if (filteredCount < 5 || removalPercentage > 0.5) {
             return {
                 min: this.pitchStats.min,
                 max: this.pitchStats.max,
