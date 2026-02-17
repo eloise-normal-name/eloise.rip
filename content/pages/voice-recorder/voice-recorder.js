@@ -231,6 +231,8 @@ class VoiceRecorderApp {
                 if (error && error.name === 'AbortError') {
                     return;
                 }
+                // For non-abort errors, show error and fall through to download
+                this.setStatus('Share failed, downloading instead.', `Error: ${error.message}`);
             }
         }
 
