@@ -5,23 +5,31 @@ class AudioVisualizer {
         this.analyserNode = null;
         this.floatData = null;
 
-        this.backgroundColor = 'rgba(16, 12, 20, 1)';
+        this.backgroundColor = 'rgba(255, 255, 255, 1)';
         this.borderColor = 'rgba(255, 107, 157, 0.65)';
         this.borderWidth = 2;
+        
+        // Voice range bands (typical fundamental frequencies)
+        this.masculineVoiceMinHz = 85;
+        this.masculineVoiceMaxHz = 155;
+        this.feminineVoiceMinHz = 165;
+        this.feminineVoiceMaxHz = 255;
+        this.masculineVoiceColor = 'rgba(116, 192, 252, 0.15)';
+        this.feminineVoiceColor = 'rgba(255, 107, 157, 0.15)';
 
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
         this.pitchMaxSamples = 200;
-        this.pitchMinHz = 80;
-        this.pitchMaxHz = 400;
+        this.pitchMinHz = 70;
+        this.pitchMaxHz = 280;
         this.pitchColor = 'rgba(116, 192, 252, 0.9)';
         this.secondaryPitchColor = 'rgba(255, 180, 100, 0.7)';
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = true;
 
         this.pitchDetectionOptions = {
-            minHz: 80,
-            maxHz: 400,
+            minHz: 70,
+            maxHz: 280,
             primaryThreshold: 0.2,
             secondaryThreshold: 0.15
         };
@@ -116,8 +124,38 @@ class AudioVisualizer {
         const height = this.canvas.height;
 
         this.ctx.save();
+        
+        // Fill white background
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, width, height);
+        
+        // Draw voice range bands
+        const padding = 6;
+        const usableHeight = height - padding * 2;
+        const range = this.pitchMaxHz - this.pitchMinHz || 1;
+        
+        // Helper function to convert Hz to Y coordinate
+        const hzToY = (hz) => {
+            const ratio = (hz - this.pitchMinHz) / range;
+            const clamped = Math.min(1, Math.max(0, ratio));
+            return padding + (1 - clamped) * usableHeight;
+        };
+        
+        // Draw masculine voice range band (blue)
+        if (this.masculineVoiceMaxHz > this.pitchMinHz && this.masculineVoiceMinHz < this.pitchMaxHz) {
+            const topY = hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
+            const bottomY = hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
+            this.ctx.fillStyle = this.masculineVoiceColor;
+            this.ctx.fillRect(0, topY, width, bottomY - topY);
+        }
+        
+        // Draw feminine voice range band (pink)
+        if (this.feminineVoiceMaxHz > this.pitchMinHz && this.feminineVoiceMinHz < this.pitchMaxHz) {
+            const topY = hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
+            const bottomY = hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
+            this.ctx.fillStyle = this.feminineVoiceColor;
+            this.ctx.fillRect(0, topY, width, bottomY - topY);
+        }
 
         if (this.borderWidth > 0) {
             const inset = this.borderWidth / 2;
