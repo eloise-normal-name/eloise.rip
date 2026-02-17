@@ -596,7 +596,11 @@ class VoiceRecorderApp {
             return;
         }
 
-        const audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        // Extract extension from MIME type, but use .m4a for audio/mp4 to avoid Photos app on iOS
+        let audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        if (audioExt === 'mp4') {
+            audioExt = 'm4a';
+        }
         const filename = clip.name + (audioExt ? `.${audioExt}` : '');
         await this.shareOrDownload({
             blob: clip.audioBlob,
