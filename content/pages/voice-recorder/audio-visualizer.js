@@ -27,6 +27,14 @@ class AudioVisualizer {
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = false;
 
+        // Pitch statistics tracking
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0
+        };
+
         this.pitchDetectionOptions = {
             minHz: 70,
             maxHz: 280,
@@ -85,6 +93,12 @@ class AudioVisualizer {
     resetPitchHistory() {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0
+        };
     }
 
     updatePitchRange(minHz, maxHz) {
@@ -104,6 +118,17 @@ class AudioVisualizer {
 
     updateSmoothing(smoothing) {
         this.pitchSmoothing = smoothing;
+    }
+
+    getPitchStatistics() {
+        if (this.pitchStats.count === 0) {
+            return null;
+        }
+        return {
+            min: this.pitchStats.min,
+            max: this.pitchStats.max,
+            average: this.pitchStats.sum / this.pitchStats.count
+        };
     }
 
     pushPitchSample(pitchData) {
@@ -127,6 +152,16 @@ class AudioVisualizer {
                     primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
                 }
             }
+            
+            // Update pitch statistics with the smoothed value
+            if (this.pitchStats.min === null || primaryValue < this.pitchStats.min) {
+                this.pitchStats.min = primaryValue;
+            }
+            if (this.pitchStats.max === null || primaryValue > this.pitchStats.max) {
+                this.pitchStats.max = primaryValue;
+            }
+            this.pitchStats.sum += primaryValue;
+            this.pitchStats.count += 1;
         } else {
             primaryValue = null;
         }
