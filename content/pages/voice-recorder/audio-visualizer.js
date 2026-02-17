@@ -5,9 +5,17 @@ class AudioVisualizer {
         this.analyserNode = null;
         this.floatData = null;
 
-        this.backgroundColor = 'rgba(16, 12, 20, 1)';
+        this.backgroundColor = 'rgba(255, 255, 255, 1)';
         this.borderColor = 'rgba(255, 107, 157, 0.65)';
         this.borderWidth = 2;
+        
+        // Voice range bands (typical fundamental frequencies)
+        this.mascVoiceMinHz = 85;
+        this.mascVoiceMaxHz = 155;
+        this.femVoiceMinHz = 165;
+        this.femVoiceMaxHz = 255;
+        this.mascVoiceColor = 'rgba(116, 192, 252, 0.15)';
+        this.femVoiceColor = 'rgba(255, 107, 157, 0.15)';
 
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
@@ -116,8 +124,38 @@ class AudioVisualizer {
         const height = this.canvas.height;
 
         this.ctx.save();
+        
+        // Fill white background
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, width, height);
+        
+        // Draw voice range bands
+        const padding = 6;
+        const usableHeight = height - padding * 2;
+        const range = this.pitchMaxHz - this.pitchMinHz || 1;
+        
+        // Helper function to convert Hz to Y coordinate
+        const hzToY = (hz) => {
+            const ratio = (hz - this.pitchMinHz) / range;
+            const clamped = Math.min(1, Math.max(0, ratio));
+            return padding + (1 - clamped) * usableHeight;
+        };
+        
+        // Draw masculine voice range band (blue)
+        if (this.mascVoiceMaxHz > this.pitchMinHz && this.mascVoiceMinHz < this.pitchMaxHz) {
+            const topY = hzToY(Math.min(this.mascVoiceMaxHz, this.pitchMaxHz));
+            const bottomY = hzToY(Math.max(this.mascVoiceMinHz, this.pitchMinHz));
+            this.ctx.fillStyle = this.mascVoiceColor;
+            this.ctx.fillRect(0, topY, width, bottomY - topY);
+        }
+        
+        // Draw feminine voice range band (pink)
+        if (this.femVoiceMaxHz > this.pitchMinHz && this.femVoiceMinHz < this.pitchMaxHz) {
+            const topY = hzToY(Math.min(this.femVoiceMaxHz, this.pitchMaxHz));
+            const bottomY = hzToY(Math.max(this.femVoiceMinHz, this.pitchMinHz));
+            this.ctx.fillStyle = this.femVoiceColor;
+            this.ctx.fillRect(0, topY, width, bottomY - topY);
+        }
 
         if (this.borderWidth > 0) {
             const inset = this.borderWidth / 2;
