@@ -63,7 +63,7 @@ This document compares pitch detection algorithms used in popular voice software
 - Our temporal consistency (30% jump) is simpler than RAPT's DP but real-time friendly
 - RAPT's voicing probability is similar to our correlation strength weighting
 
-### 3. SWIPE (Sawtooth Waveform Inspired Pitch Estimator) - 2007
+### 3. SWIPE (Sawtooth Waveform Inspired Pitch Estimator) - 2008
 
 **Used in**: Some research tools, music information retrieval
 
