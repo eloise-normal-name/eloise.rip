@@ -429,7 +429,8 @@ class VoiceRecorderApp {
             const audioUrl = URL.createObjectURL(audioBlob);
 
             const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
-            this.addClip(audioBlob, audioUrl, duration);
+            const pitchStats = this.visualizer.getPitchStatistics();
+            this.addClip(audioBlob, audioUrl, duration, pitchStats);
 
             const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
             this.setStatus('Recording ready.', details);
@@ -610,7 +611,7 @@ class VoiceRecorderApp {
         });
     }
 
-    addClip(audioBlob, audioUrl, duration) {
+    addClip(audioBlob, audioUrl, duration, pitchStats = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
         const name = this.generateRandomFilename();
         const timestamp = new Date();
@@ -623,7 +624,8 @@ class VoiceRecorderApp {
             audioBlob,
             audioUrl,
             videoBlob: null,
-            videoUrl: null
+            videoUrl: null,
+            pitchStats
         };
         
         this.clips.push(clip);
@@ -716,6 +718,14 @@ class VoiceRecorderApp {
             const hasVideo = !!clip.videoUrl;
             const hasAudio = !!clip.audioUrl;
             
+            let pitchInfo = '';
+            if (clip.pitchStats && typeof clip.pitchStats === 'object') {
+                const { min, max, average } = clip.pitchStats;
+                if (Number.isFinite(min) && Number.isFinite(max) && Number.isFinite(average)) {
+                    pitchInfo = `<div class="clip-pitch-stats">Pitch: ${min.toFixed(1)} - ${max.toFixed(1)} Hz (avg: ${average.toFixed(1)} Hz)</div>`;
+                }
+            }
+            
             return `
                 <div class="clip-item ${isSelected ? 'selected' : ''}" data-clip-id="${clip.id}">
                     <div class="clip-info">
@@ -724,6 +734,7 @@ class VoiceRecorderApp {
                             <span class="clip-timestamp">${this.formatTimestamp(clip.timestamp)}</span>
                             <span class="clip-duration">${this.formatDuration(clip.duration)}</span>
                         </div>
+                        ${pitchInfo}
                     </div>
                     <div class="clip-actions">
                         <button class="clip-play" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="${isPlaying ? 'Stop' : 'Play'}">
