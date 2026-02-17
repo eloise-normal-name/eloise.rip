@@ -31,6 +31,14 @@ class AudioVisualizer {
         this.currentX = 0; // Current X position where next sample will be drawn
         this.pixelsPerSample = 2; // Width in pixels for each sample
 
+        // Pitch statistics tracking
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0
+        };
+
         this.pitchDetectionOptions = {
             minHz: 70,
             maxHz: 280,
@@ -90,6 +98,12 @@ class AudioVisualizer {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
         this.currentX = 0;
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0
+        };
     }
 
     updatePitchRange(minHz, maxHz) {
@@ -111,6 +125,17 @@ class AudioVisualizer {
         this.pitchSmoothing = smoothing;
     }
 
+    getPitchStatistics() {
+        if (this.pitchStats.count === 0) {
+            return null;
+        }
+        return {
+            min: this.pitchStats.min,
+            max: this.pitchStats.max,
+            average: this.pitchStats.sum / this.pitchStats.count
+        };
+    }
+
     pushPitchSample(pitchData) {
         let primaryValue = null;
         let secondaryValue = null;
@@ -125,7 +150,20 @@ class AudioVisualizer {
         }
 
         if (primaryValue !== null && Number.isFinite(primaryValue)) {
-            primaryValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
+            const clampedValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
+            
+            // Update pitch statistics with the raw (clamped but not smoothed) value
+            if (this.pitchStats.min === null || clampedValue < this.pitchStats.min) {
+                this.pitchStats.min = clampedValue;
+            }
+            if (this.pitchStats.max === null || clampedValue > this.pitchStats.max) {
+                this.pitchStats.max = clampedValue;
+            }
+            this.pitchStats.sum += clampedValue;
+            this.pitchStats.count += 1;
+            
+            // Apply smoothing for display
+            primaryValue = clampedValue;
             if (this.pitchHistory.length) {
                 const previous = this.pitchHistory[this.pitchHistory.length - 1];
                 if (previous !== null) {
@@ -211,6 +249,49 @@ class AudioVisualizer {
     clear() {
         this.paintFrame();
         this.resetPitchHistory();
+    }
+
+    drawSparkGlow(x, y, baseColor) {
+        // Extract RGB values from the baseColor
+        // Note: expects rgba(r,g,b,a) or rgb(r,g,b) format
+        const match = baseColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (!match) return;
+        
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        
+        // Create radial gradient for the glow effect
+        const glowRadius = 12;
+        const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+        
+        // Bright center (almost opaque)
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+        // Medium glow
+        gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, 0.6)`);
+        // Soft outer glow
+        gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.3)`);
+        // Fade to transparent
+        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        
+        // Draw the glow
+        this.ctx.save();
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Add a bright white core for extra sparkle
+        const coreGradient = this.ctx.createRadialGradient(x, y, 0, x, y, 4);
+        coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        coreGradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.8)`);
+        coreGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        
+        this.ctx.fillStyle = coreGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
     }
 
     render() {
@@ -307,6 +388,9 @@ class AudioVisualizer {
                 this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
                 this.ctx.fill();
             }
+            
+            // Draw glow effect at the tip of the pitch trace
+            this.drawSparkGlow(this.currentX, y, this.pitchColor);
         }
         
         // Draw the new secondary pitch sample
@@ -345,6 +429,9 @@ class AudioVisualizer {
                 this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
                 this.ctx.fill();
             }
+            
+            // Draw glow effect at the tip of the secondary pitch trace
+            this.drawSparkGlow(this.currentX, y, this.secondaryPitchColor);
         }
         
         // Advance the X position for the next sample
