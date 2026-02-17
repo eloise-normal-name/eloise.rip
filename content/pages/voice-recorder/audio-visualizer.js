@@ -88,11 +88,12 @@ class AudioVisualizer {
         const totalWidth = samplesInHistory * this.pixelsPerSample;
         
         // If the trace fits within the canvas, start from the left
-        // Otherwise, start from a position that aligns with currentX
+        // Otherwise, start from a position that aligns with the last drawn sample
         let startX = 0;
         if (totalWidth > width) {
-            // Calculate offset so the newest sample aligns with currentX
-            startX = this.currentX - (samplesInHistory - 1) * this.pixelsPerSample;
+            // Calculate offset so the newest sample aligns with the last drawn x-position
+            // Note: currentX points to the NEXT draw position (already incremented), so we subtract samplesInHistory * pixelsPerSample
+            startX = this.currentX - samplesInHistory * this.pixelsPerSample;
         }
 
         // Draw primary pitch trace
@@ -505,11 +506,45 @@ class AudioVisualizer {
                 if (scrollWidth > 0) {
                     const imageData = this.ctx.getImageData(this.pixelsPerSample, 0, scrollWidth, height);
                     
-                    // Redraw the background for the entire canvas
-                    this.paintFrame();
-                    
                     // Draw the saved content shifted left by pixelsPerSample
                     this.ctx.putImageData(imageData, 0, 0);
+                    
+                    // Repaint the background only for the newly revealed rightmost strip
+                    const rightStripX = width - this.pixelsPerSample;
+                    if (rightStripX >= 0) {
+                        this.ctx.save();
+                        this.ctx.fillStyle = this.backgroundColor;
+                        this.ctx.fillRect(rightStripX, 0, this.pixelsPerSample, height);
+                        
+                        // Redraw voice range bands in the rightmost strip
+                        const padding = 6;
+                        const usableHeight = height - padding * 2;
+                        const hzRange = this.pitchMaxHz - this.pitchMinHz || 1;
+                        
+                        const hzToY = (hz) => {
+                            const ratio = (hz - this.pitchMinHz) / hzRange;
+                            const clamped = Math.min(1, Math.max(0, ratio));
+                            return padding + (1 - clamped) * usableHeight;
+                        };
+                        
+                        // Draw masculine voice range band (blue) in the strip
+                        if (this.masculineVoiceMaxHz > this.pitchMinHz && this.masculineVoiceMinHz < this.pitchMaxHz) {
+                            const topY = hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
+                            const bottomY = hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
+                            this.ctx.fillStyle = this.masculineVoiceColor;
+                            this.ctx.fillRect(rightStripX, topY, this.pixelsPerSample, bottomY - topY);
+                        }
+                        
+                        // Draw feminine voice range band (pink) in the strip
+                        if (this.feminineVoiceMaxHz > this.pitchMinHz && this.feminineVoiceMinHz < this.pitchMaxHz) {
+                            const topY = hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
+                            const bottomY = hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
+                            this.ctx.fillStyle = this.feminineVoiceColor;
+                            this.ctx.fillRect(rightStripX, topY, this.pixelsPerSample, bottomY - topY);
+                        }
+                        
+                        this.ctx.restore();
+                    }
                 } else {
                     // If there's nothing to scroll, just repaint the frame
                     this.paintFrame();
