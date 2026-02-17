@@ -110,14 +110,18 @@ This document lists manual test scenarios to perform before releases or after si
 1. Click the "Test Signal (220 Hz)" button
 2. Observe the pitch trace on the visualization
 3. Click the button again to stop
-4. Click "Record" and sing a steady note
-5. Observe the pitch trace during recording
-6. Stop recording
+4. Verify the pitch trace remains visible after stopping
+5. Click "Record" and sing a steady note
+6. Observe the pitch trace during recording
+7. Stop recording
+8. Verify the pitch trace remains visible after stopping
 
 **Expected Results:**
 - Test signal shows stable blue pitch trace at ~220 Hz
+- Pitch trace remains visible (frozen) after test signal stops
 - Voice recording shows pitch trace that follows the sung note
 - Pitch trace is smooth (not jittery)
+- Pitch trace remains visible after recording stops
 - Pitch trace is visible in the recorded video playback
 
 ### Pitch Configuration
