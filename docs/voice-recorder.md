@@ -85,8 +85,8 @@ videoBlob → <video> (hidden) → drawImage onto <canvas> each frame
 |--------|-------------|
 | `constructor(canvas, analyserNode)` | Stores references, sets colors, calls `setAnalyser`. |
 | `setAnalyser(node)` | Attach or detach an `AnalyserNode`. Allocates the `Float32Array` data buffer when a node is provided. |
-| `paintFrame()` | Fills the background and draws the border. Called by both `render` and `clear`. |
-| `render()` | Calls `paintFrame`, reads `getFloatTimeDomainData`, detects pitch(es), and renders the pitch trace(s). |
+| `paintFrame()` | Fills the background and draws voice range bands. Called by `clear()` and when scrolling to repaint the newly revealed strip. |
+| `render()` | Reads `getFloatTimeDomainData`, detects pitch(es), and renders the pitch trace(s) incrementally without clearing the canvas. |
 | `clear()` | Redraws the empty background frame and clears pitch history. |
 | `pushPitchSample(pitchData)` | Adds pitch data to history buffers. Accepts a number (primary only) or object with `primary` and `secondary` fields. |
 | `renderPitchTrace()` | Draws primary pitch (blue) and optionally secondary pitch (orange) traces on the canvas. Uses a scrolling visualization that draws from left to right and shifts the canvas content left when reaching the right edge. |
