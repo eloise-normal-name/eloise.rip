@@ -9,18 +9,17 @@
  * A GitHub Actions workflow validates DOM elements on every PR to prevent initialization failures.
  */
 class VoiceRecorderApp {
-    static adjectives = [
-        'swift', 'bright', 'gentle', 'calm', 'wild',
-        'quiet', 'bold', 'soft', 'warm', 'cool',
-        'happy', 'clever', 'brave', 'kind', 'free',
-        'pure', 'neat', 'clear', 'smooth', 'crisp'
-    ];
-
-    static nouns = [
-        'river', 'cloud', 'forest', 'wave', 'star',
-        'moon', 'sky', 'wind', 'rain', 'snow',
-        'bird', 'leaf', 'stone', 'light', 'dream',
-        'song', 'path', 'lake', 'fire', 'echo'
+    static foods = [
+        'apple', 'apricot', 'avocado', 'banana', 'basil', 'bean', 'berry', 'biscuit', 'bread', 'broccoli',
+        'butter', 'cabbage', 'cake', 'carrot', 'cashew', 'celery', 'cheese', 'cherry', 'chicken', 'chili',
+        'chocolate', 'cinnamon', 'coconut', 'coffee', 'cookie', 'corn', 'cracker', 'cream', 'cucumber', 'cupcake',
+        'date', 'donut', 'dumpling', 'egg', 'fig', 'fries', 'garlic', 'ginger', 'grape', 'honey',
+        'jam', 'kale', 'kiwi', 'lemon', 'lettuce', 'lime', 'mango', 'maple', 'melon', 'milk',
+        'mint', 'muffin', 'mushroom', 'noodle', 'nutmeg', 'oat', 'olive', 'onion', 'orange', 'papaya',
+        'pasta', 'peach', 'peanut', 'pear', 'pepper', 'pickle', 'pie', 'pineapple', 'pistachio', 'pizza',
+        'plum', 'popcorn', 'potato', 'pretzel', 'pumpkin', 'radish', 'raisin', 'rice', 'roll', 'salad',
+        'salsa', 'sauce', 'soup', 'spinach', 'sprout', 'squash', 'steak', 'strawberry', 'sugar', 'taco',
+        'tea', 'toast', 'tofu', 'tomato', 'truffle', 'tuna', 'vanilla', 'waffle', 'walnut', 'yogurt'
     ];
 
     static debugMimeTypes = [
@@ -180,10 +179,11 @@ class VoiceRecorderApp {
     }
 
     generateRandomFilename() {
-        const { adjectives, nouns } = VoiceRecorderApp;
-        const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-        const noun = nouns[Math.floor(Math.random() * nouns.length)];
-        return `${adjective}-${noun}`;
+        const { foods } = VoiceRecorderApp;
+        const food1 = foods[Math.floor(Math.random() * foods.length)];
+        const food2 = foods[Math.floor(Math.random() * foods.length)];
+        const food3 = foods[Math.floor(Math.random() * foods.length)];
+        return `${food1}-${food2}-${food3}`;
     }
 
     downloadBlob(blob, filename, existingUrl = null) {
@@ -596,7 +596,11 @@ class VoiceRecorderApp {
             return;
         }
 
-        const audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        // Extract extension from MIME type, but use .m4a for audio/mp4 to avoid Photos app on iOS
+        let audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        if (audioExt === 'mp4') {
+            audioExt = 'm4a';
+        }
         const filename = clip.name + (audioExt ? `.${audioExt}` : '');
         await this.shareOrDownload({
             blob: clip.audioBlob,
