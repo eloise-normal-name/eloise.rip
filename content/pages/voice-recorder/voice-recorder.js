@@ -231,6 +231,8 @@ class VoiceRecorderApp {
                 if (error && error.name === 'AbortError') {
                     return;
                 }
+                // For non-abort errors, show error and fall through to download
+                this.setStatus('Share failed, downloading instead.', `Error: ${error.message}`);
             }
         }
 
@@ -590,7 +592,7 @@ class VoiceRecorderApp {
     async shareClipAudio(id) {
         const clip = this.clips.find((c) => c.id === id);
         if (!clip || !clip.audioBlob) {
-            this.setStatus('No recording available to save.');
+            this.setStatus('No audio recording available to save.');
             return;
         }
 
