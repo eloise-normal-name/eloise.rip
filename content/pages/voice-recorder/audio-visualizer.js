@@ -27,6 +27,14 @@ class AudioVisualizer {
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = false;
 
+        // Pitch statistics tracking
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0
+        };
+
         this.pitchDetectionOptions = {
             minHz: 70,
             maxHz: 280,
@@ -85,6 +93,12 @@ class AudioVisualizer {
     resetPitchHistory() {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0
+        };
     }
 
     updatePitchRange(minHz, maxHz) {
@@ -106,6 +120,17 @@ class AudioVisualizer {
         this.pitchSmoothing = smoothing;
     }
 
+    getPitchStatistics() {
+        if (this.pitchStats.count === 0) {
+            return null;
+        }
+        return {
+            min: this.pitchStats.min,
+            max: this.pitchStats.max,
+            average: this.pitchStats.sum / this.pitchStats.count
+        };
+    }
+
     pushPitchSample(pitchData) {
         let primaryValue = null;
         let secondaryValue = null;
@@ -120,7 +145,20 @@ class AudioVisualizer {
         }
 
         if (primaryValue !== null && Number.isFinite(primaryValue)) {
-            primaryValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
+            const clampedValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
+            
+            // Update pitch statistics with the raw (clamped but not smoothed) value
+            if (this.pitchStats.min === null || clampedValue < this.pitchStats.min) {
+                this.pitchStats.min = clampedValue;
+            }
+            if (this.pitchStats.max === null || clampedValue > this.pitchStats.max) {
+                this.pitchStats.max = clampedValue;
+            }
+            this.pitchStats.sum += clampedValue;
+            this.pitchStats.count += 1;
+            
+            // Apply smoothing for display
+            primaryValue = clampedValue;
             if (this.pitchHistory.length) {
                 const previous = this.pitchHistory[this.pitchHistory.length - 1];
                 if (previous !== null) {
