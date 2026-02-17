@@ -32,7 +32,11 @@ class AudioVisualizer {
             min: null,
             max: null,
             sum: 0,
-            count: 0
+            count: 0,
+            // Store all samples for outlier filtering
+            samples: [],
+            // Store correlation strengths for weighted averaging
+            strengths: []
         };
 
         this.pitchDetectionOptions = {
@@ -97,7 +101,9 @@ class AudioVisualizer {
             min: null,
             max: null,
             sum: 0,
-            count: 0
+            count: 0,
+            samples: [],
+            strengths: []
         };
     }
 
@@ -124,16 +130,83 @@ class AudioVisualizer {
         if (this.pitchStats.count === 0) {
             return null;
         }
+        
+        // If we have very few samples, just return basic statistics
+        if (this.pitchStats.samples.length < 10) {
+            return {
+                min: this.pitchStats.min,
+                max: this.pitchStats.max,
+                average: this.pitchStats.sum / this.pitchStats.count,
+                sampleCount: this.pitchStats.count,
+                filteredCount: this.pitchStats.count
+            };
+        }
+        
+        // Sort samples for outlier detection
+        const sortedSamples = [...this.pitchStats.samples].sort((a, b) => a - b);
+        const n = sortedSamples.length;
+        
+        // Calculate quartiles for IQR method
+        const q1Index = Math.floor(n * 0.25);
+        const q3Index = Math.floor(n * 0.75);
+        const q1 = sortedSamples[q1Index];
+        const q3 = sortedSamples[q3Index];
+        const iqr = q3 - q1;
+        
+        // Define outlier bounds (using 1.5 * IQR, standard method)
+        const lowerBound = q1 - 1.5 * iqr;
+        const upperBound = q3 + 1.5 * iqr;
+        
+        // Filter samples and calculate statistics without outliers
+        let filteredMin = null;
+        let filteredMax = null;
+        let weightedSum = 0;
+        let totalWeight = 0;
+        let filteredCount = 0;
+        
+        for (let i = 0; i < this.pitchStats.samples.length; i++) {
+            const sample = this.pitchStats.samples[i];
+            const strength = this.pitchStats.strengths[i] || 1.0;
+            
+            // Include sample if it's within the IQR bounds
+            if (sample >= lowerBound && sample <= upperBound) {
+                if (filteredMin === null || sample < filteredMin) {
+                    filteredMin = sample;
+                }
+                if (filteredMax === null || sample > filteredMax) {
+                    filteredMax = sample;
+                }
+                // Use correlation strength as weight for averaging
+                weightedSum += sample * strength;
+                totalWeight += strength;
+                filteredCount++;
+            }
+        }
+        
+        // Fall back to unfiltered stats if filtering removed too many samples
+        if (filteredCount < 5) {
+            return {
+                min: this.pitchStats.min,
+                max: this.pitchStats.max,
+                average: this.pitchStats.sum / this.pitchStats.count,
+                sampleCount: this.pitchStats.count,
+                filteredCount: this.pitchStats.count
+            };
+        }
+        
         return {
-            min: this.pitchStats.min,
-            max: this.pitchStats.max,
-            average: this.pitchStats.sum / this.pitchStats.count
+            min: filteredMin,
+            max: filteredMax,
+            average: weightedSum / totalWeight,
+            sampleCount: this.pitchStats.count,
+            filteredCount: filteredCount
         };
     }
 
     pushPitchSample(pitchData) {
         let primaryValue = null;
         let secondaryValue = null;
+        let primaryStrength = 1.0;
 
         if (pitchData !== null) {
             if (typeof pitchData === 'number') {
@@ -141,23 +214,46 @@ class AudioVisualizer {
             } else if (typeof pitchData === 'object') {
                 primaryValue = pitchData.primary;
                 secondaryValue = pitchData.secondary;
+                primaryStrength = pitchData.primaryStrength || 1.0;
             }
         }
 
         if (primaryValue !== null && Number.isFinite(primaryValue)) {
             const clampedValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
             
-            // Update pitch statistics with the raw (clamped but not smoothed) value
-            if (this.pitchStats.min === null || clampedValue < this.pitchStats.min) {
-                this.pitchStats.min = clampedValue;
+            // Temporal consistency check: reject if too far from recent average
+            // This helps filter out octave errors and spurious detections
+            let isConsistent = true;
+            if (this.pitchStats.samples.length >= 3) {
+                // Calculate recent average from last 10 samples
+                const recentSamples = this.pitchStats.samples.slice(-10);
+                const recentAvg = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length;
+                const maxJump = recentAvg * 0.3; // Allow 30% deviation
+                
+                // Reject if jump is too large and confidence is not very high
+                if (Math.abs(clampedValue - recentAvg) > maxJump && primaryStrength < 0.7) {
+                    isConsistent = false;
+                }
             }
-            if (this.pitchStats.max === null || clampedValue > this.pitchStats.max) {
-                this.pitchStats.max = clampedValue;
-            }
-            this.pitchStats.sum += clampedValue;
-            this.pitchStats.count += 1;
             
-            // Apply smoothing for display
+            // Only update statistics for consistent, valid samples
+            if (isConsistent) {
+                // Store raw sample and strength for outlier filtering later
+                this.pitchStats.samples.push(clampedValue);
+                this.pitchStats.strengths.push(primaryStrength);
+                
+                // Update simple running statistics (kept for backward compatibility)
+                if (this.pitchStats.min === null || clampedValue < this.pitchStats.min) {
+                    this.pitchStats.min = clampedValue;
+                }
+                if (this.pitchStats.max === null || clampedValue > this.pitchStats.max) {
+                    this.pitchStats.max = clampedValue;
+                }
+                this.pitchStats.sum += clampedValue;
+                this.pitchStats.count += 1;
+            }
+            
+            // Apply smoothing for display (always done, even for inconsistent samples)
             primaryValue = clampedValue;
             if (this.pitchHistory.length) {
                 const previous = this.pitchHistory[this.pitchHistory.length - 1];
