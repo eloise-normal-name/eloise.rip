@@ -209,7 +209,8 @@ class AudioVisualizer {
     }
 
     drawSparkGlow(x, y, baseColor) {
-        // Extract RGB values from the baseColor (assuming rgba format)
+        // Extract RGB values from the baseColor
+        // Note: expects rgba(r,g,b,a) or rgb(r,g,b) format
         const match = baseColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
         if (!match) return;
         
@@ -289,8 +290,8 @@ class AudioVisualizer {
         this.ctx.lineWidth = 1.5;
 
         let pathOpen = false;
-        let lastX = 0;
-        let lastY = 0;
+        let lastX = null;
+        let lastY = null;
         for (let i = 0; i < this.pitchHistory.length; i += 1) {
             const sample = this.pitchHistory[i];
             const x = (i + offset) * step;
@@ -322,8 +323,10 @@ class AudioVisualizer {
         if (pathOpen) {
             this.ctx.stroke();
             
-            // Draw glow effect at the tip (spark-like)
-            this.drawSparkGlow(lastX, lastY, this.pitchColor);
+            // Draw glow effect at the tip (spark-like) only if we have valid coordinates
+            if (lastX !== null && lastY !== null) {
+                this.drawSparkGlow(lastX, lastY, this.pitchColor);
+            }
         }
 
         if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
@@ -331,8 +334,8 @@ class AudioVisualizer {
             this.ctx.lineWidth = 1.2;
 
             pathOpen = false;
-            let lastSecondaryX = 0;
-            let lastSecondaryY = 0;
+            let lastSecondaryX = null;
+            let lastSecondaryY = null;
             for (let i = 0; i < this.secondaryPitchHistory.length; i += 1) {
                 const sample = this.secondaryPitchHistory[i];
                 const x = (i + offset) * step;
@@ -364,8 +367,10 @@ class AudioVisualizer {
             if (pathOpen) {
                 this.ctx.stroke();
                 
-                // Draw glow effect at the tip (spark-like)
-                this.drawSparkGlow(lastSecondaryX, lastSecondaryY, this.secondaryPitchColor);
+                // Draw glow effect at the tip (spark-like) only if we have valid coordinates
+                if (lastSecondaryX !== null && lastSecondaryY !== null) {
+                    this.drawSparkGlow(lastSecondaryX, lastSecondaryY, this.secondaryPitchColor);
+                }
             }
         }
     }
