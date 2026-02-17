@@ -590,7 +590,7 @@ class VoiceRecorderApp {
     async shareClipAudio(id) {
         const clip = this.clips.find((c) => c.id === id);
         if (!clip || !clip.audioBlob) {
-            this.setStatus('No recording available to save.');
+            this.setStatus('No audio recording available to save.');
             return;
         }
 
