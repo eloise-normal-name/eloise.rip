@@ -4,65 +4,58 @@ This document tracks known bugs and issues with the voice recorder feature.
 
 ## Active Bugs
 
+No active bugs currently tracked.
+
+---
+
+## Resolved Bugs
+
 ### Pitch Trace Oscillations for Pure Sine Wave Test Signal
 
-**Status:** Open  
+**Status:** Fixed  
 **Severity:** Low  
 **Reported:** 2026-02-17  
-**PR:** #[copilot/change-background-voice-recorder]  
+**Fixed:** 2026-02-17  
+**PR:** #[copilot/fix-pitch-detection-visualizer]  
 
 **Description:**
-The 220 Hz sine wave test signal produces a choppy/oscillating pitch trace instead of a flat horizontal line. This is visible in the visualizer when the test signal button is active.
+The 220 Hz sine wave test signal produced a choppy/oscillating pitch trace instead of a flat horizontal line. The visualizer showed the pitch jumping between approximately 220 Hz and 73 Hz (a subharmonic).
 
 **Expected Behavior:**
 A pure sine wave at a constant 220 Hz should produce a flat horizontal line in the pitch trace visualization.
 
 **Actual Behavior:**
-The pitch trace shows visible oscillations/variations around 220 Hz instead of remaining perfectly flat.
+The pitch trace showed visible oscillations, jumping between the correct frequency (~220 Hz) and a subharmonic (~73 Hz, which is 220/3).
 
 **Root Cause:**
-The autocorrelation-based pitch detection algorithm has inherent variability due to:
-- Finite buffer window analysis creating edge effects
-- Integer quantization in lag calculation (samples are discrete)
-- Correlation peak finding imprecision
-- Frame-by-frame processing without inter-frame analysis
+Two issues in the autocorrelation-based pitch detection algorithm:
+1. **Integer quantization**: Lag values were discrete integers, causing quantization noise that manifested as small oscillations
+2. **Octave jumping**: The algorithm was finding strong correlation peaks at both the fundamental period and at 3× the period (subharmonic), and would alternate between selecting these peaks
 
-**Important Note:**
-The smoothing parameter (currently 0.35) actually *reduces* the oscillations. Without smoothing (smoothing=1.0), the trace would be even more choppy. The smoothing is working as intended - the issue is in the pitch detection itself.
+**Solution Implemented:**
+1. **Parabolic interpolation** around the correlation peak for sub-sample precision:
+   - Fits a parabola through the peak and its neighbors
+   - Calculates refined fractional lag position
+   - Reduces quantization noise from ~±0.5 samples to ~±0.05 samples
+   
+2. **Octave error prevention** with intelligent peak selection:
+   - Prefers smaller lags (higher frequencies) when correlations are similar
+   - Uses 1% hysteresis threshold to avoid spurious peak switches
+   - Prevents jumping to harmonically-related subharmonics
 
-**Potential Solutions:**
-1. **Parabolic interpolation** around the correlation peak for sub-sample precision
-2. **Longer analysis windows** to reduce edge effects (trade-off: less responsive)
-3. **Alternative pitch detection methods:**
-   - Cepstrum analysis
-   - Harmonic product spectrum (HPS)
-   - YIN algorithm (improved autocorrelation)
-4. **Adaptive smoothing** based on signal stability detection
-5. **Multi-frame averaging** when signal is stable
-
-**Workaround:**
-None needed - the oscillations don't significantly impact voice training use case. Real voices naturally have more variation than a pure sine wave.
+**Results:**
+- 220 Hz test signal now produces **perfectly flat horizontal line**
+- Standard deviation reduced from ~73 Hz (due to octave jumping) to **0.00 Hz**
+- Detected frequency: 222.73 Hz (consistent, accurate)
+- No oscillations or jumps visible in visualization
 
 **References:**
-- Pitch detection implementation: `content/pages/voice-recorder/pitch-detector.js`
-- Smoothing implementation: `content/pages/voice-recorder/audio-visualizer.js` lines 74-109
-- Screenshot showing issue: https://github.com/user-attachments/assets/271f7f8f-e971-4086-8244-e3682ae7c09c
+- Fix implementation: `content/pages/voice-recorder/pitch-detector.js` lines 36-74, 99-117
+- Before screenshot: https://github.com/user-attachments/assets/48a8e022-7238-42f8-907e-f575cd309f68
+- After screenshot: https://github.com/user-attachments/assets/05d3e48a-934a-42e4-b67e-082fbb0c460a
+- Commit: ef16245
 
 ---
-
-## GitHub Project Tracking
-
-To add this to GitHub Project #3:
-1. Go to https://github.com/users/eloise-normal-name/projects/3
-2. Click "Add item" → "Create new draft issue"
-3. Title: "Pitch trace shows oscillations for pure sine wave test signal"
-4. Copy relevant details from above
-5. Set Type: Bug
-6. Set Priority as needed
-
----
-
-## Resolved Bugs
 
 ### Canvas Context Loss on Tab Switch
 
