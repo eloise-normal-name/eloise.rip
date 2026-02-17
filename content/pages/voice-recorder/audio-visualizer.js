@@ -208,6 +208,48 @@ class AudioVisualizer {
         this.resetPitchHistory();
     }
 
+    drawSparkGlow(x, y, baseColor) {
+        // Extract RGB values from the baseColor (assuming rgba format)
+        const match = baseColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (!match) return;
+        
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        
+        // Create radial gradient for the glow effect
+        const glowRadius = 12;
+        const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+        
+        // Bright center (almost opaque)
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+        // Medium glow
+        gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, 0.6)`);
+        // Soft outer glow
+        gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.3)`);
+        // Fade to transparent
+        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        
+        // Draw the glow
+        this.ctx.save();
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Add a bright white core for extra sparkle
+        const coreGradient = this.ctx.createRadialGradient(x, y, 0, x, y, 4);
+        coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        coreGradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.8)`);
+        coreGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        
+        this.ctx.fillStyle = coreGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+    }
+
     render() {
         this.paintFrame();
         if (!this.analyserNode) return;
@@ -247,6 +289,8 @@ class AudioVisualizer {
         this.ctx.lineWidth = 1.5;
 
         let pathOpen = false;
+        let lastX = 0;
+        let lastY = 0;
         for (let i = 0; i < this.pitchHistory.length; i += 1) {
             const sample = this.pitchHistory[i];
             const x = (i + offset) * step;
@@ -270,10 +314,16 @@ class AudioVisualizer {
             } else {
                 this.ctx.lineTo(x, y);
             }
+            
+            lastX = x;
+            lastY = y;
         }
 
         if (pathOpen) {
             this.ctx.stroke();
+            
+            // Draw glow effect at the tip (spark-like)
+            this.drawSparkGlow(lastX, lastY, this.pitchColor);
         }
 
         if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
@@ -281,6 +331,8 @@ class AudioVisualizer {
             this.ctx.lineWidth = 1.2;
 
             pathOpen = false;
+            let lastSecondaryX = 0;
+            let lastSecondaryY = 0;
             for (let i = 0; i < this.secondaryPitchHistory.length; i += 1) {
                 const sample = this.secondaryPitchHistory[i];
                 const x = (i + offset) * step;
@@ -304,10 +356,16 @@ class AudioVisualizer {
                 } else {
                     this.ctx.lineTo(x, y);
                 }
+                
+                lastSecondaryX = x;
+                lastSecondaryY = y;
             }
 
             if (pathOpen) {
                 this.ctx.stroke();
+                
+                // Draw glow effect at the tip (spark-like)
+                this.drawSparkGlow(lastSecondaryX, lastSecondaryY, this.secondaryPitchColor);
             }
         }
     }
