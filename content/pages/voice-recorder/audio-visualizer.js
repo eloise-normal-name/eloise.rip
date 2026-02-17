@@ -145,23 +145,26 @@ class AudioVisualizer {
         }
 
         if (primaryValue !== null && Number.isFinite(primaryValue)) {
-            primaryValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
+            const clampedValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
+            
+            // Update pitch statistics with the raw (clamped but not smoothed) value
+            if (this.pitchStats.min === null || clampedValue < this.pitchStats.min) {
+                this.pitchStats.min = clampedValue;
+            }
+            if (this.pitchStats.max === null || clampedValue > this.pitchStats.max) {
+                this.pitchStats.max = clampedValue;
+            }
+            this.pitchStats.sum += clampedValue;
+            this.pitchStats.count += 1;
+            
+            // Apply smoothing for display
+            primaryValue = clampedValue;
             if (this.pitchHistory.length) {
                 const previous = this.pitchHistory[this.pitchHistory.length - 1];
                 if (previous !== null) {
                     primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
                 }
             }
-            
-            // Update pitch statistics with the smoothed value
-            if (this.pitchStats.min === null || primaryValue < this.pitchStats.min) {
-                this.pitchStats.min = primaryValue;
-            }
-            if (this.pitchStats.max === null || primaryValue > this.pitchStats.max) {
-                this.pitchStats.max = primaryValue;
-            }
-            this.pitchStats.sum += primaryValue;
-            this.pitchStats.count += 1;
         } else {
             primaryValue = null;
         }
