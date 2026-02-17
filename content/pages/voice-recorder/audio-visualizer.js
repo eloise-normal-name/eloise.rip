@@ -66,9 +66,129 @@ class AudioVisualizer {
             return;
         }
         this.ctx = newCtx;
-        // Redraw the current visualization state
+        // Redraw the background and reconstruct the visible pitch trace from history
         this.paintFrame();
-        this.renderPitchTrace();
+        this.reconstructPitchTrace();
+    }
+
+    reconstructPitchTrace() {
+        // Reconstruct the pitch trace from stored history after a context loss or clear
+        // This draws all samples currently in history, positioning them based on currentX
+        if (!this.ensureContext()) return;
+        if (!this.pitchHistory.length) return;
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const padding = 6;
+        const usableHeight = height - padding * 2;
+        const range = this.pitchMaxHz - this.pitchMinHz || 1;
+
+        // Calculate the starting X position based on current state
+        const samplesInHistory = this.pitchHistory.length;
+        const totalWidth = samplesInHistory * this.pixelsPerSample;
+        
+        // If the trace fits within the canvas, start from the left
+        // Otherwise, start from a position that aligns with currentX
+        let startX = 0;
+        if (totalWidth > width) {
+            // Calculate offset so the newest sample aligns with currentX
+            startX = this.currentX - (samplesInHistory - 1) * this.pixelsPerSample;
+        }
+
+        // Draw primary pitch trace
+        this.ctx.strokeStyle = this.pitchColor;
+        this.ctx.lineWidth = 1.5;
+        let pathOpen = false;
+        let lastX = null;
+        let lastY = null;
+
+        for (let i = 0; i < this.pitchHistory.length; i++) {
+            const sample = this.pitchHistory[i];
+            const x = startX + i * this.pixelsPerSample;
+
+            // Skip samples that are off the left edge of the canvas
+            if (x < -this.pixelsPerSample) continue;
+            // Stop drawing if we're past the right edge
+            if (x > width) break;
+
+            if (sample === null) {
+                if (pathOpen) {
+                    this.ctx.stroke();
+                    pathOpen = false;
+                }
+                continue;
+            }
+
+            const ratio = (sample - this.pitchMinHz) / range;
+            const clamped = Math.min(1, Math.max(0, ratio));
+            const y = padding + (1 - clamped) * usableHeight;
+
+            if (!pathOpen) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                pathOpen = true;
+            } else {
+                this.ctx.lineTo(x, y);
+            }
+
+            lastX = x;
+            lastY = y;
+        }
+
+        if (pathOpen) {
+            this.ctx.stroke();
+            // Draw glow effect at the tip if we have valid coordinates
+            if (lastX !== null && lastY !== null) {
+                this.drawSparkGlow(lastX, lastY, this.pitchColor);
+            }
+        }
+
+        // Draw secondary pitch trace if enabled
+        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
+            this.ctx.strokeStyle = this.secondaryPitchColor;
+            this.ctx.lineWidth = 1.2;
+            pathOpen = false;
+            let lastSecondaryX = null;
+            let lastSecondaryY = null;
+
+            for (let i = 0; i < this.secondaryPitchHistory.length; i++) {
+                const sample = this.secondaryPitchHistory[i];
+                const x = startX + i * this.pixelsPerSample;
+
+                if (x < -this.pixelsPerSample) continue;
+                if (x > width) break;
+
+                if (sample === null) {
+                    if (pathOpen) {
+                        this.ctx.stroke();
+                        pathOpen = false;
+                    }
+                    continue;
+                }
+
+                const ratio = (sample - this.pitchMinHz) / range;
+                const clamped = Math.min(1, Math.max(0, ratio));
+                const y = padding + (1 - clamped) * usableHeight;
+
+                if (!pathOpen) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    pathOpen = true;
+                } else {
+                    this.ctx.lineTo(x, y);
+                }
+
+                lastSecondaryX = x;
+                lastSecondaryY = y;
+            }
+
+            if (pathOpen) {
+                this.ctx.stroke();
+                if (lastSecondaryX !== null && lastSecondaryY !== null) {
+                    this.drawSparkGlow(lastSecondaryX, lastSecondaryY, this.secondaryPitchColor);
+                }
+            }
+        }
     }
 
     ensureContext() {
@@ -295,7 +415,8 @@ class AudioVisualizer {
     }
 
     render() {
-        this.paintFrame();
+        // Don't call paintFrame() here - we only repaint during scrolling or explicit clear
+        // This allows the pitch trace to persist and scroll properly
         if (!this.analyserNode) return;
         if (!this.floatData || this.floatData.length !== this.analyserNode.fftSize) {
             this.floatData = new Float32Array(this.analyserNode.fftSize);
@@ -335,13 +456,65 @@ class AudioVisualizer {
             tempCanvas.width = width;
             tempCanvas.height = height;
             const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(this.canvas, 0, 0);
             
-            // Redraw the background
-            this.paintFrame();
-            
-            // Draw the saved content shifted left by pixelsPerSample
-            this.ctx.drawImage(tempCanvas, -this.pixelsPerSample, 0);
+            if (tempCtx) {
+                // Preferred path: use an offscreen canvas for efficient scrolling
+                tempCtx.drawImage(this.canvas, 0, 0);
+                
+                // Shift the existing content left by pixelsPerSample without
+                // clearing the entire canvas, so the trace is preserved
+                this.ctx.drawImage(tempCanvas, -this.pixelsPerSample, 0);
+                
+                // Clear and repaint only the newly revealed rightmost strip with
+                // the background and voice range bands
+                this.ctx.save();
+                this.ctx.fillStyle = this.backgroundColor;
+                this.ctx.fillRect(width - this.pixelsPerSample, 0, this.pixelsPerSample, height);
+                
+                // Redraw voice range bands in the cleared strip
+                const padding = 6;
+                const usableHeight = height - padding * 2;
+                const hzRange = this.pitchMaxHz - this.pitchMinHz || 1;
+                
+                const hzToY = (hz) => {
+                    const ratio = (hz - this.pitchMinHz) / hzRange;
+                    const clamped = Math.min(1, Math.max(0, ratio));
+                    return padding + (1 - clamped) * usableHeight;
+                };
+                
+                // Draw masculine voice range band (blue) in the strip
+                if (this.masculineVoiceMaxHz > this.pitchMinHz && this.masculineVoiceMinHz < this.pitchMaxHz) {
+                    const topY = hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
+                    const bottomY = hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
+                    this.ctx.fillStyle = this.masculineVoiceColor;
+                    this.ctx.fillRect(width - this.pixelsPerSample, topY, this.pixelsPerSample, bottomY - topY);
+                }
+                
+                // Draw feminine voice range band (pink) in the strip
+                if (this.feminineVoiceMaxHz > this.pitchMinHz && this.feminineVoiceMinHz < this.pitchMaxHz) {
+                    const topY = hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
+                    const bottomY = hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
+                    this.ctx.fillStyle = this.feminineVoiceColor;
+                    this.ctx.fillRect(width - this.pixelsPerSample, topY, this.pixelsPerSample, bottomY - topY);
+                }
+                
+                this.ctx.restore();
+            } else {
+                // Fallback path: use getImageData/putImageData if temp context creation fails
+                const scrollWidth = Math.max(0, width - this.pixelsPerSample);
+                if (scrollWidth > 0) {
+                    const imageData = this.ctx.getImageData(this.pixelsPerSample, 0, scrollWidth, height);
+                    
+                    // Redraw the background for the entire canvas
+                    this.paintFrame();
+                    
+                    // Draw the saved content shifted left by pixelsPerSample
+                    this.ctx.putImageData(imageData, 0, 0);
+                } else {
+                    // If there's nothing to scroll, just repaint the frame
+                    this.paintFrame();
+                }
+            }
             
             // Reset currentX to continue drawing at the right edge
             this.currentX = width - this.pixelsPerSample;
