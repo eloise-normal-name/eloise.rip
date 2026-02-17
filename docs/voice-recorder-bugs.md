@@ -64,7 +64,50 @@ To add this to GitHub Project #3:
 
 ## Resolved Bugs
 
-(None yet)
+### Canvas Context Loss on Tab Switch
+
+**Status:** Fixed  
+**Severity:** Medium  
+**Reported:** 2026-02-17  
+**Fixed:** 2026-02-17  
+**PR:** #[copilot/fix-voice-visualizer-canvas-issue]  
+
+**Description:**
+The voice visualizer canvas could lose its rendering context when switching browser tabs, especially on mobile devices or in low-memory situations. When the context was lost, the visualization would disappear and not recover.
+
+**Expected Behavior:**
+The canvas visualization should persist and continue working after switching tabs or when the browser temporarily reclaims resources.
+
+**Actual Behavior:**
+The canvas could lose its rendering context, causing the visualization to stop working. The canvas would appear blank or frozen.
+
+**Root Cause:**
+- Canvas 2D contexts can be lost when tabs are backgrounded (browser resource management)
+- The code obtained the context once in the constructor and never validated it was still available
+- No event handlers for `contextlost` or `contextrestored` events
+- No checks before rendering operations to detect if context was lost
+
+**Solution Implemented:**
+1. Added `contextlost` event listener to prevent default behavior and prepare for restoration
+2. Added `contextrestored` event listener to automatically restore the visualization
+3. Implemented `restoreContext()` method to:
+   - Get a fresh 2D context from the canvas
+   - Redraw the current visualization state (background, bands, pitch trace)
+4. Implemented `ensureContext()` method to:
+   - Check if context is lost using `isContextLost()` API (where available)
+   - Attempt automatic restoration
+   - Return false to skip the current frame if context was just restored
+5. Updated `paintFrame()` and `renderPitchTrace()` to call `ensureContext()` before any drawing operations
+
+**Browser Compatibility:**
+- `isContextLost()` API may not be available in all browsers (particularly Safari)
+- Event handlers work in modern browsers
+- Graceful degradation: if methods aren't available, behavior is unchanged from before
+
+**References:**
+- Implementation: `content/pages/voice-recorder/audio-visualizer.js` lines 37-63
+- MDN Documentation: [contextlost event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/contextlost_event)
+- Commit: 3c621bc
 
 ---
 
