@@ -34,7 +34,33 @@ class AudioVisualizer {
             secondaryThreshold: 0.15
         };
 
+        // Handle canvas context loss (can occur when switching tabs, especially on mobile)
+        this.canvas.addEventListener('contextlost', (event) => {
+            event.preventDefault();
+        });
+
+        this.canvas.addEventListener('contextrestored', () => {
+            this.restoreContext();
+        });
+
         this.setAnalyser(analyserNode);
+    }
+
+    restoreContext() {
+        // Restore the 2D context after it was lost
+        this.ctx = this.canvas.getContext('2d');
+        // Redraw the current visualization state
+        this.paintFrame();
+        this.renderPitchTrace();
+    }
+
+    ensureContext() {
+        // Check if context is lost and try to restore it
+        if (this.ctx && typeof this.ctx.isContextLost === 'function' && this.ctx.isContextLost()) {
+            this.restoreContext();
+            return false; // Context was lost, skip this frame
+        }
+        return true; // Context is valid
     }
 
     setAnalyser(analyserNode) {
@@ -120,6 +146,8 @@ class AudioVisualizer {
     }
 
     paintFrame() {
+        if (!this.ensureContext()) return;
+
         const width = this.canvas.width;
         const height = this.canvas.height;
 
@@ -195,6 +223,7 @@ class AudioVisualizer {
     }
 
     renderPitchTrace() {
+        if (!this.ensureContext()) return;
         if (!this.pitchHistory.length) return;
 
         const width = this.canvas.width;
