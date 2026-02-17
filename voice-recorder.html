@@ -571,7 +571,10 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
 
         correlations.push({ lag: lag, correlation: correlation });
 
-        if (correlation > bestCorrelation) {
+        // Prefer smaller lags (higher frequencies) to avoid octave errors
+        // Accept a new peak if it's significantly better, or slightly better but at a smaller lag
+        if (correlation > bestCorrelation * 1.01 || 
+            (correlation > bestCorrelation * 0.99 && lag < bestLag)) {
             bestCorrelation = correlation;
             bestLag = lag;
         }
@@ -581,7 +584,27 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         return null;
     }
 
-    const primaryPitch = sampleRate / bestLag;
+    // Apply parabolic interpolation for sub-sample precision
+    // This significantly reduces quantization noise in pitch detection
+    let refinedLag = bestLag;
+    if (bestLag > minLag && bestLag < maxLag) {
+        // Get correlation values at lag-1, lag, and lag+1
+        const prevCorr = correlations[bestLag - minLag - 1].correlation;
+        const currCorr = bestCorrelation;
+        const nextCorr = correlations[bestLag - minLag + 1].correlation;
+
+        // Parabolic interpolation formula: offset = (prev - next) / (2 * (prev - 2*curr + next))
+        const denominator = 2 * (prevCorr - 2 * currCorr + nextCorr);
+        if (denominator !== 0) {
+            const offset = (prevCorr - nextCorr) / denominator;
+            // Clamp offset to reasonable range to avoid outliers
+            if (offset >= -0.5 && offset <= 0.5) {
+                refinedLag = bestLag + offset;
+            }
+        }
+    }
+
+    const primaryPitch = sampleRate / refinedLag;
 
     if (!detectSecondary) {
         return primaryPitch;
@@ -605,7 +628,26 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
     }
 
     if (secondBestLag !== -1 && secondBestCorrelation > secondaryThreshold) {
-        const secondaryPitch = sampleRate / secondBestLag;
+        // Apply parabolic interpolation for secondary pitch as well
+        let refinedSecondaryLag = secondBestLag;
+        if (secondBestLag > minLag && secondBestLag < maxLag) {
+            const idx = secondBestLag - minLag;
+            if (idx > 0 && idx < correlations.length - 1) {
+                const prevCorr = correlations[idx - 1].correlation;
+                const currCorr = secondBestCorrelation;
+                const nextCorr = correlations[idx + 1].correlation;
+
+                const denominator = 2 * (prevCorr - 2 * currCorr + nextCorr);
+                if (denominator !== 0) {
+                    const offset = (prevCorr - nextCorr) / denominator;
+                    if (offset >= -0.5 && offset <= 0.5) {
+                        refinedSecondaryLag = secondBestLag + offset;
+                    }
+                }
+            }
+        }
+
+        const secondaryPitch = sampleRate / refinedSecondaryLag;
         return {
             primary: primaryPitch,
             secondary: secondaryPitch,
