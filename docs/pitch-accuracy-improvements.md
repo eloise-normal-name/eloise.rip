@@ -186,9 +186,9 @@ this.pitchStats = {
 ### Memory Impact
 
 **Additional memory per recording**:
-- Samples array: ~4 bytes × sample count
-- Strengths array: ~4 bytes × sample count
-- For a 10-second recording at 60 fps: ~4.8 KB additional memory
+- Samples array: JavaScript `Number`s (~8 bytes/value + array/GC overhead) × sample count
+- Strengths array: JavaScript `Number`s (~8 bytes/value + array/GC overhead) × sample count
+- For a 10-second recording at 60 fps: at least ~9.6 KB + array/GC overhead
 
 This is negligible compared to the audio blob itself (hundreds of KB).
 
