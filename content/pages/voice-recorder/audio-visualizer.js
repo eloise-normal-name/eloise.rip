@@ -20,16 +20,16 @@ class AudioVisualizer {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
         this.pitchMaxSamples = 200;
-        this.pitchMinHz = 80;
-        this.pitchMaxHz = 400;
+        this.pitchMinHz = 70;
+        this.pitchMaxHz = 280;
         this.pitchColor = 'rgba(116, 192, 252, 0.9)';
         this.secondaryPitchColor = 'rgba(255, 180, 100, 0.7)';
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = true;
 
         this.pitchDetectionOptions = {
-            minHz: 80,
-            maxHz: 400,
+            minHz: 70,
+            maxHz: 280,
             primaryThreshold: 0.2,
             secondaryThreshold: 0.15
         };

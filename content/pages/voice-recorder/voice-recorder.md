@@ -39,12 +39,12 @@ Status: hidden
         <summary>Settings</summary>
         <div class="settings-grid">
             <div class="setting-item">
-                <label for="minHzSlider">Min Frequency: <span id="minHzValue">80</span> Hz</label>
-                <input type="range" id="minHzSlider" min="40" max="200" value="80" step="5">
+                <label for="minHzSlider">Min Frequency: <span id="minHzValue">70</span> Hz</label>
+                <input type="range" id="minHzSlider" min="40" max="200" value="70" step="5">
             </div>
             <div class="setting-item">
-                <label for="maxHzSlider">Max Frequency: <span id="maxHzValue">400</span> Hz</label>
-                <input type="range" id="maxHzSlider" min="200" max="800" value="400" step="10">
+                <label for="maxHzSlider">Max Frequency: <span id="maxHzValue">280</span> Hz</label>
+                <input type="range" id="maxHzSlider" min="200" max="800" value="280" step="10">
             </div>
             <div class="setting-item">
                 <label for="primaryThresholdSlider">Primary Threshold: <span id="primaryThresholdValue">0.20</span></label>
