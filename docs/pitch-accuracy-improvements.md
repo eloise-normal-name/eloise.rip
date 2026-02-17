@@ -29,8 +29,8 @@ This document describes the improvements made to the voice recorder's pitch dete
 const sortedSamples = [...samples].sort((a, b) => a - b);
 
 // Calculate quartiles
-const q1 = sortedSamples[floor(n * 0.25)];
-const q3 = sortedSamples[floor(n * 0.75)];
+const q1 = sortedSamples[Math.floor(n * 0.25)];
+const q3 = sortedSamples[Math.floor(n * 0.75)];
 const iqr = q3 - q1;
 
 // Define outlier bounds (1.5 * IQR is the standard method)
