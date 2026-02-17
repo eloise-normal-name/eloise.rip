@@ -325,9 +325,7 @@ class VoiceRecorderApp {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
-        if (this.visualizer) {
-            this.visualizer.clear();
-        }
+        // Don't clear the visualizer - keep the last frame visible
     }
 
     startVisualizer() {
