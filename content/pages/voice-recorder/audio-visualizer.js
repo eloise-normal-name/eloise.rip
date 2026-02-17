@@ -7,7 +7,7 @@ class AudioVisualizer {
 
         this.backgroundColor = 'rgba(255, 255, 255, 1)';
         this.borderColor = 'rgba(255, 107, 157, 0.65)';
-        this.borderWidth = 2;
+        this.borderWidth = 0;
         
         // Voice range bands (typical fundamental frequencies)
         this.masculineVoiceMinHz = 85;
@@ -25,7 +25,7 @@ class AudioVisualizer {
         this.pitchColor = 'rgba(116, 192, 252, 0.9)';
         this.secondaryPitchColor = 'rgba(255, 180, 100, 0.7)';
         this.pitchSmoothing = 0.35;
-        this.showSecondaryPitch = true;
+        this.showSecondaryPitch = false;
 
         this.pitchDetectionOptions = {
             minHz: 70,
