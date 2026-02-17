@@ -48,7 +48,12 @@ class AudioVisualizer {
 
     restoreContext() {
         // Restore the 2D context after it was lost
-        this.ctx = this.canvas.getContext('2d');
+        const newCtx = this.canvas.getContext('2d');
+        if (!newCtx) {
+            console.warn('Failed to restore canvas context');
+            return;
+        }
+        this.ctx = newCtx;
         // Redraw the current visualization state
         this.paintFrame();
         this.renderPitchTrace();
@@ -57,7 +62,11 @@ class AudioVisualizer {
     ensureContext() {
         // Check if context is lost and try to restore it
         if (this.ctx && typeof this.ctx.isContextLost === 'function' && this.ctx.isContextLost()) {
-            this.restoreContext();
+            // Get a fresh context without triggering recursive redraws
+            const newCtx = this.canvas.getContext('2d');
+            if (newCtx) {
+                this.ctx = newCtx;
+            }
             return false; // Context was lost, skip this frame
         }
         return true; // Context is valid
