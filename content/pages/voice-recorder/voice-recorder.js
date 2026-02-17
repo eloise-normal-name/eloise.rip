@@ -463,7 +463,7 @@ class VoiceRecorderApp {
 
     startVideoRecording() {
         try {
-            const canvasStream = this.recordingCanvas.captureStream(30);
+            const canvasStream = this.recordingCanvas.captureStream(60);
             const videoTrack = canvasStream.getVideoTracks()[0];
             const audioTrack = this.mediaStream.getAudioTracks()[0];
             const combinedStream = new MediaStream([videoTrack, audioTrack]);
