@@ -143,5 +143,5 @@ If automated tools aren't working, manage sprints via:
 
 - [Voice Recorder Roadmap](voice-recorder-roadmap.md)
 - [Voice Recorder Docs](voice-recorder.md)
-- [Pitch Detection Plan](voice-recorder-pitch-plan.md)
+- [Pitch Detection Plan](archive/voice-recorder-pitch-plan.md) (archived)
 - [GitHub Projects Documentation](https://docs.github.com/en/issues/planning-and-tracking-with-projects)
