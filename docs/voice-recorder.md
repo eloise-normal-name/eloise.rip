@@ -85,11 +85,11 @@ videoBlob → <video> (hidden) → drawImage onto <canvas> each frame
 |--------|-------------|
 | `constructor(canvas, analyserNode)` | Stores references, sets colors, calls `setAnalyser`. |
 | `setAnalyser(node)` | Attach or detach an `AnalyserNode`. Allocates the `Float32Array` data buffer when a node is provided. |
-| `paintFrame()` | Draws the static visualization layers (background, voice range bands, pitch reference grid, and border). Called by both `render` and `clear`. |
-| `render()` | Calls `paintFrame`, reads `getFloatTimeDomainData`, detects pitch(es), and renders the pitch trace(s). |
+| `paintFrame()` | Draws the static visualization layers (background, voice range bands, pitch reference grid, and border). Called by `clear()` and when scrolling to repaint the newly revealed strip (via drawVoiceRangeBands). |
+| `render()` | Reads `getFloatTimeDomainData`, detects pitch(es), and renders the pitch trace(s) incrementally without clearing the canvas. |
 | `clear()` | Redraws the empty background frame and clears pitch history. |
 | `pushPitchSample(pitchData)` | Adds pitch data to history buffers. Accepts a number (primary only) or object with `primary` and `secondary` fields. |
-| `renderPitchTrace()` | Draws primary pitch (blue) and optionally secondary pitch (orange) traces on the canvas. |
+| `renderPitchTrace()` | Draws primary pitch (blue) and optionally secondary pitch (orange) traces on the canvas. Uses a scrolling visualization that draws from left to right and shifts the canvas content left when reaching the right edge. |
 
 Colors and border width are instance properties set in the constructor.
 
@@ -99,6 +99,7 @@ Colors and border width are instance properties set in the constructor.
 - **Secondary pitch**: Orange trace (`rgba(255, 180, 100, 0.7)`)
 - Both traces use exponential smoothing (35%) to reduce jitter
 - Secondary pitch detection can be toggled via `showSecondaryPitch` property
+- **Scrolling behavior**: The pitch trace starts at the left edge and grows to the right at `pixelsPerSample` pixels per sample (currently 2px). When the trace reaches the right edge, the entire visualization scrolls left to make room for new samples, creating a continuous real-time display similar to an oscilloscope
 
 ## VoiceRecorderApp Class
 
