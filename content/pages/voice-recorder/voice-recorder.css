@@ -357,6 +357,14 @@
     color: var(--text-light);
 }
 
+.clip-pitch-stats {
+    font-size: 0.75rem;
+    color: var(--text-color);
+    margin-top: 0.25rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    opacity: 0.85;
+}
+
 .clip-timestamp::after {
     content: '•';
     margin-left: 0.75rem;
