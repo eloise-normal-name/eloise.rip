@@ -138,7 +138,7 @@ and save/share.
 ## Current Limitations
 
 - No backend storage or upload.
-- Pitch overlay uses a lightweight autocorrelation tuned for ~80–400 Hz; unvoiced/noisy segments may drop out rather than show a stable line.
+- Pitch overlay defaults to a lightweight autocorrelation detector tuned for ~80–400 Hz, with an optional Pitchy engine; unvoiced/noisy segments may drop out rather than show a stable line.
 - Secondary threshold control is currently hidden because secondary trace is disabled in normal UI flow.
 - Secondary pitch detection identifies additional frequency components but may not always find a valid secondary pitch.
 - Canvas playback re-renders the recorded video; there is no live waveform during playback.
