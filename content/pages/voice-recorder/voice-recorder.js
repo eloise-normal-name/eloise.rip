@@ -9,6 +9,9 @@
  * A GitHub Actions workflow validates DOM elements on every PR to prevent initialization failures.
  */
 class VoiceRecorderApp {
+    static pitchDetectorPreferenceKey = 'voiceRecorder.usePitchyDetector';
+    static pitchyModuleUrl = '/media/voice-recorder/pitchy/pitchy-4.1.0.esm.js';
+
     static foods = [
         'apple', 'apricot', 'avocado', 'banana', 'basil', 'bean', 'berry', 'biscuit', 'bread', 'broccoli',
         'butter', 'cabbage', 'cake', 'carrot', 'cashew', 'celery', 'cheese', 'cherry', 'chicken', 'chili',
@@ -40,6 +43,7 @@ class VoiceRecorderApp {
         this.recordingCanvas = document.getElementById('recordingCanvas');
         this.playbackVideo = document.getElementById('playbackVideo');
         this.clipsList = document.getElementById('clipsList');
+        this.signalIndicator = document.getElementById('signalIndicator');
 
         this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
 
@@ -69,6 +73,13 @@ class VoiceRecorderApp {
         this.playingClipId = null;
         this.discardRecordingOnStop = false;
 
+        this.usePitchyDetector = this.getStoredPitchyPreference();
+        this.pitchyModule = null;
+        this.pitchyDetectorInstance = null;
+        this.pitchyDetectorInputLength = null;
+        this.pitchyLoadingPromise = null;
+        this.pitchyLoadFailed = false;
+
         if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
             || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
@@ -90,10 +101,196 @@ class VoiceRecorderApp {
 
         this.visualizer = new AudioVisualizer(this.recordingCanvas, null);
         this.visualizer.setContextRecoveryHandler((context) => this.handleVisualizerContextRecovery(context));
+        this.visualizer.setPitchDetector((buffer, sampleRate, detectSecondary, options) =>
+            this.detectPitchWithSelectedEngine(buffer, sampleRate, detectSecondary, options)
+        );
         this.visualizer.clear();
         this.setupConfigurationSliders();
+        this.setupPitchDetectorToggle();
         this.showBrowserCapabilities();
+        this.updateSignalIndicator({ state: 'idle', label: 'Signal: idle' });
         this.renderClipsList();
+
+        if (this.usePitchyDetector) {
+            this.ensurePitchyLoaded();
+        }
+    }
+
+    getStoredPitchyPreference() {
+        try {
+            if (typeof localStorage === 'undefined') return false;
+            return localStorage.getItem(VoiceRecorderApp.pitchDetectorPreferenceKey) === '1';
+        } catch (error) {
+            return false;
+        }
+    }
+
+    setStoredPitchyPreference(enabled) {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            localStorage.setItem(VoiceRecorderApp.pitchDetectorPreferenceKey, enabled ? '1' : '0');
+        } catch (error) {
+            // Ignore storage failures (private mode or disabled storage)
+        }
+    }
+
+    setupPitchDetectorToggle() {
+        const usePitchyToggle = document.getElementById('usePitchyToggle');
+        if (!usePitchyToggle) {
+            return;
+        }
+
+        usePitchyToggle.checked = this.usePitchyDetector;
+        usePitchyToggle.onchange = () => {
+            this.usePitchyDetector = Boolean(usePitchyToggle.checked);
+            this.setStoredPitchyPreference(this.usePitchyDetector);
+
+            if (this.usePitchyDetector) {
+                this.ensurePitchyLoaded();
+                this.setStatus('Pitch detector updated.', 'Mode: Pitchy (optional) with autocorrelation fallback');
+            } else {
+                this.setStatus('Pitch detector updated.', 'Mode: Autocorrelation (default)');
+            }
+        };
+    }
+
+    async ensurePitchyLoaded() {
+        if (this.pitchyModule || this.pitchyLoadFailed) {
+            return;
+        }
+
+        if (!this.pitchyLoadingPromise) {
+            this.pitchyLoadingPromise = import(VoiceRecorderApp.pitchyModuleUrl)
+                .then((module) => {
+                    this.pitchyModule = module;
+                    this.pitchyLoadFailed = false;
+                    return module;
+                })
+                .catch((error) => {
+                    this.pitchyLoadFailed = true;
+                    this.usePitchyDetector = false;
+                    this.setStoredPitchyPreference(false);
+
+                    const toggle = document.getElementById('usePitchyToggle');
+                    if (toggle) {
+                        toggle.checked = false;
+                    }
+
+                    this.setStatus(
+                        'Pitchy unavailable. Falling back to autocorrelation.',
+                        `Error: ${error && error.message ? error.message : 'Unknown import failure'}`
+                    );
+                    throw error;
+                })
+                .finally(() => {
+                    this.pitchyLoadingPromise = null;
+                });
+        }
+
+        return this.pitchyLoadingPromise;
+    }
+
+    getAutocorrelationDetector() {
+        if (typeof detectPitchAutocorrelation === 'function') {
+            return detectPitchAutocorrelation;
+        }
+        if (typeof detectPitch === 'function') {
+            return detectPitch;
+        }
+        return null;
+    }
+
+    detectPitchWithPitchy(buffer, sampleRate, options = {}) {
+        if (!this.pitchyModule || !this.pitchyModule.PitchDetector || !buffer || !sampleRate) {
+            return null;
+        }
+
+        if (!this.pitchyDetectorInstance || this.pitchyDetectorInputLength !== buffer.length) {
+            this.pitchyDetectorInstance = this.pitchyModule.PitchDetector.forFloat32Array(buffer.length);
+            this.pitchyDetectorInputLength = buffer.length;
+        }
+
+        const primaryThreshold = options.primaryThreshold || 0.2;
+        const minHz = options.minHz || 80;
+        const maxHz = options.maxHz || 400;
+
+        const [pitch, clarity] = this.pitchyDetectorInstance.findPitch(buffer, sampleRate);
+
+        if (!Number.isFinite(pitch) || pitch <= 0 || pitch < minHz || pitch > maxHz) {
+            return null;
+        }
+
+        if (!Number.isFinite(clarity) || clarity < primaryThreshold) {
+            return null;
+        }
+
+        return {
+            primary: pitch,
+            secondary: null,
+            primaryStrength: clarity,
+            secondaryStrength: 0
+        };
+    }
+
+    detectPitchWithSelectedEngine(buffer, sampleRate, detectSecondary = false, options = {}) {
+        const fallbackDetector = this.getAutocorrelationDetector();
+        if (!fallbackDetector) {
+            return null;
+        }
+
+        if (!this.usePitchyDetector) {
+            return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+        }
+
+        if (!this.pitchyModule) {
+            this.ensurePitchyLoaded().catch(() => {
+                // Status is already reported in ensurePitchyLoaded
+            });
+            return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+        }
+
+        try {
+            const pitchyPrimary = this.detectPitchWithPitchy(buffer, sampleRate, options);
+            if (!pitchyPrimary) {
+                return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+            }
+
+            if (!detectSecondary) {
+                return pitchyPrimary;
+            }
+
+            const fallbackWithSecondary = fallbackDetector(buffer, sampleRate, true, options);
+            const secondaryValue =
+                fallbackWithSecondary && typeof fallbackWithSecondary === 'object'
+                    ? fallbackWithSecondary.secondary
+                    : null;
+            const secondaryStrength =
+                fallbackWithSecondary && typeof fallbackWithSecondary === 'object'
+                    ? (fallbackWithSecondary.secondaryStrength || 0)
+                    : 0;
+
+            return {
+                primary: pitchyPrimary.primary,
+                secondary: Number.isFinite(secondaryValue) ? secondaryValue : null,
+                primaryStrength: pitchyPrimary.primaryStrength,
+                secondaryStrength
+            };
+        } catch (error) {
+            this.pitchyLoadFailed = true;
+            this.usePitchyDetector = false;
+            this.setStoredPitchyPreference(false);
+
+            const toggle = document.getElementById('usePitchyToggle');
+            if (toggle) {
+                toggle.checked = false;
+            }
+
+            this.setStatus(
+                'Pitchy detection failed. Falling back to autocorrelation.',
+                `Error: ${error && error.message ? error.message : 'Unknown detection failure'}`
+            );
+            return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+        }
     }
 
     getMostRecentClip() {
@@ -195,8 +392,8 @@ class VoiceRecorderApp {
         const secondaryThresholdValue = document.getElementById('secondaryThresholdValue');
         const smoothingValue = document.getElementById('smoothingValue');
 
-        if (!minHzSlider || !maxHzSlider || !primaryThresholdSlider || 
-            !secondaryThresholdSlider || !smoothingSlider) {
+        if (!minHzSlider || !maxHzSlider || !primaryThresholdSlider || !smoothingSlider ||
+            !minHzValue || !maxHzValue || !primaryThresholdValue || !smoothingValue) {
             return;
         }
 
@@ -230,11 +427,13 @@ class VoiceRecorderApp {
             this.visualizer.updatePrimaryThreshold(threshold);
         };
 
-        secondaryThresholdSlider.oninput = () => {
-            const threshold = parseFloat(secondaryThresholdSlider.value);
-            secondaryThresholdValue.textContent = threshold.toFixed(2);
-            this.visualizer.updateSecondaryThreshold(threshold);
-        };
+        if (secondaryThresholdSlider && secondaryThresholdValue) {
+            secondaryThresholdSlider.oninput = () => {
+                const threshold = parseFloat(secondaryThresholdSlider.value);
+                secondaryThresholdValue.textContent = threshold.toFixed(2);
+                this.visualizer.updateSecondaryThreshold(threshold);
+            };
+        }
 
         smoothingSlider.oninput = () => {
             const smoothing = parseInt(smoothingSlider.value, 10);
@@ -415,13 +614,31 @@ class VoiceRecorderApp {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        this.updateSignalIndicator({ state: 'idle', label: 'Signal: idle' });
         // Don't clear the visualizer - keep the last frame visible
+    }
+
+    updateSignalIndicator(status = null) {
+        if (!this.signalIndicator) {
+            return;
+        }
+
+        const resolvedStatus = status || (this.visualizer && typeof this.visualizer.getTrackingStatus === 'function'
+            ? this.visualizer.getTrackingStatus()
+            : null);
+
+        const state = resolvedStatus && resolvedStatus.state ? resolvedStatus.state : 'idle';
+        const label = resolvedStatus && resolvedStatus.label ? resolvedStatus.label : 'Signal: idle';
+
+        this.signalIndicator.className = `signal-indicator signal-${state}`;
+        this.signalIndicator.textContent = label;
     }
 
     startVisualizer() {
         if (!this.visualizer) return;
         const loop = () => {
             this.visualizer.render();
+            this.updateSignalIndicator();
             this.animationId = requestAnimationFrame(loop);
         };
         this.animationId = requestAnimationFrame(loop);

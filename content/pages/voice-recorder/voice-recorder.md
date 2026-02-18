@@ -31,6 +31,7 @@ Status: hidden
             </button>
         </div>
     </div>
+    <div id="signalIndicator" class="signal-indicator signal-idle" aria-live="polite">Signal: idle</div>
     <div class="clips-container">
         <h3 class="clips-title">Recordings</h3>
         <div id="clipsList" class="clips-list"></div>
@@ -50,13 +51,18 @@ Status: hidden
                 <label for="primaryThresholdSlider">Primary Threshold: <span id="primaryThresholdValue">0.20</span></label>
                 <input type="range" id="primaryThresholdSlider" min="0.05" max="0.50" value="0.20" step="0.05">
             </div>
-            <div class="setting-item">
+            <div class="setting-item setting-item-secondary-threshold">
                 <label for="secondaryThresholdSlider">Secondary Threshold: <span id="secondaryThresholdValue">0.15</span></label>
                 <input type="range" id="secondaryThresholdSlider" min="0.05" max="0.40" value="0.15" step="0.05">
             </div>
             <div class="setting-item">
                 <label for="smoothingSlider">Pitch Smoothing: <span id="smoothingValue">35</span>%</label>
                 <input type="range" id="smoothingSlider" min="10" max="80" value="35" step="5">
+            </div>
+            <div class="setting-item setting-item-toggle">
+                <label for="usePitchyToggle">Use Pitchy detector (optional)</label>
+                <input type="checkbox" id="usePitchyToggle" aria-describedby="usePitchyHelp">
+                <small id="usePitchyHelp" class="setting-help">Keeps autocorrelation as fallback; secondary pitch still uses autocorrelation.</small>
             </div>
         </div>
     </details>
