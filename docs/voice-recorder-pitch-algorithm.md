@@ -125,6 +125,43 @@ return sampleRate / bestLag;
 
 ## Visualization and Smoothing
 
+### Current Runtime Stabilization Pipeline (Implemented)
+
+The live voice recorder now uses a layered stabilization pipeline in `audio-visualizer.js` after raw pitch detection:
+
+1. **Primary threshold gate**
+  - Autocorrelation uses `primaryThreshold` on correlation.
+  - Pitchy path maps `clarity` to `primaryStrength` and uses the same threshold semantics.
+
+2. **Harmonic continuity correction**
+  - If a candidate pitch is a likely low subharmonic of recent contour (e.g. ~73 Hz instead of ~220 Hz), it is corrected to the nearest plausible multiple.
+  - Abrupt low dives with low confidence are rejected.
+
+3. **Post-silence reacquisition guard**
+  - After sustained misses, suspicious low/weak reacquired samples are temporarily gated.
+  - A short local consistency check is required before accepting them.
+
+4. **Temporal consistency filter for statistics**
+  - Large jumps with insufficient confidence are excluded from stats updates.
+
+5. **Short-gap hold + smoothing for display**
+  - Brief detection misses hold last pitch for a few frames.
+  - Exponential smoothing is applied to displayed trace to reduce jitter.
+
+### Important behavior note (quiet segments)
+
+When the signal is too quiet, detection returns `null` (no pitch). This does **not** insert `0 Hz` samples and does **not** average silence into pitch statistics. Apparent "ramp from bottom" artifacts typically come from low-confidence reacquisition samples after silence, which are now mitigated by the reacquisition guard.
+
+### Live Signal Indicator States
+
+The UI now shows a compact signal status badge based on RMS + detector confidence:
+
+- `Signal: idle` — visualizer inactive
+- `Signal: quiet` — input RMS below quiet threshold
+- `Signal: weak tracking` — signal present but confidence is low
+- `Signal: lost pitch` — sustained misses beyond short-gap hold
+- `Signal: tracking` — stable pitch tracking
+
 ### Pitch History (audio-visualizer.js)
 - Maintains a rolling buffer of 200 pitch samples
 - Each sample represents one animation frame (~16ms at 60fps)

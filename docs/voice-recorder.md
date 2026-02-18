@@ -25,6 +25,7 @@ Each recording is stored as a clip object containing audio blob, video blob, and
 
 **Key Features:**
 - Real-time waveform visualization with pitch overlay
+- Live signal-quality indicator (`idle`, `quiet`, `weak tracking`, `lost pitch`, `tracking`)
 - Multi-clip management (record multiple clips in one session)
 - Web Share API integration for easy sharing
 - Configurable pitch detection parameters
@@ -101,6 +102,17 @@ Colors and border width are instance properties set in the constructor.
 - Secondary pitch detection can be toggled via `showSecondaryPitch` property
 - **Scrolling behavior**: The pitch trace starts at the left edge and grows to the right at `pixelsPerSample` pixels per sample (currently 2px). When the trace reaches the right edge, the entire visualization scrolls left to make room for new samples, creating a continuous real-time display similar to an oscilloscope
 
+### Current Pitch Stabilization Behavior
+
+The visualizer applies several runtime stabilizers to keep the trace usable for voice practice:
+
+- harmonic continuity correction to reduce low subharmonic jumps
+- post-silence reacquisition guard to avoid immediate false low snaps
+- short-gap hold for brief detector misses
+- smoothing for display continuity
+
+`null` detection samples (for quiet/unvoiced moments) are not treated as `0 Hz` and are not averaged into pitch statistics.
+
 ## VoiceRecorderApp Class
 
 `VoiceRecorderApp` manages the full lifecycle: UI binding, recording, playback,
@@ -126,7 +138,8 @@ and save/share.
 ## Current Limitations
 
 - No backend storage or upload.
-- Pitch overlay uses a lightweight autocorrelation tuned for ~80–400 Hz; unvoiced/noisy segments may drop out rather than show a stable line.
+- Pitch overlay defaults to a lightweight autocorrelation detector tuned for ~80–400 Hz, with an optional Pitchy engine; unvoiced/noisy segments may drop out rather than show a stable line.
+- Secondary threshold control is currently hidden because secondary trace is disabled in normal UI flow.
 - Secondary pitch detection identifies additional frequency components but may not always find a valid secondary pitch.
 - Canvas playback re-renders the recorded video; there is no live waveform during playback.
 

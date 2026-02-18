@@ -30,6 +30,50 @@
     color: var(--text-light);
 }
 
+.signal-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.7rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    margin-bottom: 0.9rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.signal-indicator.signal-idle {
+    color: var(--text-light);
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.signal-indicator.signal-tracking {
+    color: #0c6b58;
+    background: rgba(32, 201, 151, 0.14);
+    border-color: rgba(32, 201, 151, 0.35);
+}
+
+.signal-indicator.signal-weak {
+    color: #9a6700;
+    background: rgba(255, 193, 7, 0.16);
+    border-color: rgba(255, 193, 7, 0.35);
+}
+
+.signal-indicator.signal-quiet {
+    color: #4c6f91;
+    background: rgba(116, 192, 252, 0.16);
+    border-color: rgba(116, 192, 252, 0.35);
+}
+
+.signal-indicator.signal-lost {
+    color: #b42318;
+    background: rgba(255, 107, 107, 0.14);
+    border-color: rgba(255, 107, 107, 0.3);
+}
+
 .btn {
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 999px;
@@ -192,6 +236,10 @@
     gap: 0.4rem;
 }
 
+.setting-item-secondary-threshold {
+    display: none;
+}
+
 .setting-item label {
     font-size: 0.85rem;
     font-weight: 500;
@@ -234,6 +282,25 @@
     border: 2px solid #74c0fc;
     cursor: pointer;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.setting-item-toggle {
+    align-items: flex-start;
+}
+
+.setting-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 0.2rem;
+    accent-color: #9775fa;
+    cursor: pointer;
+}
+
+.setting-help {
+    font-size: 0.78rem;
+    color: var(--text-light);
+    text-align: left;
+    line-height: 1.4;
 }
 
 .recorder-canvas-container {
