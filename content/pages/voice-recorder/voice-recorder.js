@@ -607,7 +607,9 @@ class VoiceRecorderApp {
                     this.setStatus('Video ready.', videoDetails);
                 }
 
-                this.currentRecordingClipId = null;
+                if (!this.discardRecordingOnStop) {
+                    this.currentRecordingClipId = null;
+                }
             };
 
             this.videoMediaRecorder.start();
