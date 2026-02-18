@@ -634,7 +634,7 @@ class VoiceRecorderApp {
         const state = resolvedStatus && resolvedStatus.state ? resolvedStatus.state : 'idle';
         const label = resolvedStatus && resolvedStatus.label ? resolvedStatus.label : 'Signal: idle';
 
-        // Avoid unnecessary DOM updates and aria-live announcements when nothing has changed
+        // Avoid unnecessary DOM updates when nothing has changed
         if (this._lastSignalState === state && this._lastSignalLabel === label) {
             return;
         }
