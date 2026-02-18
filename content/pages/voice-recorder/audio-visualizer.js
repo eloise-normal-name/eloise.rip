@@ -65,9 +65,15 @@ class AudioVisualizer {
             secondaryThreshold: 0.15
         };
 
+        this.onContextRecovery = null;
+        this.pendingContextRecoveryReset = false;
+        this.discardNextAcquiredSample = false;
+
         // Handle canvas context loss (can occur when switching tabs, especially on mobile)
         this.canvas.addEventListener('contextlost', (event) => {
             event.preventDefault();
+            this.pendingContextRecoveryReset = true;
+            this.discardNextAcquiredSample = true;
         });
 
         this.canvas.addEventListener('contextrestored', () => {
@@ -85,116 +91,20 @@ class AudioVisualizer {
             return;
         }
         this.ctx = newCtx;
-        // Redraw the background and reconstruct the visible pitch trace from history
+        // Redraw the background; recovery flow now resets recording/session state
         this.paintFrame();
-        this.reconstructPitchTrace();
+
+        // If context was restored while idle, there is no live sample to discard.
+        // Trigger recovery handling immediately so the app can reset playback/UI state.
+        if (this.pendingContextRecoveryReset && !this.analyserNode && this.onContextRecovery) {
+            this.pendingContextRecoveryReset = false;
+            this.discardNextAcquiredSample = false;
+            this.onContextRecovery({ whileIdle: true });
+        }
     }
 
-    reconstructSingleTrace(history, color, lineWidth, glowColor, startX) {
-        // Reconstruct a single pitch trace (primary or secondary) from history
-        const width = this.canvas.width;
-        this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = lineWidth;
-        let pathOpen = false;
-        let lastX = null;
-        let lastY = null;
-
-        for (let i = 0; i < history.length; i++) {
-            const sample = history[i];
-            const x = startX + i * this.pixelsPerSample;
-
-            // Skip samples that are off the left edge of the canvas
-            if (x < -this.pixelsPerSample) continue;
-            // Stop drawing if we're past the right edge
-            if (x > width) break;
-
-            if (sample === null) {
-                if (pathOpen) {
-                    this.ctx.stroke();
-                    pathOpen = false;
-                }
-                continue;
-            }
-
-            const y = this.hzToY(sample);
-
-            if (!pathOpen) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                pathOpen = true;
-            } else {
-                this.ctx.lineTo(x, y);
-            }
-
-            lastX = x;
-            lastY = y;
-        }
-
-        if (pathOpen) {
-            this.ctx.stroke();
-            // Draw glow effect at the tip if we have valid coordinates
-            if (lastX !== null && lastY !== null) {
-                this.drawSparkGlow(lastX, lastY, glowColor);
-                return lastY; // Return the last Y position for glow tracking
-            }
-        }
-        return null;
-    }
-
-    reconstructPitchTrace() {
-        // Reconstruct the pitch trace from stored history after a context loss or clear
-        // This draws all samples currently in history, positioning them based on currentX
-        if (!this.ensureContext()) return;
-        if (!this.pitchHistory.length) return;
-
-        const width = this.canvas.width;
-
-        // Calculate the starting X position based on current state
-        const samplesInHistory = this.pitchHistory.length;
-        const totalWidth = samplesInHistory * this.pixelsPerSample;
-        
-        // Derive startX from currentX so reconstruction matches the last on-screen positions
-        // currentX points to the NEXT draw position (already incremented), so we subtract
-        // samplesInHistory * pixelsPerSample to locate the first sample.
-        let startX = this.currentX - samplesInHistory * this.pixelsPerSample;
-
-        // Clamp startX so the visible segment stays consistent:
-        // - If the total trace fits within the canvas, keep it fully within [0, width].
-        // - If it is wider than the canvas, allow negative startX but avoid drifting so that
-        //   the visible window still spans the latest samples.
-        if (totalWidth <= width) {
-            if (startX < 0) {
-                startX = 0;
-            } else if (startX + totalWidth > width) {
-                startX = width - totalWidth;
-            }
-        } else {
-            if (startX > 0) {
-                startX = 0;
-            } else if (startX + totalWidth < width) {
-                startX = width - totalWidth;
-            }
-        }
-
-        // Draw primary pitch trace
-        this.lastPrimaryGlowY = this.reconstructSingleTrace(
-            this.pitchHistory,
-            this.pitchColor,
-            1.5,
-            this.sparkColor,
-            startX
-        );
-
-        // Draw secondary pitch trace if enabled
-        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
-            this.lastSecondaryGlowY = this.reconstructSingleTrace(
-                this.secondaryPitchHistory,
-                this.secondaryPitchColor,
-                1.2,
-                this.secondarySparkColor,
-                startX
-            );
-        }
+    setContextRecoveryHandler(handler) {
+        this.onContextRecovery = typeof handler === 'function' ? handler : null;
     }
 
     ensureContext() {
@@ -762,6 +672,20 @@ class AudioVisualizer {
 
         if (this.floatData && typeof detectPitch === 'function') {
             this.analyserNode.getFloatTimeDomainData(this.floatData);
+
+            if (this.discardNextAcquiredSample) {
+                this.discardNextAcquiredSample = false;
+                this.pushPitchSample(null);
+
+                if (this.pendingContextRecoveryReset && this.onContextRecovery) {
+                    this.pendingContextRecoveryReset = false;
+                    this.onContextRecovery({ whileIdle: false });
+                }
+
+                this.renderPitchTrace();
+                return;
+            }
+
             const pitchData = detectPitch(
                 this.floatData, 
                 this.analyserNode.context.sampleRate, 

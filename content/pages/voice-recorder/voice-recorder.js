@@ -67,6 +67,7 @@ class VoiceRecorderApp {
         this.currentRecordingClipId = null;
         this.recordingStartTime = null;
         this.playingClipId = null;
+        this.discardRecordingOnStop = false;
 
         if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
             || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
@@ -88,10 +89,97 @@ class VoiceRecorderApp {
         };
 
         this.visualizer = new AudioVisualizer(this.recordingCanvas, null);
+        this.visualizer.setContextRecoveryHandler((context) => this.handleVisualizerContextRecovery(context));
         this.visualizer.clear();
         this.setupConfigurationSliders();
         this.showBrowserCapabilities();
         this.renderClipsList();
+    }
+
+    getMostRecentClip() {
+        if (!this.clips.length) return null;
+
+        return this.clips.reduce((latest, clip) => {
+            if (!latest) return clip;
+            return clip.timestamp > latest.timestamp ? clip : latest;
+        }, null);
+    }
+
+    ensureSelectedClipForRestore() {
+        if (!this.clips.length) return null;
+
+        const selectedClip = this.clips.find((clip) => clip.id === this.selectedClipId);
+        if (selectedClip) {
+            return selectedClip;
+        }
+
+        const mostRecentClip = this.getMostRecentClip();
+        if (mostRecentClip) {
+            this.selectedClipId = mostRecentClip.id;
+            this.renderClipsList();
+        }
+
+        return mostRecentClip;
+    }
+
+    resetPlaybackToStartIfAvailable() {
+        if (!this.playbackVideo) return false;
+
+        const selectedClip = this.ensureSelectedClipForRestore();
+        if (selectedClip && selectedClip.videoUrl) {
+            const currentSource = this.playbackVideo.currentSrc || this.playbackVideo.src;
+            if (currentSource !== selectedClip.videoUrl) {
+                this.playbackVideo.src = selectedClip.videoUrl;
+                this.playbackVideo.load();
+            }
+        }
+
+        const currentSource = this.playbackVideo.currentSrc || this.playbackVideo.src;
+        if (!currentSource) {
+            return false;
+        }
+
+        this.playbackVideo.pause();
+        this.stopPlaybackRender();
+
+        try {
+            this.playbackVideo.currentTime = 0;
+        } catch (error) {
+            // If seeking fails before metadata is ready, reload and keep paused at start
+            this.playbackVideo.load();
+        }
+
+        if (this.playingClipId !== null) {
+            this.playingClipId = null;
+            this.renderClipsList();
+        }
+
+        return true;
+    }
+
+    handleVisualizerContextRecovery(context = {}) {
+        if (this.isRecording) {
+            this.stopRecording({ discard: true, dueToContextRecovery: true });
+            return;
+        }
+
+        if (this.isTestSignalActive) {
+            this.stopTestSignal();
+        }
+
+        this.stopVisualizer();
+        this.visualizer.setAnalyser(null);
+        this.visualizer.clear();
+
+        const playbackReset = this.resetPlaybackToStartIfAvailable();
+        const restoredWhileIdle = Boolean(context.whileIdle);
+        const details = restoredWhileIdle
+            ? (playbackReset
+                ? 'Recovered while idle. Playback reset to the beginning. Press record to start a new clip.'
+                : 'Recovered while idle. No saved clip video to reset yet. Press record to start a new clip.')
+            : 'Current sample discarded. Press record to start a new clip.';
+
+        this.setStatus('Canvas context recovered. Recorder reset.', details);
     }
 
     setupConfigurationSliders() {
@@ -410,6 +498,7 @@ class VoiceRecorderApp {
         }
 
         this.audioChunks = [];
+        this.discardRecordingOnStop = false;
         let totalBytes = 0;
 
         this.mediaRecorder.ondataavailable = (event) => {
@@ -426,14 +515,19 @@ class VoiceRecorderApp {
         this.mediaRecorder.onstop = () => {
             const blobType = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || 'audio/mp4';
             const audioBlob = new Blob(this.audioChunks, { type: blobType });
-            const audioUrl = URL.createObjectURL(audioBlob);
-
             const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
-            const pitchStats = this.visualizer.getPitchStatistics();
-            this.addClip(audioBlob, audioUrl, duration, pitchStats);
-
             const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
-            this.setStatus('Recording ready.', details);
+
+            if (this.discardRecordingOnStop) {
+                this.setStatus('Recording reset after canvas recovery.', `${details}\nAction: Current recording discarded. Start a new recording.`);
+            } else {
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const pitchStats = this.visualizer.getPitchStatistics();
+                this.addClip(audioBlob, audioUrl, duration, pitchStats);
+                this.setStatus('Recording ready.', details);
+            }
+
+            this.discardRecordingOnStop = false;
             this.stopVisualizer();
             this.stopStream();
             this.testSignalButton.disabled = false;
@@ -489,11 +583,15 @@ class VoiceRecorderApp {
             this.videoMediaRecorder.onstop = () => {
                 const blobType = videoMimeType || (this.videoChunks[0] && this.videoChunks[0].type) || 'video/webm';
                 const videoBlob = new Blob(this.videoChunks, { type: blobType });
-                const videoUrl = URL.createObjectURL(videoBlob);
+                let videoUrl = null;
+
+                if (!this.discardRecordingOnStop) {
+                    videoUrl = URL.createObjectURL(videoBlob);
+                }
 
                 if (this.currentRecordingClipId !== null) {
                     const clip = this.clips.find((c) => c.id === this.currentRecordingClipId);
-                    if (clip) {
+                    if (clip && videoUrl) {
                         clip.videoBlob = videoBlob;
                         clip.videoUrl = videoUrl;
                         if (this.selectedClipId === clip.id) {
@@ -504,8 +602,12 @@ class VoiceRecorderApp {
                     }
                 }
 
-                const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
-                this.setStatus('Video ready.', videoDetails);
+                if (!this.discardRecordingOnStop) {
+                    const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
+                    this.setStatus('Video ready.', videoDetails);
+                }
+
+                this.currentRecordingClipId = null;
             };
 
             this.videoMediaRecorder.start();
@@ -514,10 +616,12 @@ class VoiceRecorderApp {
         }
     }
 
-    stopRecording() {
+    stopRecording({ discard = false, dueToContextRecovery = false } = {}) {
         if (!this.mediaRecorder || this.mediaRecorder.state !== 'recording') {
             return;
         }
+
+        this.discardRecordingOnStop = discard;
 
         this.mediaRecorder.stop();
         if (this.videoMediaRecorder && this.videoMediaRecorder.state === 'recording') {
@@ -526,6 +630,12 @@ class VoiceRecorderApp {
 
         this.isRecording = false;
         this.setButtonIcon(this.recordButton, 'icon-circle');
+
+        if (dueToContextRecovery) {
+            this.setStatus('Canvas context recovered. Resetting recorder...', 'Current sample discarded; this recording will be dropped.');
+            return;
+        }
+
         this.setStatus('Processing recording...');
     }
 
