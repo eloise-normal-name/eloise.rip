@@ -40,7 +40,8 @@ class AudioVisualizer {
         };
 
         this.pitchGridSpacing = 50;
-        this.pitchGridColor = 'rgba(255,255,255,0.08)';
+        // Subtle gray grid (works on white background introduced in main)
+        this.pitchGridColor = 'rgba(0,0,0,0.08)';
         this.pitchGridWidth = 1;
 
         this.pitchDetectionOptions = {
@@ -354,6 +355,23 @@ class AudioVisualizer {
             this.ctx.fillRect(0, topY, width, bottomY - topY);
         }
 
+        // Draw pitch reference grid (static layer)
+        if (range > 0) {
+            const spacing = this.pitchGridSpacing;
+            const firstHz = Math.ceil(this.pitchMinHz / spacing) * spacing;
+
+            this.ctx.strokeStyle = this.pitchGridColor;
+            this.ctx.lineWidth = this.pitchGridWidth;
+
+            for (let hz = firstHz; hz <= this.pitchMaxHz; hz += spacing) {
+                const y = hzToY(hz);
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, y);
+                this.ctx.lineTo(width, y);
+                this.ctx.stroke();
+            }
+        }
+
         if (this.borderWidth > 0) {
             const inset = this.borderWidth / 2;
             this.ctx.lineWidth = this.borderWidth;
@@ -413,7 +431,6 @@ class AudioVisualizer {
 
     render() {
         this.paintFrame();
-        this.renderPitchGrid();
         if (!this.analyserNode) return;
         if (!this.floatData || this.floatData.length !== this.analyserNode.fftSize) {
             this.floatData = new Float32Array(this.analyserNode.fftSize);
@@ -435,34 +452,6 @@ class AudioVisualizer {
         this.renderPitchTrace();
     }
 
-    renderPitchGrid() {
-        const width = this.canvas.width;
-        const height = this.canvas.height;
-        const padding = 6;
-        const usableHeight = height - padding * 2;
-        const range = this.pitchMaxHz - this.pitchMinHz;
-        if (range <= 0) return;
-
-        const spacing = this.pitchGridSpacing;
-        const firstHz = Math.ceil(this.pitchMinHz / spacing) * spacing;
-
-        this.ctx.save();
-        this.ctx.strokeStyle = this.pitchGridColor;
-        this.ctx.lineWidth = this.pitchGridWidth;
-
-        for (let hz = firstHz; hz <= this.pitchMaxHz; hz += spacing) {
-            const ratio = (hz - this.pitchMinHz) / range;
-            const clamped = Math.min(1, Math.max(0, ratio));
-            const y = padding + (1 - clamped) * usableHeight;
-
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, y);
-            this.ctx.lineTo(width, y);
-            this.ctx.stroke();
-        }
-
-        this.ctx.restore();
-    }
 
     renderPitchTrace() {
         if (!this.ensureContext()) return;
