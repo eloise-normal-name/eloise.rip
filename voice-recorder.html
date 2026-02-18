@@ -691,8 +691,22 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         this.pitchMaxHz = 280;
         this.pitchColor = 'rgba(116, 192, 252, 0.9)';
         this.secondaryPitchColor = 'rgba(255, 180, 100, 0.7)';
+        this.sparkColor = 'rgba(255, 88, 66, 0.95)';
+        this.secondarySparkColor = 'rgba(255, 120, 84, 0.92)';
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = false;
+        this.glowRadius = 12;
+        this.lastPrimaryGlowY = null;
+        this.lastSecondaryGlowY = null;
+
+        // Scrolling visualization settings
+        this.currentX = 0; // Current X position where next sample will be drawn
+        this.pixelsPerSample = 2; // Width in pixels for each sample
+        this.scrollBufferPx = 24; // Start scrolling this many pixels before the right edge
+
+        // Cached offscreen canvas for efficient scrolling (avoids allocation/GC on every frame)
+        this.offscreenCanvas = null;
+        this.offscreenCtx = null;
 
         // Pitch statistics tracking
         this.pitchStats = {
@@ -738,9 +752,150 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
             return;
         }
         this.ctx = newCtx;
-        // Redraw the current visualization state
+        // Redraw the background and reconstruct the visible pitch trace from history
         this.paintFrame();
-        this.renderPitchTrace();
+        this.reconstructPitchTrace();
+    }
+
+    reconstructPitchTrace() {
+        // Reconstruct the pitch trace from stored history after a context loss or clear
+        // This draws all samples currently in history, positioning them based on currentX
+        if (!this.ensureContext()) return;
+        if (!this.pitchHistory.length) return;
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const padding = 6;
+        const usableHeight = height - padding * 2;
+        const range = this.pitchMaxHz - this.pitchMinHz || 1;
+
+        // Calculate the starting X position based on current state
+        const samplesInHistory = this.pitchHistory.length;
+        const totalWidth = samplesInHistory * this.pixelsPerSample;
+
+        // Derive startX from currentX so reconstruction matches the last on-screen positions
+        // currentX points to the NEXT draw position (already incremented), so we subtract
+        // samplesInHistory * pixelsPerSample to locate the first sample.
+        let startX = this.currentX - samplesInHistory * this.pixelsPerSample;
+
+        // Clamp startX so the visible segment stays consistent:
+        // - If the total trace fits within the canvas, keep it fully within [0, width].
+        // - If it is wider than the canvas, allow negative startX but avoid drifting so that
+        //   the visible window still spans the latest samples.
+        if (totalWidth <= width) {
+            if (startX < 0) {
+                startX = 0;
+            } else if (startX + totalWidth > width) {
+                startX = width - totalWidth;
+            }
+        } else {
+            if (startX > 0) {
+                startX = 0;
+            } else if (startX + totalWidth < width) {
+                startX = width - totalWidth;
+            }
+        }
+
+        // Draw primary pitch trace
+        this.ctx.strokeStyle = this.pitchColor;
+        this.ctx.lineWidth = 1.5;
+        let pathOpen = false;
+        let lastX = null;
+        let lastY = null;
+
+        for (let i = 0; i < this.pitchHistory.length; i++) {
+            const sample = this.pitchHistory[i];
+            const x = startX + i * this.pixelsPerSample;
+
+            // Skip samples that are off the left edge of the canvas
+            if (x < -this.pixelsPerSample) continue;
+            // Stop drawing if we're past the right edge
+            if (x > width) break;
+
+            if (sample === null) {
+                if (pathOpen) {
+                    this.ctx.stroke();
+                    pathOpen = false;
+                }
+                continue;
+            }
+
+            const ratio = (sample - this.pitchMinHz) / range;
+            const clamped = Math.min(1, Math.max(0, ratio));
+            const y = padding + (1 - clamped) * usableHeight;
+
+            if (!pathOpen) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                pathOpen = true;
+            } else {
+                this.ctx.lineTo(x, y);
+            }
+
+            lastX = x;
+            lastY = y;
+        }
+
+        if (pathOpen) {
+            this.ctx.stroke();
+            // Draw glow effect at the tip if we have valid coordinates
+            if (lastX !== null && lastY !== null) {
+                this.drawSparkGlow(lastX, lastY, this.sparkColor);
+                this.lastPrimaryGlowY = lastY;
+            }
+        } else {
+            this.lastPrimaryGlowY = null;
+        }
+
+        // Draw secondary pitch trace if enabled
+        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
+            this.ctx.strokeStyle = this.secondaryPitchColor;
+            this.ctx.lineWidth = 1.2;
+            pathOpen = false;
+            let lastSecondaryX = null;
+            let lastSecondaryY = null;
+
+            for (let i = 0; i < this.secondaryPitchHistory.length; i++) {
+                const sample = this.secondaryPitchHistory[i];
+                const x = startX + i * this.pixelsPerSample;
+
+                if (x < -this.pixelsPerSample) continue;
+                if (x > width) break;
+
+                if (sample === null) {
+                    if (pathOpen) {
+                        this.ctx.stroke();
+                        pathOpen = false;
+                    }
+                    continue;
+                }
+
+                const ratio = (sample - this.pitchMinHz) / range;
+                const clamped = Math.min(1, Math.max(0, ratio));
+                const y = padding + (1 - clamped) * usableHeight;
+
+                if (!pathOpen) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    pathOpen = true;
+                } else {
+                    this.ctx.lineTo(x, y);
+                }
+
+                lastSecondaryX = x;
+                lastSecondaryY = y;
+            }
+
+            if (pathOpen) {
+                this.ctx.stroke();
+                if (lastSecondaryX !== null && lastSecondaryY !== null) {
+                    this.drawSparkGlow(lastSecondaryX, lastSecondaryY, this.secondarySparkColor);
+                    this.lastSecondaryGlowY = lastSecondaryY;
+                }
+            } else {
+                this.lastSecondaryGlowY = null;
+            }
+        }
     }
 
     ensureContext() {
@@ -756,6 +911,23 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         return true; // Context is valid
     }
 
+    ensureOffscreenCanvas(width, height) {
+        // Create or resize the cached offscreen canvas to match the main canvas dimensions
+        // This is called during scrolling to avoid allocating a new canvas every frame
+        if (!this.offscreenCanvas || this.offscreenCanvas.width !== width || this.offscreenCanvas.height !== height) {
+            // Use OffscreenCanvas if available (better performance in some browsers)
+            if (typeof OffscreenCanvas !== 'undefined') {
+                this.offscreenCanvas = new OffscreenCanvas(width, height);
+            } else {
+                this.offscreenCanvas = document.createElement('canvas');
+                this.offscreenCanvas.width = width;
+                this.offscreenCanvas.height = height;
+            }
+            this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+        }
+        return this.offscreenCtx;
+    }
+
     setAnalyser(analyserNode) {
         this.analyserNode = analyserNode;
         if (this.analyserNode) {
@@ -764,11 +936,15 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
             this.floatData = null;
         }
         this.resetPitchHistory();
+        this.paintFrame();
     }
 
     resetPitchHistory() {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
+        this.currentX = 0;
+        this.lastPrimaryGlowY = null;
+        this.lastSecondaryGlowY = null;
         this.pitchStats = {
             min: null,
             max: null,
@@ -994,7 +1170,22 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, width, height);
 
-        // Draw voice range bands
+        // Draw voice range bands across the full width
+        this.drawVoiceRangeBands(0, width);
+
+        if (this.borderWidth > 0) {
+            const inset = this.borderWidth / 2;
+            this.ctx.lineWidth = this.borderWidth;
+            this.ctx.strokeStyle = this.borderColor;
+            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
+        }
+        this.ctx.restore();
+    }
+
+    drawVoiceRangeBands(startX, width) {
+        // Helper method to draw voice range bands in a specific region of the canvas
+        // This reduces code duplication between paintFrame and scrolling logic
+        const height = this.canvas.height;
         const padding = 6;
         const usableHeight = height - padding * 2;
         const range = this.pitchMaxHz - this.pitchMinHz || 1;
@@ -1011,7 +1202,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
             const topY = hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
             const bottomY = hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
             this.ctx.fillStyle = this.masculineVoiceColor;
-            this.ctx.fillRect(0, topY, width, bottomY - topY);
+            this.ctx.fillRect(startX, topY, width, bottomY - topY);
         }
 
         // Draw feminine voice range band (pink)
@@ -1019,11 +1210,11 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
             const topY = hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
             const bottomY = hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
             this.ctx.fillStyle = this.feminineVoiceColor;
-            this.ctx.fillRect(0, topY, width, bottomY - topY);
+            this.ctx.fillRect(startX, topY, width, bottomY - topY);
         }
 
-        // Draw pitch reference grid (static layer)
-        if (range > 0) {
+        // Draw pitch reference grid (static layer) - only when drawing full canvas width
+        if (range > 0 && startX === 0) {
             const spacing = this.pitchGridSpacing;
             const firstHz = Math.ceil(this.pitchMinHz / spacing) * spacing;
 
@@ -1034,7 +1225,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
                 const y = hzToY(hz);
                 this.ctx.beginPath();
                 this.ctx.moveTo(0, y);
-                this.ctx.lineTo(width, y);
+                this.ctx.lineTo(this.canvas.width, y);
                 this.ctx.stroke();
             }
         }
@@ -1045,7 +1236,6 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
             this.ctx.strokeStyle = this.borderColor;
             this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
         }
-        this.ctx.restore();
     }
 
     clear() {
@@ -1064,7 +1254,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         const b = parseInt(match[3]);
 
         // Create radial gradient for the glow effect
-        const glowRadius = 12;
+        const glowRadius = this.glowRadius;
         const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
 
         // Bright center (almost opaque)
@@ -1096,8 +1286,108 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         this.ctx.restore();
     }
 
+    redrawTraceInRegion(history, color, lineWidth, regionStartX, regionEndX, upToIndex, latestIndex) {
+        if (upToIndex < 0 || !history.length) return;
+
+        const height = this.canvas.height;
+        const padding = 6;
+        const usableHeight = height - padding * 2;
+        const range = this.pitchMaxHz - this.pitchMinHz || 1;
+
+        const hzToY = (hz) => {
+            const ratio = (hz - this.pitchMinHz) / range;
+            const clamped = Math.min(1, Math.max(0, ratio));
+            return padding + (1 - clamped) * usableHeight;
+        };
+
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = lineWidth;
+
+        let prevX = null;
+        let prevY = null;
+
+        for (let i = 0; i <= upToIndex; i++) {
+            const sample = history[i];
+            if (sample === null) {
+                prevX = null;
+                prevY = null;
+                continue;
+            }
+
+            const x = this.currentX - (latestIndex - i) * this.pixelsPerSample;
+            const y = hzToY(sample);
+
+            if (prevX !== null && prevY !== null) {
+                const segMinX = Math.min(prevX, x);
+                const segMaxX = Math.max(prevX, x);
+                if (segMaxX >= regionStartX && segMinX <= regionEndX) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(prevX, prevY);
+                    this.ctx.lineTo(x, y);
+                    this.ctx.stroke();
+                }
+            } else if (x >= regionStartX && x <= regionEndX) {
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
+            }
+
+            prevX = x;
+            prevY = y;
+        }
+    }
+
+    clearPreviousTipGlow(previousTipX, latestIndex) {
+        if (latestIndex < 1) return;
+        if (this.lastPrimaryGlowY === null && this.lastSecondaryGlowY === null) return;
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const clearPadding = 4;
+        const regionStartX = Math.max(0, Math.floor(previousTipX - this.glowRadius - clearPadding));
+        const regionEndX = Math.min(width, Math.ceil(previousTipX + this.glowRadius + clearPadding));
+        const regionWidth = regionEndX - regionStartX;
+
+        if (regionWidth <= 0) return;
+
+        // Restore background/bands in the glow strip, then redraw line segments only.
+        this.ctx.save();
+        this.ctx.fillStyle = this.backgroundColor;
+        this.ctx.fillRect(regionStartX, 0, regionWidth, height);
+        this.drawVoiceRangeBands(regionStartX, regionWidth);
+        this.ctx.restore();
+
+        const upToIndex = latestIndex - 1;
+        this.redrawTraceInRegion(
+            this.pitchHistory,
+            this.pitchColor,
+            1.5,
+            regionStartX,
+            regionEndX,
+            upToIndex,
+            latestIndex
+        );
+
+        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
+            this.redrawTraceInRegion(
+                this.secondaryPitchHistory,
+                this.secondaryPitchColor,
+                1.2,
+                regionStartX,
+                regionEndX,
+                upToIndex,
+                latestIndex
+            );
+        }
+
+        this.lastPrimaryGlowY = null;
+        this.lastSecondaryGlowY = null;
+    }
+
     render() {
-        this.paintFrame();
+        // Don't call paintFrame() here - we only repaint during scrolling or explicit clear
+        // This allows the pitch trace to persist and scroll properly
         if (!this.analyserNode) return;
         if (!this.floatData || this.floatData.length !== this.analyserNode.fftSize) {
             this.floatData = new Float32Array(this.analyserNode.fftSize);
@@ -1128,97 +1418,167 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
         const height = this.canvas.height;
         const padding = 6;
         const usableHeight = height - padding * 2;
-        const step = this.pitchMaxSamples > 1 ? width / (this.pitchMaxSamples - 1) : width;
-        const offset = Math.max(this.pitchMaxSamples - this.pitchHistory.length, 0);
         const range = this.pitchMaxHz - this.pitchMinHz || 1;
 
-        this.ctx.strokeStyle = this.pitchColor;
-        this.ctx.lineWidth = 1.5;
+        // Check if we need to scroll (trigger a bit before the right edge)
+        const maxAllowedBuffer = Math.max(0, width - this.pixelsPerSample - 1);
+        const bufferPx = Math.min(this.scrollBufferPx, maxAllowedBuffer);
+        const scrollTriggerX = Math.max(0, width - this.pixelsPerSample - bufferPx);
 
-        let pathOpen = false;
-        let lastX = null;
-        let lastY = null;
-        for (let i = 0; i < this.pitchHistory.length; i += 1) {
-            const sample = this.pitchHistory[i];
-            const x = (i + offset) * step;
+        if (this.currentX >= scrollTriggerX) {
+            // Use cached offscreen canvas to efficiently copy and shift the canvas content
+            // This avoids allocating a new canvas on every scroll frame
+            const tempCtx = this.ensureOffscreenCanvas(width, height);
 
-            if (sample === null) {
-                if (pathOpen) {
-                    this.ctx.stroke();
-                    pathOpen = false;
+            if (tempCtx) {
+                // Preferred path: use cached offscreen canvas for efficient scrolling
+                tempCtx.drawImage(this.canvas, 0, 0);
+
+                // Shift the existing content left by pixelsPerSample without
+                // clearing the entire canvas, so the trace is preserved
+                this.ctx.drawImage(this.offscreenCanvas, -this.pixelsPerSample, 0);
+
+                // Clear and repaint only the newly revealed rightmost strip with
+                // the background and voice range bands
+                this.ctx.save();
+                this.ctx.fillStyle = this.backgroundColor;
+                this.ctx.fillRect(width - this.pixelsPerSample, 0, this.pixelsPerSample, height);
+
+                // Redraw voice range bands in the cleared strip using helper method
+                this.drawVoiceRangeBands(width - this.pixelsPerSample, this.pixelsPerSample);
+
+                this.ctx.restore();
+            } else {
+                // Fallback path: use getImageData/putImageData if temp context creation fails
+                const scrollWidth = Math.max(0, width - this.pixelsPerSample);
+                if (scrollWidth > 0) {
+                    const imageData = this.ctx.getImageData(this.pixelsPerSample, 0, scrollWidth, height);
+
+                    // Draw the saved content shifted left by pixelsPerSample
+                    this.ctx.putImageData(imageData, 0, 0);
+
+                    // Repaint the background only for the newly revealed rightmost strip
+                    const rightStripX = width - this.pixelsPerSample;
+                    if (rightStripX >= 0) {
+                        this.ctx.save();
+                        this.ctx.fillStyle = this.backgroundColor;
+                        this.ctx.fillRect(rightStripX, 0, this.pixelsPerSample, height);
+
+                        // Redraw voice range bands in the rightmost strip using helper method
+                        this.drawVoiceRangeBands(rightStripX, this.pixelsPerSample);
+
+                        this.ctx.restore();
+                    }
+                } else {
+                    // If there's nothing to scroll, just repaint the frame
+                    this.paintFrame();
                 }
-                continue;
             }
 
-            const ratio = (sample - this.pitchMinHz) / range;
+            // Keep drawing near the right side (with buffer) while the canvas scrolls left
+            this.currentX = scrollTriggerX;
+        }
+
+        // Get the most recent sample (the one we just added)
+        const latestIndex = this.pitchHistory.length - 1;
+        const primarySample = this.pitchHistory[latestIndex];
+        const secondarySample = this.secondaryPitchHistory[latestIndex];
+
+        // Keep only the newest tip glow: clear the previous glow strip and redraw
+        // only the line segments in that region.
+        const previousTipX = this.currentX - this.pixelsPerSample;
+        this.clearPreviousTipGlow(previousTipX, latestIndex);
+
+        // Draw the new primary pitch sample
+        if (primarySample !== null) {
+            const ratio = (primarySample - this.pitchMinHz) / range;
             const clamped = Math.min(1, Math.max(0, ratio));
             const y = padding + (1 - clamped) * usableHeight;
 
-            if (!pathOpen) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(x, y);
-                pathOpen = true;
+            this.ctx.strokeStyle = this.pitchColor;
+            this.ctx.lineWidth = 1.5;
+
+            // If we have a previous sample, draw a line from it to the new one
+            if (latestIndex > 0) {
+                const prevSample = this.pitchHistory[latestIndex - 1];
+                if (prevSample !== null) {
+                    const prevRatio = (prevSample - this.pitchMinHz) / range;
+                    const prevClamped = Math.min(1, Math.max(0, prevRatio));
+                    const prevY = padding + (1 - prevClamped) * usableHeight;
+                    const prevX = this.currentX - this.pixelsPerSample;
+
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(prevX, prevY);
+                    this.ctx.lineTo(this.currentX, y);
+                    this.ctx.stroke();
+                } else {
+                    // Previous sample was null, just draw a point
+                    this.ctx.fillStyle = this.pitchColor;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                }
             } else {
-                this.ctx.lineTo(x, y);
+                // First sample, just draw a point
+                this.ctx.fillStyle = this.pitchColor;
+                this.ctx.beginPath();
+                this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
             }
 
-            lastX = x;
-            lastY = y;
+            // Draw glow effect at the tip of the pitch trace
+            this.drawSparkGlow(this.currentX, y, this.sparkColor);
+            this.lastPrimaryGlowY = y;
+        } else {
+            this.lastPrimaryGlowY = null;
         }
 
-        if (pathOpen) {
-            this.ctx.stroke();
+        // Draw the new secondary pitch sample
+        if (this.showSecondaryPitch && secondarySample !== null) {
+            const ratio = (secondarySample - this.pitchMinHz) / range;
+            const clamped = Math.min(1, Math.max(0, ratio));
+            const y = padding + (1 - clamped) * usableHeight;
 
-            // Draw glow effect at the tip (spark-like) only if we have valid coordinates
-            if (lastX !== null && lastY !== null) {
-                this.drawSparkGlow(lastX, lastY, this.pitchColor);
-            }
-        }
-
-        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
             this.ctx.strokeStyle = this.secondaryPitchColor;
             this.ctx.lineWidth = 1.2;
 
-            pathOpen = false;
-            let lastSecondaryX = null;
-            let lastSecondaryY = null;
-            for (let i = 0; i < this.secondaryPitchHistory.length; i += 1) {
-                const sample = this.secondaryPitchHistory[i];
-                const x = (i + offset) * step;
+            // If we have a previous sample, draw a line from it to the new one
+            if (latestIndex > 0) {
+                const prevSample = this.secondaryPitchHistory[latestIndex - 1];
+                if (prevSample !== null) {
+                    const prevRatio = (prevSample - this.pitchMinHz) / range;
+                    const prevClamped = Math.min(1, Math.max(0, prevRatio));
+                    const prevY = padding + (1 - prevClamped) * usableHeight;
+                    const prevX = this.currentX - this.pixelsPerSample;
 
-                if (sample === null) {
-                    if (pathOpen) {
-                        this.ctx.stroke();
-                        pathOpen = false;
-                    }
-                    continue;
-                }
-
-                const ratio = (sample - this.pitchMinHz) / range;
-                const clamped = Math.min(1, Math.max(0, ratio));
-                const y = padding + (1 - clamped) * usableHeight;
-
-                if (!pathOpen) {
                     this.ctx.beginPath();
-                    this.ctx.moveTo(x, y);
-                    pathOpen = true;
+                    this.ctx.moveTo(prevX, prevY);
+                    this.ctx.lineTo(this.currentX, y);
+                    this.ctx.stroke();
                 } else {
-                    this.ctx.lineTo(x, y);
+                    // Previous sample was null, just draw a point
+                    this.ctx.fillStyle = this.secondaryPitchColor;
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                    this.ctx.fill();
                 }
-
-                lastSecondaryX = x;
-                lastSecondaryY = y;
+            } else {
+                // First sample, just draw a point
+                this.ctx.fillStyle = this.secondaryPitchColor;
+                this.ctx.beginPath();
+                this.ctx.arc(this.currentX, y, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
             }
 
-            if (pathOpen) {
-                this.ctx.stroke();
-
-                // Draw glow effect at the tip (spark-like) only if we have valid coordinates
-                if (lastSecondaryX !== null && lastSecondaryY !== null) {
-                    this.drawSparkGlow(lastSecondaryX, lastSecondaryY, this.secondaryPitchColor);
-                }
-            }
+            // Draw glow effect at the tip of the secondary pitch trace
+            this.drawSparkGlow(this.currentX, y, this.secondarySparkColor);
+            this.lastSecondaryGlowY = y;
+        } else {
+            this.lastSecondaryGlowY = null;
         }
+
+        // Advance the X position for the next sample
+        this.currentX += this.pixelsPerSample;
     }
 }/**
  * Voice Recorder App - Multi-clip recording with pitch visualization
