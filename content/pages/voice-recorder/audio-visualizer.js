@@ -39,6 +39,11 @@ class AudioVisualizer {
             strengths: []
         };
 
+        this.pitchGridSpacing = 50;
+        // Subtle gray grid (works on white background introduced in main)
+        this.pitchGridColor = 'rgba(0,0,0,0.08)';
+        this.pitchGridWidth = 1;
+
         this.pitchDetectionOptions = {
             minHz: 70,
             maxHz: 280,
@@ -350,6 +355,23 @@ class AudioVisualizer {
             this.ctx.fillRect(0, topY, width, bottomY - topY);
         }
 
+        // Draw pitch reference grid (static layer)
+        if (range > 0) {
+            const spacing = this.pitchGridSpacing;
+            const firstHz = Math.ceil(this.pitchMinHz / spacing) * spacing;
+
+            this.ctx.strokeStyle = this.pitchGridColor;
+            this.ctx.lineWidth = this.pitchGridWidth;
+
+            for (let hz = firstHz; hz <= this.pitchMaxHz; hz += spacing) {
+                const y = hzToY(hz);
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, y);
+                this.ctx.lineTo(width, y);
+                this.ctx.stroke();
+            }
+        }
+
         if (this.borderWidth > 0) {
             const inset = this.borderWidth / 2;
             this.ctx.lineWidth = this.borderWidth;
@@ -429,6 +451,7 @@ class AudioVisualizer {
 
         this.renderPitchTrace();
     }
+
 
     renderPitchTrace() {
         if (!this.ensureContext()) return;
