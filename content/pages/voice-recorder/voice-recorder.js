@@ -9,18 +9,17 @@
  * A GitHub Actions workflow validates DOM elements on every PR to prevent initialization failures.
  */
 class VoiceRecorderApp {
-    static adjectives = [
-        'swift', 'bright', 'gentle', 'calm', 'wild',
-        'quiet', 'bold', 'soft', 'warm', 'cool',
-        'happy', 'clever', 'brave', 'kind', 'free',
-        'pure', 'neat', 'clear', 'smooth', 'crisp'
-    ];
-
-    static nouns = [
-        'river', 'cloud', 'forest', 'wave', 'star',
-        'moon', 'sky', 'wind', 'rain', 'snow',
-        'bird', 'leaf', 'stone', 'light', 'dream',
-        'song', 'path', 'lake', 'fire', 'echo'
+    static foods = [
+        'apple', 'apricot', 'avocado', 'banana', 'basil', 'bean', 'berry', 'biscuit', 'bread', 'broccoli',
+        'butter', 'cabbage', 'cake', 'carrot', 'cashew', 'celery', 'cheese', 'cherry', 'chicken', 'chili',
+        'chocolate', 'cinnamon', 'coconut', 'coffee', 'cookie', 'corn', 'cracker', 'cream', 'cucumber', 'cupcake',
+        'date', 'donut', 'dumpling', 'egg', 'fig', 'fries', 'garlic', 'ginger', 'grape', 'honey',
+        'jam', 'kale', 'kiwi', 'lemon', 'lettuce', 'lime', 'mango', 'maple', 'melon', 'milk',
+        'mint', 'muffin', 'mushroom', 'noodle', 'nutmeg', 'oat', 'olive', 'onion', 'orange', 'papaya',
+        'pasta', 'peach', 'peanut', 'pear', 'pepper', 'pickle', 'pie', 'pineapple', 'pistachio', 'pizza',
+        'plum', 'popcorn', 'potato', 'pretzel', 'pumpkin', 'radish', 'raisin', 'rice', 'roll', 'salad',
+        'salsa', 'sauce', 'soup', 'spinach', 'sprout', 'squash', 'steak', 'strawberry', 'sugar', 'taco',
+        'tea', 'toast', 'tofu', 'tomato', 'truffle', 'tuna', 'vanilla', 'waffle', 'walnut', 'yogurt'
     ];
 
     static debugMimeTypes = [
@@ -180,10 +179,11 @@ class VoiceRecorderApp {
     }
 
     generateRandomFilename() {
-        const { adjectives, nouns } = VoiceRecorderApp;
-        const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
-        const noun = nouns[Math.floor(Math.random() * nouns.length)];
-        return `${adjective}-${noun}`;
+        const { foods } = VoiceRecorderApp;
+        const food1 = foods[Math.floor(Math.random() * foods.length)];
+        const food2 = foods[Math.floor(Math.random() * foods.length)];
+        const food3 = foods[Math.floor(Math.random() * foods.length)];
+        return `${food1}-${food2}-${food3}`;
     }
 
     downloadBlob(blob, filename, existingUrl = null) {
@@ -231,6 +231,8 @@ class VoiceRecorderApp {
                 if (error && error.name === 'AbortError') {
                     return;
                 }
+                // For non-abort errors, show error and fall through to download
+                this.setStatus('Share failed, downloading instead.', `Error: ${error.message}`);
             }
         }
 
@@ -427,7 +429,8 @@ class VoiceRecorderApp {
             const audioUrl = URL.createObjectURL(audioBlob);
 
             const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
-            this.addClip(audioBlob, audioUrl, duration);
+            const pitchStats = this.visualizer.getPitchStatistics();
+            this.addClip(audioBlob, audioUrl, duration, pitchStats);
 
             const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
             this.setStatus('Recording ready.', details);
@@ -460,7 +463,7 @@ class VoiceRecorderApp {
 
     startVideoRecording() {
         try {
-            const canvasStream = this.recordingCanvas.captureStream(30);
+            const canvasStream = this.recordingCanvas.captureStream(60);
             const videoTrack = canvasStream.getVideoTracks()[0];
             const audioTrack = this.mediaStream.getAudioTracks()[0];
             const combinedStream = new MediaStream([videoTrack, audioTrack]);
@@ -590,21 +593,25 @@ class VoiceRecorderApp {
     async shareClipAudio(id) {
         const clip = this.clips.find((c) => c.id === id);
         if (!clip || !clip.audioBlob) {
-            this.setStatus('No recording available to save.');
+            this.setStatus('No audio recording available to save.');
             return;
         }
 
-        const audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        // Extract extension from MIME type, but use .m4a for audio/mp4 to avoid Photos app on iOS
+        let audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        if (audioExt === 'mp4') {
+            audioExt = 'm4a';
+        }
         const filename = clip.name + (audioExt ? `.${audioExt}` : '');
         await this.shareOrDownload({
             blob: clip.audioBlob,
             filename,
             existingUrl: clip.audioUrl,
-            successMessage: 'Share completed.'
+            successMessage: 'Audio share completed.'
         });
     }
 
-    addClip(audioBlob, audioUrl, duration) {
+    addClip(audioBlob, audioUrl, duration, pitchStats = null) {
         const id = Date.now() + Math.floor(Math.random() * 1000);
         const name = this.generateRandomFilename();
         const timestamp = new Date();
@@ -617,7 +624,8 @@ class VoiceRecorderApp {
             audioBlob,
             audioUrl,
             videoBlob: null,
-            videoUrl: null
+            videoUrl: null,
+            pitchStats
         };
         
         this.clips.push(clip);
@@ -710,6 +718,19 @@ class VoiceRecorderApp {
             const hasVideo = !!clip.videoUrl;
             const hasAudio = !!clip.audioUrl;
             
+            let pitchInfo = '';
+            if (clip.pitchStats && typeof clip.pitchStats === 'object') {
+                const { min, max, average, sampleCount, filteredCount } = clip.pitchStats;
+                if (Number.isFinite(min) && Number.isFinite(max) && Number.isFinite(average)) {
+                    let filterNote = '';
+                    if (filteredCount && sampleCount && filteredCount < sampleCount) {
+                        const removedCount = sampleCount - filteredCount;
+                        filterNote = ` (${removedCount} outlier${removedCount > 1 ? 's' : ''} filtered)`;
+                    }
+                    pitchInfo = `<div class="clip-pitch-stats">Pitch: ${min.toFixed(1)} - ${max.toFixed(1)} Hz (avg: ${average.toFixed(1)} Hz)${filterNote}</div>`;
+                }
+            }
+            
             return `
                 <div class="clip-item ${isSelected ? 'selected' : ''}" data-clip-id="${clip.id}">
                     <div class="clip-info">
@@ -718,6 +739,7 @@ class VoiceRecorderApp {
                             <span class="clip-timestamp">${this.formatTimestamp(clip.timestamp)}</span>
                             <span class="clip-duration">${this.formatDuration(clip.duration)}</span>
                         </div>
+                        ${pitchInfo}
                     </div>
                     <div class="clip-actions">
                         <button class="clip-play" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="${isPlaying ? 'Stop' : 'Play'}">
