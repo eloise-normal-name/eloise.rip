@@ -881,13 +881,12 @@ class AudioVisualizer {
                 return;
             }
 
-            const detector = this.pitchDetectorFn || (typeof detectPitch === 'function' ? detectPitch : null);
-            const pitchData = detector ? detector(
+            const pitchData = detector(
                 this.floatData, 
                 this.analyserNode.context.sampleRate, 
                 this.showSecondaryPitch,
                 this.pitchDetectionOptions
-            ) : null;
+            );
             this.pushPitchSample(pitchData);
             const hasPrimary = pitchData && typeof pitchData === 'object'
                 ? Number.isFinite(pitchData.primary)

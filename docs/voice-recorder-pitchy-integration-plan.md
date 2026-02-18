@@ -2,7 +2,7 @@
 
 ## Implementation Status
 
-✅ Implemented on branch `pitchy-self-hosted-docs`.
+✅ Implemented in this repository (see shipped paths below).
 
 ### Shipped paths and versions
 

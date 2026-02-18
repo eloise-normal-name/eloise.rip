@@ -80,6 +80,10 @@ class VoiceRecorderApp {
         this.pitchyLoadingPromise = null;
         this.pitchyLoadFailed = false;
 
+        // Cache for signal indicator to avoid unnecessary DOM updates
+        this._lastSignalState = null;
+        this._lastSignalLabel = null;
+
         if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
             || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
@@ -629,6 +633,14 @@ class VoiceRecorderApp {
 
         const state = resolvedStatus && resolvedStatus.state ? resolvedStatus.state : 'idle';
         const label = resolvedStatus && resolvedStatus.label ? resolvedStatus.label : 'Signal: idle';
+
+        // Avoid unnecessary DOM updates and aria-live announcements when nothing has changed
+        if (this._lastSignalState === state && this._lastSignalLabel === label) {
+            return;
+        }
+
+        this._lastSignalState = state;
+        this._lastSignalLabel = label;
 
         this.signalIndicator.className = `signal-indicator signal-${state}`;
         this.signalIndicator.textContent = label;
