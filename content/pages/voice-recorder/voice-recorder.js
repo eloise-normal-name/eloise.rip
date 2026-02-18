@@ -720,9 +720,14 @@ class VoiceRecorderApp {
             
             let pitchInfo = '';
             if (clip.pitchStats && typeof clip.pitchStats === 'object') {
-                const { min, max, average } = clip.pitchStats;
+                const { min, max, average, sampleCount, filteredCount } = clip.pitchStats;
                 if (Number.isFinite(min) && Number.isFinite(max) && Number.isFinite(average)) {
-                    pitchInfo = `<div class="clip-pitch-stats">Pitch: ${min.toFixed(1)} - ${max.toFixed(1)} Hz (avg: ${average.toFixed(1)} Hz)</div>`;
+                    let filterNote = '';
+                    if (filteredCount && sampleCount && filteredCount < sampleCount) {
+                        const removedCount = sampleCount - filteredCount;
+                        filterNote = ` (${removedCount} outlier${removedCount > 1 ? 's' : ''} filtered)`;
+                    }
+                    pitchInfo = `<div class="clip-pitch-stats">Pitch: ${min.toFixed(1)} - ${max.toFixed(1)} Hz (avg: ${average.toFixed(1)} Hz)${filterNote}</div>`;
                 }
             }
             
