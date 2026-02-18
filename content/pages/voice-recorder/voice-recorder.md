@@ -31,7 +31,7 @@ Status: hidden
             </button>
         </div>
     </div>
-    <div id="signalIndicator" class="signal-indicator signal-idle" aria-live="polite">Signal: idle</div>
+    <div id="signalIndicator" class="signal-indicator signal-idle">Signal: idle</div>
     <div class="clips-container">
         <h3 class="clips-title">Recordings</h3>
         <div id="clipsList" class="clips-list"></div>

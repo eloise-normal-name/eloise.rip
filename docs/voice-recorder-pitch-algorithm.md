@@ -125,7 +125,7 @@ return sampleRate / bestLag;
 
 ## Visualization and Smoothing
 
-## Current Runtime Stabilization Pipeline (Implemented)
+### Current Runtime Stabilization Pipeline (Implemented)
 
 The live voice recorder now uses a layered stabilization pipeline in `audio-visualizer.js` after raw pitch detection:
 
