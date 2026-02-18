@@ -85,7 +85,7 @@ videoBlob → <video> (hidden) → drawImage onto <canvas> each frame
 |--------|-------------|
 | `constructor(canvas, analyserNode)` | Stores references, sets colors, calls `setAnalyser`. |
 | `setAnalyser(node)` | Attach or detach an `AnalyserNode`. Allocates the `Float32Array` data buffer when a node is provided. |
-| `paintFrame()` | Fills the background and draws voice range bands. Called by `clear()` and when scrolling to repaint the newly revealed strip. |
+| `paintFrame()` | Draws the static visualization layers (background, voice range bands, pitch reference grid, and border). Called by `clear()` and when scrolling to repaint the newly revealed strip (via drawVoiceRangeBands). |
 | `render()` | Reads `getFloatTimeDomainData`, detects pitch(es), and renders the pitch trace(s) incrementally without clearing the canvas. |
 | `clear()` | Redraws the empty background frame and clears pitch history. |
 | `pushPitchSample(pitchData)` | Adds pitch data to history buffers. Accepts a number (primary only) or object with `primary` and `secondary` fields. |
@@ -157,3 +157,5 @@ Critical regression tests:
 The pitch visualizer has been completed! See [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) for the original implementation plan.
 
 For upcoming features and sprint planning, see [voice-recorder-roadmap.md](voice-recorder-roadmap.md).
+
+- Hierarchical pitch grid (stronger 100 Hz lines with lighter 50 Hz subdivisions)

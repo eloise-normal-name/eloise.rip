@@ -53,6 +53,11 @@ class AudioVisualizer {
             strengths: []
         };
 
+        this.pitchGridSpacing = 50;
+        // Subtle gray grid (works on white background introduced in main)
+        this.pitchGridColor = 'rgba(0,0,0,0.08)';
+        this.pitchGridWidth = 1;
+
         this.pitchDetectionOptions = {
             minHz: 70,
             maxHz: 280,
@@ -99,9 +104,30 @@ class AudioVisualizer {
 
         // Calculate the starting X position based on current state
         const samplesInHistory = this.pitchHistory.length;
-        // Always align reconstruction to current draw state. currentX points to the
-        // next draw position, so the most recent history sample is at currentX - pixelsPerSample.
-        const startX = this.currentX - samplesInHistory * this.pixelsPerSample;
+        const totalWidth = samplesInHistory * this.pixelsPerSample;
+        
+        // Derive startX from currentX so reconstruction matches the last on-screen positions
+        // currentX points to the NEXT draw position (already incremented), so we subtract
+        // samplesInHistory * pixelsPerSample to locate the first sample.
+        let startX = this.currentX - samplesInHistory * this.pixelsPerSample;
+
+        // Clamp startX so the visible segment stays consistent:
+        // - If the total trace fits within the canvas, keep it fully within [0, width].
+        // - If it is wider than the canvas, allow negative startX but avoid drifting so that
+        //   the visible window still spans the latest samples.
+        if (totalWidth <= width) {
+            if (startX < 0) {
+                startX = 0;
+            } else if (startX + totalWidth > width) {
+                startX = width - totalWidth;
+            }
+        } else {
+            if (startX > 0) {
+                startX = 0;
+            } else if (startX + totalWidth < width) {
+                startX = width - totalWidth;
+            }
+        }
 
         // Draw primary pitch trace
         this.ctx.strokeStyle = this.pitchColor;
@@ -519,6 +545,23 @@ class AudioVisualizer {
             this.ctx.fillStyle = this.feminineVoiceColor;
             this.ctx.fillRect(startX, topY, width, bottomY - topY);
         }
+
+        // Draw pitch reference grid (static layer) - only when drawing full canvas width
+        if (range > 0 && startX === 0) {
+            const spacing = this.pitchGridSpacing;
+            const firstHz = Math.ceil(this.pitchMinHz / spacing) * spacing;
+
+            this.ctx.strokeStyle = this.pitchGridColor;
+            this.ctx.lineWidth = this.pitchGridWidth;
+
+            for (let hz = firstHz; hz <= this.pitchMaxHz; hz += spacing) {
+                const y = hzToY(hz);
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, y);
+                this.ctx.lineTo(this.canvas.width, y);
+                this.ctx.stroke();
+            }
+        }
     }
 
     clear() {
@@ -691,6 +734,7 @@ class AudioVisualizer {
 
         this.renderPitchTrace();
     }
+
 
     renderPitchTrace() {
         if (!this.ensureContext()) return;
