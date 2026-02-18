@@ -123,6 +123,7 @@ This document lists manual test scenarios to perform before releases or after si
 - Pitch trace is smooth (not jittery)
 - Pitch trace remains visible after recording stops
 - Pitch trace is visible in the recorded video playback
+- Horizontal pitch reference grid lines appear at 50 Hz intervals and align correctly with the pitch trace
 
 ### Pitch Configuration
 **Steps:**
