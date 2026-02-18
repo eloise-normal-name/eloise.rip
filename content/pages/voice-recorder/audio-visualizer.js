@@ -191,6 +191,11 @@ class AudioVisualizer {
         return this.offscreenCtx;
     }
 
+    /**
+     * Attach or detach a Web Audio API AnalyserNode
+     * 
+     * @param {AnalyserNode|null} analyserNode - The analyser to attach, or null to detach
+     */
     setAnalyser(analyserNode) {
         this.analyserNode = analyserNode;
         if (this.analyserNode) {
@@ -202,6 +207,11 @@ class AudioVisualizer {
         this.paintFrame();
     }
 
+    /**
+     * Inject a custom pitch detector function
+     * 
+     * @param {Function} detectorFn - Function with signature (buffer, sampleRate, detectSecondary, options) => pitchData
+     */
     setPitchDetector(detectorFn) {
         this.pitchDetectorFn = typeof detectorFn === 'function'
             ? detectorFn
@@ -391,6 +401,13 @@ class AudioVisualizer {
         this.pitchSmoothing = smoothing;
     }
 
+    /**
+     * Get pitch statistics for the current recording
+     * 
+     * Calculates min, max, average pitch with outlier filtering using IQR method
+     * 
+     * @returns {Object|null} Statistics {min, max, average, sampleCount, filteredCount} or null if no data
+     */
     getPitchStatistics() {
         if (this.pitchStats.count === 0) {
             return null;
@@ -670,6 +687,10 @@ class AudioVisualizer {
         }
     }
 
+    /**
+     * Clear the canvas and reset pitch history
+     * Repaints the background, voice range bands, and pitch grid
+     */
     clear() {
         this.paintFrame();
         this.resetPitchHistory();
@@ -875,6 +896,19 @@ class AudioVisualizer {
         this.currentX = scrollTriggerX;
     }
 
+    /**
+     * Main rendering loop - called on every animation frame during recording
+     * 
+     * Flow:
+     * 1. Read audio data from AnalyserNode
+     * 2. Calculate signal RMS (loudness)
+     * 3. Detect pitch using injected detector function
+     * 4. Apply stabilization pipeline
+     * 5. Update tracking status
+     * 6. Render pitch trace on canvas
+     * 
+     * The canvas persists between frames (no clearing), creating a scrolling visualization
+     */
     render() {
         // Don't call paintFrame() here - we only repaint during scrolling or explicit clear
         // This allows the pitch trace to persist and scroll properly

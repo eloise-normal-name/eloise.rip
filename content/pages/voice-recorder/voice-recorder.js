@@ -254,6 +254,20 @@ class VoiceRecorderApp {
         };
     }
 
+    /**
+     * Detect pitch using the currently selected engine (Pitchy or autocorrelation)
+     * 
+     * Falls back to autocorrelation if:
+     * - Pitchy is not enabled by user
+     * - Pitchy module is not loaded yet
+     * - Pitchy detection fails
+     * 
+     * @param {Float32Array} buffer - Audio samples
+     * @param {number} sampleRate - Sample rate in Hz
+     * @param {boolean} detectSecondary - Whether to detect secondary pitch
+     * @param {Object} options - Detection options
+     * @returns {Object|null} Pitch data or null
+     */
     detectPitchWithSelectedEngine(buffer, sampleRate, detectSecondary = false, options = {}) {
         const fallbackDetector = this.getAutocorrelationDetector();
         if (!fallbackDetector) {
@@ -573,6 +587,10 @@ class VoiceRecorderApp {
         this.setStatus('Browser capabilities checked', lines.join('\n'));
     }
 
+    /**
+     * Toggle 220Hz test signal on/off
+     * Used for testing pitch detection accuracy
+     */
     toggleTestSignal() {
         if (this.isTestSignalActive) {
             this.stopTestSignal();
