@@ -155,6 +155,7 @@ Improve sharing and export options
 ## Technical Debt
 
 ### Code Quality
+- [ ] Refactor `audio-visualizer.js` into focused files (state, rendering core, effects/helpers) without changing behavior
 - Add comprehensive error handling
 - Unit tests for pitch detection
 - Integration tests for recording flow
