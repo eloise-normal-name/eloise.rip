@@ -1,4 +1,4 @@
-function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) {
+function detectPitchAutocorrelation(buffer, sampleRate, detectSecondary = false, options = {}) {
     if (!buffer || buffer.length === 0 || !sampleRate) {
         return null;
     }
@@ -129,4 +129,13 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
     }
 
     return { primary: primaryPitch, secondary: null, primaryStrength: bestCorrelation, secondaryStrength: 0 };
+}
+
+function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) {
+    return detectPitchAutocorrelation(buffer, sampleRate, detectSecondary, options);
+}
+
+if (typeof window !== 'undefined') {
+    window.detectPitchAutocorrelation = detectPitchAutocorrelation;
+    window.detectPitch = detectPitch;
 }

@@ -1,5 +1,43 @@
 # Pitchy Integration Plan (Self-Hosted, Optional)
 
+## Implementation Status
+
+✅ Implemented on branch `pitchy-self-hosted-docs`.
+
+### Shipped paths and versions
+
+- Vendor directory:
+  - `content/media/voice-recorder/pitchy/`
+- Vendored modules:
+  - `content/media/voice-recorder/pitchy/pitchy-4.1.0.esm.js`
+  - `content/media/voice-recorder/pitchy/fft-4.0.4.esm.js`
+- Runtime loader path:
+  - `VoiceRecorderApp.pitchyModuleUrl = '/media/voice-recorder/pitchy/pitchy-4.1.0.esm.js'`
+
+### Implemented code touchpoints
+
+- UI toggle + persistence:
+  - `content/pages/voice-recorder/voice-recorder.md`
+  - `content/pages/voice-recorder/voice-recorder.css`
+  - `content/pages/voice-recorder/voice-recorder.js`
+- Detector wrapper and fallback wiring:
+  - `content/pages/voice-recorder/pitch-detector.js`
+  - `content/pages/voice-recorder/voice-recorder.js`
+- Visualizer detector injection:
+  - `content/pages/voice-recorder/audio-visualizer.js`
+
+### Behavior shipped
+
+- Default detector remains autocorrelation (no behavior change unless toggled on).
+- Pitchy is lazy-loaded with dynamic `import()` only when enabled.
+- If Pitchy fails to load or throws, app auto-falls back to autocorrelation and resets toggle.
+- Primary pitch uses Pitchy when enabled; secondary pitch continues to come from autocorrelation when requested.
+
+### Validation run
+
+- `pelican content -o output -s pelicanconf.py` ✅
+- `validate_output.py` ✅ (internal links/media pass; existing orphaned media warnings are unrelated)
+
 ## Scope
 
 Add Pitchy as an optional pitch detector for the voice recorder, self-hosted
@@ -51,8 +89,9 @@ detector as the default/fallback. No new build tools.
 - Use the built-in test signal and a quick live mic check.
 - Verify toggle behavior, stability, and no regressions in pitch stats.
 
-## Open Decisions
+## Decisions (Resolved)
 
-- Confirm exact vendor path under `content/media/voice-recorder/`.
-- Decide whether to keep primary Pitchy output and secondary from the existing
-  detector, or fully fall back to existing detector when secondary is enabled.
+- Vendor path confirmed: `content/media/voice-recorder/pitchy/`.
+- Hybrid strategy chosen:
+  - Primary: Pitchy (when enabled and available)
+  - Secondary: existing autocorrelation detector
