@@ -31,6 +31,20 @@ class AudioVisualizer {
         this.glowRadius = 12;
         this.lastPrimaryGlowY = null;
         this.lastSecondaryGlowY = null;
+        this.pitchGapHoldSamples = 3;
+        this.consecutivePitchMisses = 0;
+        this.reacquireLowPitchWindowHz = 18;
+        this.reacquireMinStableSamples = 2;
+        this.pendingReacquirePitch = null;
+        this.pendingReacquireCount = 0;
+        this.latestSignalRms = 0;
+        this.latestTrackingStatus = {
+            state: 'idle',
+            label: 'Signal: idle',
+            rms: 0,
+            strength: 0,
+            sample: null
+        };
         
         // Scrolling visualization settings
         this.currentX = 0; // Current X position where next sample will be drawn
@@ -64,6 +78,7 @@ class AudioVisualizer {
             primaryThreshold: 0.2,
             secondaryThreshold: 0.15
         };
+        this.pitchDetectorFn = typeof detectPitch === 'function' ? detectPitch : null;
 
         this.onContextRecovery = null;
         this.pendingContextRecoveryReset = false;
@@ -166,12 +181,29 @@ class AudioVisualizer {
         this.paintFrame();
     }
 
+    setPitchDetector(detectorFn) {
+        this.pitchDetectorFn = typeof detectorFn === 'function'
+            ? detectorFn
+            : (typeof detectPitch === 'function' ? detectPitch : null);
+    }
+
     resetPitchHistory() {
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
         this.currentX = 0;
         this.lastPrimaryGlowY = null;
         this.lastSecondaryGlowY = null;
+        this.consecutivePitchMisses = 0;
+        this.pendingReacquirePitch = null;
+        this.pendingReacquireCount = 0;
+        this.latestSignalRms = 0;
+        this.latestTrackingStatus = {
+            state: 'idle',
+            label: 'Signal: idle',
+            rms: 0,
+            strength: 0,
+            sample: null
+        };
         this.pitchStats = {
             min: null,
             max: null,
@@ -180,6 +212,143 @@ class AudioVisualizer {
             samples: [],
             strengths: []
         };
+    }
+
+    getRecentPrimaryAverage(sampleCount = 8) {
+        let sum = 0;
+        let count = 0;
+
+        for (let i = this.pitchHistory.length - 1; i >= 0 && count < sampleCount; i -= 1) {
+            const value = this.pitchHistory[i];
+            if (value !== null && Number.isFinite(value)) {
+                sum += value;
+                count += 1;
+            }
+        }
+
+        return count > 0 ? (sum / count) : null;
+    }
+
+    applyHarmonicContinuityCorrection(value, strength) {
+        if (!Number.isFinite(value)) return value;
+
+        const recentAvg = this.getRecentPrimaryAverage(10);
+        if (!Number.isFinite(recentAvg) || recentAvg <= 0) {
+            return value;
+        }
+
+        // Correct likely low subharmonic selections (e.g., ~73 Hz instead of ~220 Hz)
+        // when they approximately match an integer fraction of the recent contour.
+        const ratio = recentAvg / value;
+        const nearest = Math.round(ratio);
+        if (
+            nearest >= 2 &&
+            nearest <= 4 &&
+            Math.abs(ratio - nearest) <= 0.2 &&
+            strength < 0.85
+        ) {
+            const corrected = value * nearest;
+            if (corrected >= this.pitchMinHz && corrected <= this.pitchMaxHz) {
+                return corrected;
+            }
+        }
+
+        // Reject abrupt low-frequency dives that are unlikely to be real pitch changes.
+        if (value < recentAvg * 0.62 && strength < 0.75) {
+            return null;
+        }
+
+        return value;
+    }
+
+    applyPostSilenceReacquisitionGuard(value, strength) {
+        if (!Number.isFinite(value)) {
+            return null;
+        }
+
+        const wasDropout = this.consecutivePitchMisses > this.pitchGapHoldSamples;
+        if (!wasDropout) {
+            this.pendingReacquirePitch = null;
+            this.pendingReacquireCount = 0;
+            return value;
+        }
+
+        const nearFloor = value <= this.pitchMinHz + this.reacquireLowPitchWindowHz;
+        const lowConfidence = strength < Math.max(this.pitchDetectionOptions.primaryThreshold + 0.08, 0.28);
+
+        // Only gate suspicious reacquisition samples; clear signals pass through immediately.
+        if (!nearFloor && !lowConfidence) {
+            this.pendingReacquirePitch = null;
+            this.pendingReacquireCount = 0;
+            return value;
+        }
+
+        if (
+            this.pendingReacquirePitch === null ||
+            Math.abs(this.pendingReacquirePitch - value) > 12
+        ) {
+            this.pendingReacquirePitch = value;
+            this.pendingReacquireCount = 1;
+            return null;
+        }
+
+        this.pendingReacquireCount += 1;
+        if (this.pendingReacquireCount < this.reacquireMinStableSamples) {
+            return null;
+        }
+
+        const accepted = this.pendingReacquirePitch;
+        this.pendingReacquirePitch = null;
+        this.pendingReacquireCount = 0;
+        return accepted;
+    }
+
+    computeSignalRms(buffer) {
+        if (!buffer || !buffer.length) return 0;
+        let sumSquares = 0;
+        for (let i = 0; i < buffer.length; i += 1) {
+            const value = buffer[i];
+            sumSquares += value * value;
+        }
+        return Math.sqrt(sumSquares / buffer.length);
+    }
+
+    updateTrackingStatus(meta = {}) {
+        const hasPrimary = Boolean(meta.hasPrimary);
+        const strength = Number.isFinite(meta.primaryStrength) ? meta.primaryStrength : 0;
+        const rms = Number.isFinite(meta.rms) ? meta.rms : 0;
+        const latestSample = this.pitchHistory.length ? this.pitchHistory[this.pitchHistory.length - 1] : null;
+
+        let state = 'tracking';
+        if (!this.analyserNode) {
+            state = 'idle';
+        } else if (rms < 0.01) {
+            state = 'quiet';
+        } else if (this.consecutivePitchMisses > this.pitchGapHoldSamples) {
+            state = 'lost';
+        } else if (!hasPrimary || strength < this.pitchDetectionOptions.primaryThreshold + 0.05) {
+            state = 'weak';
+        }
+
+        const labelByState = {
+            idle: 'Signal: idle',
+            quiet: 'Signal: quiet',
+            weak: 'Signal: weak tracking',
+            lost: 'Signal: lost pitch',
+            tracking: 'Signal: tracking'
+        };
+
+        this.latestTrackingStatus = {
+            state,
+            label: labelByState[state] || labelByState.tracking,
+            rms,
+            strength,
+            sample: Number.isFinite(latestSample) ? latestSample : null
+        };
+    }
+
+    getTrackingStatus() {
+        return this.latestTrackingStatus;
     }
 
     updatePitchRange(minHz, maxHz) {
@@ -316,50 +485,72 @@ class AudioVisualizer {
         }
 
         if (primaryValue !== null && Number.isFinite(primaryValue)) {
-            const clampedValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, primaryValue));
-            
-            // Temporal consistency check: reject if too far from recent average
-            // This helps filter out octave errors and spurious detections
-            let isConsistent = true;
-            if (this.pitchStats.samples.length >= 3) {
-                // Calculate recent average from last 10 samples
-                const recentSamples = this.pitchStats.samples.slice(-10);
-                const recentAvg = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length;
-                const maxJump = recentAvg * 0.3; // Allow 30% deviation
+            const correctedValue = this.applyHarmonicContinuityCorrection(primaryValue, primaryStrength);
+            const clampedValue = correctedValue !== null && Number.isFinite(correctedValue)
+                ? Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, correctedValue))
+                : null;
+            const guardedValue = clampedValue !== null
+                ? this.applyPostSilenceReacquisitionGuard(clampedValue, primaryStrength)
+                : null;
+
+            if (guardedValue === null) {
+                primaryValue = null;
+            } else {
+                // Temporal consistency check: reject if too far from recent average
+                // This helps filter out octave errors and spurious detections
+                let isConsistent = true;
+                if (this.pitchStats.samples.length >= 3) {
+                    // Calculate recent average from last 10 samples
+                    const recentSamples = this.pitchStats.samples.slice(-10);
+                    const recentAvg = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length;
+                    const maxJump = recentAvg * 0.3; // Allow 30% deviation
+                    
+                    // Reject if jump is too large and confidence is not very high
+                    if (Math.abs(guardedValue - recentAvg) > maxJump && primaryStrength < 0.7) {
+                        isConsistent = false;
+                    }
+                }
                 
-                // Reject if jump is too large and confidence is not very high
-                if (Math.abs(clampedValue - recentAvg) > maxJump && primaryStrength < 0.7) {
-                    isConsistent = false;
+                // Only update statistics for consistent, valid samples
+                if (isConsistent) {
+                    // Store raw sample and strength for outlier filtering later
+                    this.pitchStats.samples.push(guardedValue);
+                    this.pitchStats.strengths.push(primaryStrength);
+                    
+                    // Update simple running statistics (kept for backward compatibility)
+                    if (this.pitchStats.min === null || guardedValue < this.pitchStats.min) {
+                        this.pitchStats.min = guardedValue;
+                    }
+                    if (this.pitchStats.max === null || guardedValue > this.pitchStats.max) {
+                        this.pitchStats.max = guardedValue;
+                    }
+                    this.pitchStats.sum += guardedValue;
+                    this.pitchStats.count += 1;
                 }
-            }
-            
-            // Only update statistics for consistent, valid samples
-            if (isConsistent) {
-                // Store raw sample and strength for outlier filtering later
-                this.pitchStats.samples.push(clampedValue);
-                this.pitchStats.strengths.push(primaryStrength);
                 
-                // Update simple running statistics (kept for backward compatibility)
-                if (this.pitchStats.min === null || clampedValue < this.pitchStats.min) {
-                    this.pitchStats.min = clampedValue;
-                }
-                if (this.pitchStats.max === null || clampedValue > this.pitchStats.max) {
-                    this.pitchStats.max = clampedValue;
-                }
-                this.pitchStats.sum += clampedValue;
-                this.pitchStats.count += 1;
-            }
-            
-            // Apply smoothing for display (always done, even for inconsistent samples)
-            primaryValue = clampedValue;
-            if (this.pitchHistory.length) {
-                const previous = this.pitchHistory[this.pitchHistory.length - 1];
-                if (previous !== null) {
-                    primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
+                // Apply smoothing for display (always done, even for inconsistent samples)
+                primaryValue = guardedValue;
+                if (this.pitchHistory.length) {
+                    const previous = this.pitchHistory[this.pitchHistory.length - 1];
+                    if (previous !== null) {
+                        primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
+                    }
                 }
             }
         } else {
             primaryValue = null;
+        }
+
+        if (primaryValue === null) {
+            this.consecutivePitchMisses += 1;
+            if (this.consecutivePitchMisses <= this.pitchGapHoldSamples && this.pitchHistory.length) {
+                const previous = this.pitchHistory[this.pitchHistory.length - 1];
+                if (previous !== null && Number.isFinite(previous)) {
+                    primaryValue = previous;
+                }
+            }
+        } else {
+            this.consecutivePitchMisses = 0;
         }
 
         if (secondaryValue !== null && Number.isFinite(secondaryValue)) {
@@ -671,12 +862,16 @@ class AudioVisualizer {
             this.floatData = new Float32Array(this.analyserNode.fftSize);
         }
 
-        if (this.floatData && typeof detectPitch === 'function') {
+        const detector = this.pitchDetectorFn || (typeof detectPitch === 'function' ? detectPitch : null);
+        if (this.floatData && detector) {
             this.analyserNode.getFloatTimeDomainData(this.floatData);
+            const rms = this.computeSignalRms(this.floatData);
+            this.latestSignalRms = rms;
 
             if (this.discardNextAcquiredSample) {
                 this.discardNextAcquiredSample = false;
                 this.pushPitchSample(null);
+                this.updateTrackingStatus({ hasPrimary: false, primaryStrength: 0, rms });
 
                 if (this.pendingContextRecoveryReset && this.onContextRecovery) {
                     this.pendingContextRecoveryReset = false;
@@ -687,15 +882,23 @@ class AudioVisualizer {
                 return;
             }
 
-            const pitchData = detectPitch(
+            const pitchData = detector(
                 this.floatData, 
                 this.analyserNode.context.sampleRate, 
                 this.showSecondaryPitch,
                 this.pitchDetectionOptions
             );
             this.pushPitchSample(pitchData);
+            const hasPrimary = pitchData && typeof pitchData === 'object'
+                ? Number.isFinite(pitchData.primary)
+                : Number.isFinite(pitchData);
+            const primaryStrength = pitchData && typeof pitchData === 'object'
+                ? (pitchData.primaryStrength || 0)
+                : (hasPrimary ? 1 : 0);
+            this.updateTrackingStatus({ hasPrimary, primaryStrength, rms });
         } else {
             this.pushPitchSample(null);
+            this.updateTrackingStatus({ hasPrimary: false, primaryStrength: 0, rms: 0 });
         }
 
         this.renderPitchTrace();
