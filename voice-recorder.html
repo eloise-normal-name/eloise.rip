@@ -1213,8 +1213,8 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
             this.ctx.fillRect(startX, topY, width, bottomY - topY);
         }
 
-        // Draw pitch reference grid (static layer) - only when drawing full canvas width
-        if (range > 0 && startX === 0) {
+        // Draw pitch reference grid (static layer)
+        if (range > 0) {
             const spacing = this.pitchGridSpacing;
             const firstHz = Math.ceil(this.pitchMinHz / spacing) * spacing;
 
@@ -1224,8 +1224,8 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
             for (let hz = firstHz; hz <= this.pitchMaxHz; hz += spacing) {
                 const y = hzToY(hz);
                 this.ctx.beginPath();
-                this.ctx.moveTo(0, y);
-                this.ctx.lineTo(this.canvas.width, y);
+                this.ctx.moveTo(startX, y);
+                this.ctx.lineTo(startX + width, y);
                 this.ctx.stroke();
             }
         }
