@@ -79,7 +79,7 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
     const primaryPitch = sampleRate / refinedLag;
 
     if (!detectSecondary) {
-        return primaryPitch;
+        return { primary: primaryPitch, secondary: null, primaryStrength: bestCorrelation, secondaryStrength: 0 };
     }
 
     let secondBestCorrelation = 0;
