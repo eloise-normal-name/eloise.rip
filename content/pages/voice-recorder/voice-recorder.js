@@ -145,12 +145,12 @@ class VoiceRecorderApp {
         }
 
         usePitchyToggle.checked = this.usePitchyDetector;
-        usePitchyToggle.onchange = () => {
+        usePitchyToggle.onchange = async () => {
             this.usePitchyDetector = Boolean(usePitchyToggle.checked);
             this.setStoredPitchyPreference(this.usePitchyDetector);
 
             if (this.usePitchyDetector) {
-                this.ensurePitchyLoaded();
+                await this.ensurePitchyLoaded();
                 this.setStatus('Pitch detector updated.', 'Mode: Pitchy (optional) with autocorrelation fallback');
             } else {
                 this.setStatus('Pitch detector updated.', 'Mode: Autocorrelation (default)');
@@ -634,7 +634,7 @@ class VoiceRecorderApp {
         const state = resolvedStatus && resolvedStatus.state ? resolvedStatus.state : 'idle';
         const label = resolvedStatus && resolvedStatus.label ? resolvedStatus.label : 'Signal: idle';
 
-        // Avoid unnecessary DOM updates and aria-live announcements when nothing has changed
+        // Avoid unnecessary DOM updates when state hasn't changed
         if (this._lastSignalState === state && this._lastSignalLabel === label) {
             return;
         }

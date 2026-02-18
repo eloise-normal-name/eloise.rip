@@ -495,47 +495,46 @@ class AudioVisualizer {
             if (guardedValue === null) {
                 primaryValue = null;
             } else {
-            
-            // Temporal consistency check: reject if too far from recent average
-            // This helps filter out octave errors and spurious detections
-            let isConsistent = true;
-            if (this.pitchStats.samples.length >= 3) {
-                // Calculate recent average from last 10 samples
-                const recentSamples = this.pitchStats.samples.slice(-10);
-                const recentAvg = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length;
-                const maxJump = recentAvg * 0.3; // Allow 30% deviation
+                // Temporal consistency check: reject if too far from recent average
+                // This helps filter out octave errors and spurious detections
+                let isConsistent = true;
+                if (this.pitchStats.samples.length >= 3) {
+                    // Calculate recent average from last 10 samples
+                    const recentSamples = this.pitchStats.samples.slice(-10);
+                    const recentAvg = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length;
+                    const maxJump = recentAvg * 0.3; // Allow 30% deviation
+                    
+                    // Reject if jump is too large and confidence is not very high
+                    if (Math.abs(guardedValue - recentAvg) > maxJump && primaryStrength < 0.7) {
+                        isConsistent = false;
+                    }
+                }
                 
-                // Reject if jump is too large and confidence is not very high
-                if (Math.abs(guardedValue - recentAvg) > maxJump && primaryStrength < 0.7) {
-                    isConsistent = false;
+                // Only update statistics for consistent, valid samples
+                if (isConsistent) {
+                    // Store raw sample and strength for outlier filtering later
+                    this.pitchStats.samples.push(guardedValue);
+                    this.pitchStats.strengths.push(primaryStrength);
+                    
+                    // Update simple running statistics (kept for backward compatibility)
+                    if (this.pitchStats.min === null || guardedValue < this.pitchStats.min) {
+                        this.pitchStats.min = guardedValue;
+                    }
+                    if (this.pitchStats.max === null || guardedValue > this.pitchStats.max) {
+                        this.pitchStats.max = guardedValue;
+                    }
+                    this.pitchStats.sum += guardedValue;
+                    this.pitchStats.count += 1;
                 }
-            }
-            
-            // Only update statistics for consistent, valid samples
-            if (isConsistent) {
-                // Store raw sample and strength for outlier filtering later
-                this.pitchStats.samples.push(guardedValue);
-                this.pitchStats.strengths.push(primaryStrength);
                 
-                // Update simple running statistics (kept for backward compatibility)
-                if (this.pitchStats.min === null || guardedValue < this.pitchStats.min) {
-                    this.pitchStats.min = guardedValue;
+                // Apply smoothing for display (always done, even for inconsistent samples)
+                primaryValue = guardedValue;
+                if (this.pitchHistory.length) {
+                    const previous = this.pitchHistory[this.pitchHistory.length - 1];
+                    if (previous !== null) {
+                        primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
+                    }
                 }
-                if (this.pitchStats.max === null || guardedValue > this.pitchStats.max) {
-                    this.pitchStats.max = guardedValue;
-                }
-                this.pitchStats.sum += guardedValue;
-                this.pitchStats.count += 1;
-            }
-            
-            // Apply smoothing for display (always done, even for inconsistent samples)
-            primaryValue = guardedValue;
-            if (this.pitchHistory.length) {
-                const previous = this.pitchHistory[this.pitchHistory.length - 1];
-                if (previous !== null) {
-                    primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
-                }
-            }
             }
         } else {
             primaryValue = null;
