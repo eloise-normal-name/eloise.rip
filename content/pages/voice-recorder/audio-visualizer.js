@@ -862,7 +862,8 @@ class AudioVisualizer {
             this.floatData = new Float32Array(this.analyserNode.fftSize);
         }
 
-        if (this.floatData && typeof detectPitch === 'function') {
+        const detector = this.pitchDetectorFn || (typeof detectPitch === 'function' ? detectPitch : null);
+        if (this.floatData && detector) {
             this.analyserNode.getFloatTimeDomainData(this.floatData);
             const rms = this.computeSignalRms(this.floatData);
             this.latestSignalRms = rms;
