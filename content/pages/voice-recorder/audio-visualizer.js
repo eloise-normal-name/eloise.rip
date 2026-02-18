@@ -562,6 +562,13 @@ class AudioVisualizer {
                 this.ctx.stroke();
             }
         }
+
+        if (this.borderWidth > 0) {
+            const inset = this.borderWidth / 2;
+            this.ctx.lineWidth = this.borderWidth;
+            this.ctx.strokeStyle = this.borderColor;
+            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
+        }
     }
 
     clear() {

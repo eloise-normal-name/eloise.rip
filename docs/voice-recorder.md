@@ -157,3 +157,5 @@ Critical regression tests:
 The pitch visualizer has been completed! See [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) for the original implementation plan.
 
 For upcoming features and sprint planning, see [voice-recorder-roadmap.md](voice-recorder-roadmap.md).
+
+- Hierarchical pitch grid (stronger 100 Hz lines with lighter 50 Hz subdivisions)
