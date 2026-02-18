@@ -1,17 +1,25 @@
 /**
  * Voice Recorder App - Multi-clip recording with pitch visualization
  * 
+ * @class VoiceRecorderApp
+ * 
+ * Architecture:
+ * - Microphone → AudioContext/Analyser → AudioVisualizer → Canvas
+ * - Microphone → MediaRecorder → Audio Blob (MP4)
+ * - Canvas.captureStream() + Audio → MediaRecorder → Video Blob (MP4/WebM)
+ * 
  * DOM Element Dependencies:
  * This class requires specific HTML element IDs defined in voice-recorder.md.
- * When modifying the UI, ensure all getElementById() calls have matching HTML elements.
- * See docs/voice-recorder-dom-elements.md for the complete reference and maintenance guide.
- * 
- * A GitHub Actions workflow validates DOM elements on every PR to prevent initialization failures.
+ * See docs/voice-recorder-dom-elements.md for the complete reference.
+ * A GitHub Actions workflow validates DOM elements on every PR.
  */
 class VoiceRecorderApp {
+    // === Configuration ===
+    // === Configuration ===
     static pitchDetectorPreferenceKey = 'voiceRecorder.usePitchyDetector';
     static pitchyModuleUrl = '/media/voice-recorder/pitchy/pitchy-4.1.0.esm.js';
 
+    // Random filename generation (two-word food names)
     static foods = [
         'apple', 'apricot', 'avocado', 'banana', 'basil', 'bean', 'berry', 'biscuit', 'bread', 'broccoli',
         'butter', 'cabbage', 'cake', 'carrot', 'cashew', 'celery', 'cheese', 'cherry', 'chicken', 'chili',
@@ -25,6 +33,7 @@ class VoiceRecorderApp {
         'tea', 'toast', 'tofu', 'tomato', 'truffle', 'tuna', 'vanilla', 'waffle', 'walnut', 'yogurt'
     ];
 
+    // MIME type preferences for recording
     static debugMimeTypes = [
         'audio/mp4',
         'audio/webm;codecs=opus',
@@ -37,6 +46,7 @@ class VoiceRecorderApp {
     ];
 
     constructor() {
+        // === DOM Elements (required for initialization) ===
         this.recordButton = document.getElementById('recordButton');
         this.testSignalButton = document.getElementById('testSignalButton');
         this.debugMsg = document.getElementById('debugMsg');
@@ -47,32 +57,37 @@ class VoiceRecorderApp {
 
         this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
 
+        // === Recording State ===
         this.isRecording = false;
+        this.mediaRecorder = null;          // Audio MediaRecorder
+        this.mediaStream = null;            // getUserMedia stream
+        this.audioChunks = [];              // Recorded audio data
 
-        this.mediaRecorder = null;
-        this.mediaStream = null;
-        this.audioChunks = [];
+        // === Web Audio API Components ===
+        this.audioContext = null;           // AudioContext for analysis
+        this.analyser = null;               // AnalyserNode for waveform data
+        this.visualizer = null;             // AudioVisualizer instance
+        this.animationId = null;            // requestAnimationFrame ID
 
-        this.audioContext = null;
-        this.analyser = null;
-        this.visualizer = null;
-        this.animationId = null;
+        // === Video Recording ===
+        this.videoMediaRecorder = null;     // Video MediaRecorder (canvas + audio)
+        this.videoChunks = [];              // Recorded video data
+        this.playbackAnimationId = null;    // Playback animation frame ID
 
-        this.videoMediaRecorder = null;
-        this.videoChunks = [];
-        this.playbackAnimationId = null;
-
+        // === Test Signal (220Hz sine wave) ===
         this.testOscillator = null;
         this.testGain = null;
         this.isTestSignalActive = false;
 
-        this.clips = [];
-        this.selectedClipId = null;
-        this.currentRecordingClipId = null;
-        this.recordingStartTime = null;
-        this.playingClipId = null;
-        this.discardRecordingOnStop = false;
+        // === Clip Management ===
+        this.clips = [];                    // Array of {id, name, audioBlob, videoBlob, ...}
+        this.selectedClipId = null;         // Currently selected clip
+        this.currentRecordingClipId = null; // Clip being recorded
+        this.recordingStartTime = null;     // Recording start timestamp
+        this.playingClipId = null;          // Currently playing clip
+        this.discardRecordingOnStop = false;// Flag to discard on stop (for cancel)
 
+        // === Pitch Detector (Pitchy integration) ===
         this.usePitchyDetector = this.getStoredPitchyPreference();
         this.pitchyModule = null;
         this.pitchyDetectorInstance = null;
@@ -80,10 +95,13 @@ class VoiceRecorderApp {
         this.pitchyLoadingPromise = null;
         this.pitchyLoadFailed = false;
 
-        // Cache for signal indicator to avoid unnecessary DOM updates
+        // === Performance Optimization ===
+        // Cache signal indicator state to avoid unnecessary DOM updates
         this._lastSignalState = null;
         this._lastSignalLabel = null;
 
+        // === Initialization ===
+        // Early exit if required DOM elements are missing
         if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
             || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
@@ -682,6 +700,10 @@ class VoiceRecorderApp {
         this.mediaStream = null;
     }
 
+    /**
+     * Main recording button click handler
+     * Starts recording if idle, stops recording if active
+     */
     async onRecordClick() {
         if (this.isRecording) {
             this.stopRecording();
@@ -690,6 +712,18 @@ class VoiceRecorderApp {
         await this.startRecording();
     }
 
+    /**
+     * Start a new recording
+     * 
+     * Flow:
+     * 1. Request microphone access via getUserMedia
+     * 2. Create AudioContext and AnalyserNode for visualization
+     * 3. Start audio MediaRecorder (audio/mp4)
+     * 4. Start video MediaRecorder (canvas stream + audio)
+     * 5. Launch visualization render loop
+     * 
+     * @returns {Promise<void>}
+     */
     async startRecording() {
         if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) {
             this.setStatus(
@@ -847,6 +881,13 @@ class VoiceRecorderApp {
         }
     }
 
+    /**
+     * Stop the current recording
+     * 
+     * @param {Object} options - Stop options
+     * @param {boolean} options.discard - If true, discard the recording instead of saving
+     * @param {boolean} options.dueToContextRecovery - If true, stop is due to canvas context recovery
+     */
     stopRecording({ discard = false, dueToContextRecovery = false } = {}) {
         if (!this.mediaRecorder || this.mediaRecorder.state !== 'recording') {
             return;

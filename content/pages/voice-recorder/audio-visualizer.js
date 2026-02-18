@@ -1,3 +1,18 @@
+/**
+ * Audio Visualizer - Real-time canvas rendering for waveforms and pitch traces
+ * 
+ * @class AudioVisualizer
+ * 
+ * Features:
+ * - Scrolling pitch trace visualization (2px per sample)
+ * - Voice range bands (masculine 85-155 Hz, feminine 165-255 Hz)
+ * - Pitch stabilization pipeline (harmonic correction, gap hold, smoothing)
+ * - Signal quality tracking (idle, quiet, weak, lost, tracking)
+ * - Canvas context recovery handling
+ * 
+ * Rendering Flow:
+ * - AnalyserNode → getFloatTimeDomainData() → pitch detection → canvas drawing
+ */
 class AudioVisualizer {
     constructor(canvas, analyserNode) {
         this.canvas = canvas;
@@ -5,11 +20,12 @@ class AudioVisualizer {
         this.analyserNode = null;
         this.floatData = null;
 
+        // === Visual Style Configuration ===
         this.backgroundColor = 'rgba(255, 255, 255, 1)';
         this.borderColor = 'rgba(255, 107, 157, 0.65)';
         this.borderWidth = 0;
         
-        // Voice range bands (typical fundamental frequencies)
+        // === Voice Range Bands (typical fundamental frequencies) ===
         this.masculineVoiceMinHz = 85;
         this.masculineVoiceMaxHz = 155;
         this.feminineVoiceMinHz = 165;
@@ -17,6 +33,7 @@ class AudioVisualizer {
         this.masculineVoiceColor = 'rgba(116, 192, 252, 0.15)';
         this.feminineVoiceColor = 'rgba(255, 107, 157, 0.15)';
 
+        // === Pitch Visualization Settings ===
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
         this.pitchMaxSamples = 200;
@@ -28,15 +45,19 @@ class AudioVisualizer {
         this.secondarySparkColor = 'rgba(255, 120, 84, 0.92)';
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = false;
+
+        // === Pitch Stabilization Parameters ===
         this.glowRadius = 12;
         this.lastPrimaryGlowY = null;
         this.lastSecondaryGlowY = null;
-        this.pitchGapHoldSamples = 3;
+        this.pitchGapHoldSamples = 3;              // Hold pitch for N frames during gaps
         this.consecutivePitchMisses = 0;
-        this.reacquireLowPitchWindowHz = 18;
-        this.reacquireMinStableSamples = 2;
+        this.reacquireLowPitchWindowHz = 18;       // Post-silence reacquisition window
+        this.reacquireMinStableSamples = 2;        // Samples needed for stable reacquisition
         this.pendingReacquirePitch = null;
         this.pendingReacquireCount = 0;
+
+        // === Signal Quality Tracking ===
         this.latestSignalRms = 0;
         this.latestTrackingStatus = {
             state: 'idle',
