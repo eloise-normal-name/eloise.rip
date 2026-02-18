@@ -133,7 +133,8 @@ class AudioVisualizer {
     }
 
     sampleIndexToX(index, latestIndex) {
-        // Convert sample index to X coordinate based on current position
+        // Convert a historical sample index to its X coordinate on the canvas,
+        // relative to currentX (the position where the most recent sample was drawn).
         return this.currentX - (latestIndex - index) * this.pixelsPerSample;
     }
 
