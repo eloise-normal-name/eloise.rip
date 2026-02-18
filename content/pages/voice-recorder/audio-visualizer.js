@@ -351,7 +351,22 @@ class AudioVisualizer {
         this.ctx.fillStyle = this.backgroundColor;
         this.ctx.fillRect(0, 0, width, height);
         
-        // Draw voice range bands
+        // Draw voice range bands across the full width
+        this.drawVoiceRangeBands(0, width);
+
+        if (this.borderWidth > 0) {
+            const inset = this.borderWidth / 2;
+            this.ctx.lineWidth = this.borderWidth;
+            this.ctx.strokeStyle = this.borderColor;
+            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
+        }
+        this.ctx.restore();
+    }
+
+    drawVoiceRangeBands(startX, width) {
+        // Helper method to draw voice range bands in a specific region of the canvas
+        // This reduces code duplication between paintFrame and scrolling logic
+        const height = this.canvas.height;
         const padding = 6;
         const usableHeight = height - padding * 2;
         const range = this.pitchMaxHz - this.pitchMinHz || 1;
@@ -368,7 +383,7 @@ class AudioVisualizer {
             const topY = hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
             const bottomY = hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
             this.ctx.fillStyle = this.masculineVoiceColor;
-            this.ctx.fillRect(0, topY, width, bottomY - topY);
+            this.ctx.fillRect(startX, topY, width, bottomY - topY);
         }
         
         // Draw feminine voice range band (pink)
@@ -376,16 +391,8 @@ class AudioVisualizer {
             const topY = hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
             const bottomY = hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
             this.ctx.fillStyle = this.feminineVoiceColor;
-            this.ctx.fillRect(0, topY, width, bottomY - topY);
+            this.ctx.fillRect(startX, topY, width, bottomY - topY);
         }
-
-        if (this.borderWidth > 0) {
-            const inset = this.borderWidth / 2;
-            this.ctx.lineWidth = this.borderWidth;
-            this.ctx.strokeStyle = this.borderColor;
-            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
-        }
-        this.ctx.restore();
     }
 
     clear() {
@@ -490,32 +497,8 @@ class AudioVisualizer {
                 this.ctx.fillStyle = this.backgroundColor;
                 this.ctx.fillRect(width - this.pixelsPerSample, 0, this.pixelsPerSample, height);
                 
-                // Redraw voice range bands in the cleared strip
-                const padding = 6;
-                const usableHeight = height - padding * 2;
-                const hzRange = this.pitchMaxHz - this.pitchMinHz || 1;
-                
-                const hzToY = (hz) => {
-                    const ratio = (hz - this.pitchMinHz) / hzRange;
-                    const clamped = Math.min(1, Math.max(0, ratio));
-                    return padding + (1 - clamped) * usableHeight;
-                };
-                
-                // Draw masculine voice range band (blue) in the strip
-                if (this.masculineVoiceMaxHz > this.pitchMinHz && this.masculineVoiceMinHz < this.pitchMaxHz) {
-                    const topY = hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
-                    const bottomY = hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
-                    this.ctx.fillStyle = this.masculineVoiceColor;
-                    this.ctx.fillRect(width - this.pixelsPerSample, topY, this.pixelsPerSample, bottomY - topY);
-                }
-                
-                // Draw feminine voice range band (pink) in the strip
-                if (this.feminineVoiceMaxHz > this.pitchMinHz && this.feminineVoiceMinHz < this.pitchMaxHz) {
-                    const topY = hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
-                    const bottomY = hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
-                    this.ctx.fillStyle = this.feminineVoiceColor;
-                    this.ctx.fillRect(width - this.pixelsPerSample, topY, this.pixelsPerSample, bottomY - topY);
-                }
+                // Redraw voice range bands in the cleared strip using helper method
+                this.drawVoiceRangeBands(width - this.pixelsPerSample, this.pixelsPerSample);
                 
                 this.ctx.restore();
             } else {
@@ -534,32 +517,8 @@ class AudioVisualizer {
                         this.ctx.fillStyle = this.backgroundColor;
                         this.ctx.fillRect(rightStripX, 0, this.pixelsPerSample, height);
                         
-                        // Redraw voice range bands in the rightmost strip
-                        const padding = 6;
-                        const usableHeight = height - padding * 2;
-                        const hzRange = this.pitchMaxHz - this.pitchMinHz || 1;
-                        
-                        const hzToY = (hz) => {
-                            const ratio = (hz - this.pitchMinHz) / hzRange;
-                            const clamped = Math.min(1, Math.max(0, ratio));
-                            return padding + (1 - clamped) * usableHeight;
-                        };
-                        
-                        // Draw masculine voice range band (blue) in the strip
-                        if (this.masculineVoiceMaxHz > this.pitchMinHz && this.masculineVoiceMinHz < this.pitchMaxHz) {
-                            const topY = hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
-                            const bottomY = hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
-                            this.ctx.fillStyle = this.masculineVoiceColor;
-                            this.ctx.fillRect(rightStripX, topY, this.pixelsPerSample, bottomY - topY);
-                        }
-                        
-                        // Draw feminine voice range band (pink) in the strip
-                        if (this.feminineVoiceMaxHz > this.pitchMinHz && this.feminineVoiceMinHz < this.pitchMaxHz) {
-                            const topY = hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
-                            const bottomY = hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
-                            this.ctx.fillStyle = this.feminineVoiceColor;
-                            this.ctx.fillRect(rightStripX, topY, this.pixelsPerSample, bottomY - topY);
-                        }
+                        // Redraw voice range bands in the rightmost strip using helper method
+                        this.drawVoiceRangeBands(rightStripX, this.pixelsPerSample);
                         
                         this.ctx.restore();
                     }
