@@ -76,8 +76,6 @@ content/pages/voice-recorder/
 
 **Core Methods:**
 
-**Core Methods:**
-
 | Method | Description |
 |--------|-------------|
 | `startRecording()` | Request mic → create AudioContext/Analyser → start MediaRecorders |
@@ -109,8 +107,6 @@ The voice recorder uses two pitch detection engines:
 - Unvoiced/noisy segments show gaps rather than stable lines
 - Secondary pitch trace currently disabled in UI
 - Canvas playback renders video frames (no live waveform)
-
-## Development Guide
 
 ## Development Guide
 
