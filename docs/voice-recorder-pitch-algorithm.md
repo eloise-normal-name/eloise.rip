@@ -264,5 +264,5 @@ const pitch = detectPitch(buffer, sampleRate, false);
 ## Related Documentation
 
 - [voice-recorder.md](voice-recorder.md) - Overall architecture
-- [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) - Implementation plan (historical)
+- [voice-recorder-pitch-plan.md](archive/voice-recorder-pitch-plan.md) - Implementation plan (archived)
 - [voice-recorder-roadmap.md](voice-recorder-roadmap.md) - Future features
