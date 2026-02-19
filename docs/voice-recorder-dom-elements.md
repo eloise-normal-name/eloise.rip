@@ -19,6 +19,12 @@ The `VoiceRecorderApp` constructor initializes references to these DOM elements.
 | `playbackVideo` | `voice-recorder.md:22` | `this.playbackVideo` (line 32) | Video playback element |
 | `clipsList` | `voice-recorder.md:36` | `this.clipsList` (line 33) | Container for recorded clips list |
 
+### Optional Elements
+
+| Element ID | HTML Location | JavaScript Reference | Purpose |
+|------------|---------------|---------------------|---------|
+| `visualizerStats` | `voice-recorder.md` (inside `.recorder-canvas-container`) | `this.visualizerStats` (constructor) | Live stats overlay above the visualizer (HTML layer, not captured in recorded video) |
+
 ### Validation Check
 
 The constructor includes a validation check (lines 66-68):
