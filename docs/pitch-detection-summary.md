@@ -274,5 +274,5 @@ Works in all modern browsers supporting:
 
 - [voice-recorder-pitch-algorithm.md](voice-recorder-pitch-algorithm.md) - Complete algorithm explanation with examples
 - [voice-recorder.md](voice-recorder.md) - Overall architecture and components
-- [voice-recorder-pitch-plan.md](voice-recorder-pitch-plan.md) - Original implementation plan
+- [voice-recorder-pitch-plan.md](archive/voice-recorder-pitch-plan.md) - Original implementation plan (archived)
 - [voice-recorder-roadmap.md](voice-recorder-roadmap.md) - Future features and improvements

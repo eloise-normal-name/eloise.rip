@@ -1,3 +1,25 @@
+/**
+ * Detect pitch using normalized autocorrelation algorithm
+ * 
+ * Algorithm Overview:
+ * 1. Center signal (remove DC bias)
+ * 2. Calculate RMS and check for silence
+ * 3. Perform autocorrelation search over frequency range
+ * 4. Apply parabolic interpolation for sub-sample precision
+ * 5. Optionally detect secondary pitch
+ * 
+ * @param {Float32Array} buffer - Audio samples
+ * @param {number} sampleRate - Sample rate in Hz
+ * @param {boolean} detectSecondary - Whether to detect secondary pitch
+ * @param {Object} options - Detection options
+ * @param {number} options.minHz - Minimum frequency to detect (default: 80)
+ * @param {number} options.maxHz - Maximum frequency to detect (default: 400)
+ * @param {number} options.primaryThreshold - Correlation threshold for primary (default: 0.2)
+ * @param {number} options.secondaryThreshold - Correlation threshold for secondary (default: 0.15)
+ * @returns {Object|null} Pitch data {primary, secondary, rms, primaryStrength, secondaryStrength} or null if no pitch detected
+ * 
+ * See docs/voice-recorder-pitch-algorithm.md for detailed explanation
+ */
 function detectPitchAutocorrelation(buffer, sampleRate, detectSecondary = false, options = {}) {
     if (!buffer || buffer.length === 0 || !sampleRate) {
         return null;
@@ -8,27 +30,33 @@ function detectPitchAutocorrelation(buffer, sampleRate, detectSecondary = false,
     const primaryThreshold = options.primaryThreshold || 0.2;
     const secondaryThreshold = options.secondaryThreshold || 0.15;
 
+    // Center the signal by removing DC bias (improves correlation accuracy)
     let mean = 0;
     for (let i = 0; i < buffer.length; i += 1) {
         mean += buffer[i];
     }
     mean /= buffer.length;
 
+    // Calculate RMS (Root Mean Square) to measure signal energy
     let rms = 0;
     for (let i = 0; i < buffer.length; i += 1) {
         const centered = buffer[i] - mean;
         rms += centered * centered;
     }
     rms = Math.sqrt(rms / buffer.length);
+    
+    // Early return if signal is too quiet (silence detection)
     if (rms < 0.01) {
         return null;
     }
 
+    // Convert frequency range to lag range (lag = sampleRate / frequency)
     const minLag = Math.max(1, Math.floor(sampleRate / maxHz));
     const maxLag = Math.min(Math.floor(sampleRate / minHz), buffer.length - 1);
 
-    const energy = rms * rms;
+    const energy = rms * rms;  // Used for normalization
 
+    // Autocorrelation search: find lag with highest correlation
     const correlations = [];
     let bestCorrelation = 0;
     let bestLag = -1;

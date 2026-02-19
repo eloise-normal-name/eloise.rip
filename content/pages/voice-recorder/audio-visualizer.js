@@ -1,3 +1,18 @@
+/**
+ * Audio Visualizer - Real-time canvas rendering for waveforms and pitch traces
+ * 
+ * @class AudioVisualizer
+ * 
+ * Features:
+ * - Scrolling pitch trace visualization (2px per sample)
+ * - Voice range bands (masculine 85-155 Hz, feminine 165-255 Hz)
+ * - Pitch stabilization pipeline (harmonic correction, gap hold, smoothing)
+ * - Signal quality tracking (idle, quiet, weak, lost, tracking)
+ * - Canvas context recovery handling
+ * 
+ * Rendering Flow:
+ * - AnalyserNode → getFloatTimeDomainData() → pitch detection → canvas drawing
+ */
 class AudioVisualizer {
     constructor(canvas, analyserNode) {
         this.canvas = canvas;
@@ -5,11 +20,12 @@ class AudioVisualizer {
         this.analyserNode = null;
         this.floatData = null;
 
+        // === Visual Style Configuration ===
         this.backgroundColor = 'rgba(255, 255, 255, 1)';
         this.borderColor = 'rgba(255, 107, 157, 0.65)';
         this.borderWidth = 0;
         
-        // Voice range bands (typical fundamental frequencies)
+        // === Voice Range Bands (typical fundamental frequencies) ===
         this.masculineVoiceMinHz = 85;
         this.masculineVoiceMaxHz = 155;
         this.feminineVoiceMinHz = 165;
@@ -17,6 +33,7 @@ class AudioVisualizer {
         this.masculineVoiceColor = 'rgba(116, 192, 252, 0.15)';
         this.feminineVoiceColor = 'rgba(255, 107, 157, 0.15)';
 
+        // === Pitch Visualization Settings ===
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
         this.pitchMaxSamples = 200;
@@ -28,15 +45,19 @@ class AudioVisualizer {
         this.secondarySparkColor = 'rgba(255, 120, 84, 0.92)';
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = false;
+
+        // === Pitch Stabilization Parameters ===
         this.glowRadius = 12;
         this.lastPrimaryGlowY = null;
         this.lastSecondaryGlowY = null;
-        this.pitchGapHoldSamples = 3;
+        this.pitchGapHoldSamples = 3;              // Hold pitch for N frames during gaps
         this.consecutivePitchMisses = 0;
-        this.reacquireLowPitchWindowHz = 18;
-        this.reacquireMinStableSamples = 2;
+        this.reacquireLowPitchWindowHz = 18;       // Post-silence reacquisition window
+        this.reacquireMinStableSamples = 2;        // Samples needed for stable reacquisition
         this.pendingReacquirePitch = null;
         this.pendingReacquireCount = 0;
+
+        // === Signal Quality Tracking ===
         this.latestSignalRms = 0;
         this.latestTrackingStatus = {
             state: 'idle',
@@ -170,6 +191,11 @@ class AudioVisualizer {
         return this.offscreenCtx;
     }
 
+    /**
+     * Attach or detach a Web Audio API AnalyserNode
+     * 
+     * @param {AnalyserNode|null} analyserNode - The analyser to attach, or null to detach
+     */
     setAnalyser(analyserNode) {
         this.analyserNode = analyserNode;
         if (this.analyserNode) {
@@ -181,6 +207,11 @@ class AudioVisualizer {
         this.paintFrame();
     }
 
+    /**
+     * Inject a custom pitch detector function
+     * 
+     * @param {Function} detectorFn - Function with signature (buffer, sampleRate, detectSecondary, options) => pitchData
+     */
     setPitchDetector(detectorFn) {
         this.pitchDetectorFn = typeof detectorFn === 'function'
             ? detectorFn
@@ -370,6 +401,13 @@ class AudioVisualizer {
         this.pitchSmoothing = smoothing;
     }
 
+    /**
+     * Get pitch statistics for the current recording
+     * 
+     * Calculates min, max, average pitch with outlier filtering using IQR method
+     * 
+     * @returns {Object|null} Statistics {min, max, average, sampleCount, filteredCount} or null if no data
+     */
     getPitchStatistics() {
         if (this.pitchStats.count === 0) {
             return null;
@@ -649,6 +687,10 @@ class AudioVisualizer {
         }
     }
 
+    /**
+     * Clear the canvas and reset pitch history
+     * Repaints the background, voice range bands, and pitch grid
+     */
     clear() {
         this.paintFrame();
         this.resetPitchHistory();
@@ -854,6 +896,19 @@ class AudioVisualizer {
         this.currentX = scrollTriggerX;
     }
 
+    /**
+     * Main rendering loop - called on every animation frame during recording
+     * 
+     * Flow:
+     * 1. Read audio data from AnalyserNode
+     * 2. Calculate signal RMS (loudness)
+     * 3. Detect pitch using injected detector function
+     * 4. Apply stabilization pipeline
+     * 5. Update tracking status
+     * 6. Render pitch trace on canvas
+     * 
+     * The canvas persists between frames (no clearing), creating a scrolling visualization
+     */
     render() {
         // Don't call paintFrame() here - we only repaint during scrolling or explicit clear
         // This allows the pitch trace to persist and scroll properly
