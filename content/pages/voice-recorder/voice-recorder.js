@@ -53,6 +53,7 @@ class VoiceRecorderApp {
         this.playbackVideo = document.getElementById('playbackVideo');
         this.clipsList = document.getElementById('clipsList');
         this.signalIndicator = document.getElementById('signalIndicator');
+        this.visualizerStats = document.getElementById('visualizerStats');
 
         this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
 
@@ -98,6 +99,8 @@ class VoiceRecorderApp {
         // Cache signal indicator state to avoid unnecessary DOM updates
         this._lastSignalState = null;
         this._lastSignalLabel = null;
+        this._lastVisualizerStats = '';
+        this._lastVisualizerStatsTimestamp = 0;
 
         // === Initialization ===
         // Early exit if required DOM elements are missing
@@ -658,13 +661,15 @@ class VoiceRecorderApp {
     }
 
     updateSignalIndicator(status = null) {
-        if (!this.signalIndicator) {
-            return;
-        }
-
         const resolvedStatus = status || (this.visualizer && typeof this.visualizer.getTrackingStatus === 'function'
             ? this.visualizer.getTrackingStatus()
             : null);
+
+        this.updateVisualizerStats(resolvedStatus);
+
+        if (!this.signalIndicator) {
+            return;
+        }
 
         const state = resolvedStatus && resolvedStatus.state ? resolvedStatus.state : 'idle';
         const label = resolvedStatus && resolvedStatus.label ? resolvedStatus.label : 'Signal: idle';
@@ -681,11 +686,48 @@ class VoiceRecorderApp {
         this.signalIndicator.textContent = label;
     }
 
+    updateVisualizerStats(status = null) {
+        if (!this.visualizerStats) {
+            return;
+        }
+
+        const resolvedStatus = status || (this.visualizer && typeof this.visualizer.getTrackingStatus === 'function'
+            ? this.visualizer.getTrackingStatus()
+            : null);
+
+        let statsText = 'Stats unavailable';
+        if (resolvedStatus) {
+            const label = resolvedStatus.label || 'Signal';
+            const pitch = Number.isFinite(resolvedStatus.sample) ? `${resolvedStatus.sample.toFixed(1)} Hz` : '—';
+            const strength = Number.isFinite(resolvedStatus.strength) ? `${Math.round(resolvedStatus.strength * 100)}%` : '—';
+            const rms = Number.isFinite(resolvedStatus.rms) ? resolvedStatus.rms.toFixed(3) : '—';
+            statsText = `${label}\nPitch: ${pitch}\nStrength: ${strength}\nRMS: ${rms}`;
+        }
+
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const withinThrottle = this._lastVisualizerStatsTimestamp
+            && (now - this._lastVisualizerStatsTimestamp < 120);
+        if (withinThrottle && statsText === this._lastVisualizerStats) {
+            return;
+        }
+
+        if (statsText === this._lastVisualizerStats) {
+            return;
+        }
+
+        this._lastVisualizerStats = statsText;
+        this._lastVisualizerStatsTimestamp = now;
+        this.visualizerStats.textContent = statsText;
+    }
+
     startVisualizer() {
         if (!this.visualizer) return;
         const loop = () => {
             this.visualizer.render();
-            this.updateSignalIndicator();
+            const trackingStatus = typeof this.visualizer.getTrackingStatus === 'function'
+                ? this.visualizer.getTrackingStatus()
+                : null;
+            this.updateSignalIndicator(trackingStatus);
             this.animationId = requestAnimationFrame(loop);
         };
         this.animationId = requestAnimationFrame(loop);
