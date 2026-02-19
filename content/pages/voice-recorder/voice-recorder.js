@@ -661,7 +661,7 @@ class VoiceRecorderApp {
             cancelAnimationFrame(this.playbackAnimationId);
             this.playbackAnimationId = null;
         }
-        this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+        // Keep the last rendered frame visible when playback/recording stops.
     }
 
     startPlaybackRender() {
@@ -700,11 +700,23 @@ class VoiceRecorderApp {
         }
 
         try {
-            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                }
+            });
         } catch (error) {
-            const details = `Error: ${error.name}\nMessage: ${error.message}\n\nTip: Check browser permissions or use HTTPS`;
-            this.setStatus('Microphone permission denied.', details);
-            return;
+            // Fallback for browsers/devices that reject explicit constraints.
+            try {
+                this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (fallbackError) {
+                const details = `Error: ${fallbackError.name}\nMessage: ${fallbackError.message}\n\nTip: Check browser permissions or use HTTPS`;
+                this.setStatus('Microphone permission denied.', details);
+                return;
+            }
         }
 
         const mimeType = this.pickSupportedType(['audio/mp4']);
@@ -780,6 +792,9 @@ class VoiceRecorderApp {
         const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
         this.setStatus('Recording started.', details);
         this.startVisualizer();
+        // Prime the canvas immediately so captureStream doesn't start on an empty frame.
+        this.visualizer.render();
+        this.updateSignalIndicator();
 
         this.startVideoRecording();
     }
@@ -788,7 +803,8 @@ class VoiceRecorderApp {
         try {
             const canvasStream = this.recordingCanvas.captureStream(60);
             const videoTrack = canvasStream.getVideoTracks()[0];
-            const audioTrack = this.mediaStream.getAudioTracks()[0];
+            // Clone the audio track so audio/video recorders do not contend on one track.
+            const audioTrack = this.mediaStream.getAudioTracks()[0].clone();
             const combinedStream = new MediaStream([videoTrack, audioTrack]);
 
             const videoMimeType = this.pickSupportedType(VoiceRecorderApp.preferredVideoTypes);
@@ -839,6 +855,8 @@ class VoiceRecorderApp {
                 if (!this.discardRecordingOnStop) {
                     this.currentRecordingClipId = null;
                 }
+
+                combinedStream.getTracks().forEach((track) => track.stop());
             };
 
             this.videoMediaRecorder.start();
@@ -1010,6 +1028,54 @@ class VoiceRecorderApp {
     selectClip(id) {
         this.selectedClipId = id;
         this.renderClipsList();
+        this.seekSelectedClipToEnd(id);
+    }
+
+    seekSelectedClipToEnd(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoUrl) {
+            return;
+        }
+
+        if (this.playingClipId !== null) {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+            this.renderClipsList();
+        } else {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+        }
+
+        const drawCurrentFrame = () => {
+            this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.recordingCtx.drawImage(this.playbackVideo, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+        };
+
+        const seekAndDrawEnd = () => {
+            const duration = this.playbackVideo.duration;
+            if (!Number.isFinite(duration) || duration <= 0) {
+                return;
+            }
+
+            const endTime = Math.max(0, duration - 0.001);
+            this.playbackVideo.addEventListener('seeked', drawCurrentFrame, { once: true });
+            this.playbackVideo.currentTime = endTime;
+        };
+
+        const currentSource = this.playbackVideo.currentSrc || this.playbackVideo.src;
+        if (currentSource !== clip.videoUrl) {
+            this.playbackVideo.src = clip.videoUrl;
+            this.playbackVideo.load();
+            this.playbackVideo.addEventListener('loadedmetadata', seekAndDrawEnd, { once: true });
+            return;
+        }
+
+        if (this.playbackVideo.readyState >= 1) {
+            seekAndDrawEnd();
+        } else {
+            this.playbackVideo.addEventListener('loadedmetadata', seekAndDrawEnd, { once: true });
+        }
     }
 
     renameClip(id, newName) {
