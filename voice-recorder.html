@@ -601,6 +601,28 @@
     transform: scale(1.1);
 }</style>
 <script>
+/**
+ * Detect pitch using normalized autocorrelation algorithm
+ * 
+ * Algorithm Overview:
+ * 1. Center signal (remove DC bias)
+ * 2. Calculate RMS and check for silence
+ * 3. Perform autocorrelation search over frequency range
+ * 4. Apply parabolic interpolation for sub-sample precision
+ * 5. Optionally detect secondary pitch
+ * 
+ * @param {Float32Array} buffer - Audio samples
+ * @param {number} sampleRate - Sample rate in Hz
+ * @param {boolean} detectSecondary - Whether to detect secondary pitch
+ * @param {Object} options - Detection options
+ * @param {number} options.minHz - Minimum frequency to detect (default: 80)
+ * @param {number} options.maxHz - Maximum frequency to detect (default: 400)
+ * @param {number} options.primaryThreshold - Correlation threshold for primary (default: 0.2)
+ * @param {number} options.secondaryThreshold - Correlation threshold for secondary (default: 0.15)
+ * @returns {Object|null} Pitch data {primary, secondary, rms, primaryStrength, secondaryStrength} or null if no pitch detected
+ * 
+ * See docs/voice-recorder-pitch-algorithm.md for detailed explanation
+ */
 function detectPitchAutocorrelation(buffer, sampleRate, detectSecondary = false, options = {}) {
     if (!buffer || buffer.length === 0 || !sampleRate) {
         return null;
@@ -611,27 +633,33 @@ function detectPitchAutocorrelation(buffer, sampleRate, detectSecondary = false,
     const primaryThreshold = options.primaryThreshold || 0.2;
     const secondaryThreshold = options.secondaryThreshold || 0.15;
 
+    // Center the signal by removing DC bias (improves correlation accuracy)
     let mean = 0;
     for (let i = 0; i < buffer.length; i += 1) {
         mean += buffer[i];
     }
     mean /= buffer.length;
 
+    // Calculate RMS (Root Mean Square) to measure signal energy
     let rms = 0;
     for (let i = 0; i < buffer.length; i += 1) {
         const centered = buffer[i] - mean;
         rms += centered * centered;
     }
     rms = Math.sqrt(rms / buffer.length);
+
+    // Early return if signal is too quiet (silence detection)
     if (rms < 0.01) {
         return null;
     }
 
+    // Convert frequency range to lag range (lag = sampleRate / frequency)
     const minLag = Math.max(1, Math.floor(sampleRate / maxHz));
     const maxLag = Math.min(Math.floor(sampleRate / minHz), buffer.length - 1);
 
-    const energy = rms * rms;
+    const energy = rms * rms;  // Used for normalization
 
+    // Autocorrelation search: find lag with highest correlation
     const correlations = [];
     let bestCorrelation = 0;
     let bestLag = -1;
@@ -741,18 +769,34 @@ function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) 
 if (typeof window !== 'undefined') {
     window.detectPitchAutocorrelation = detectPitchAutocorrelation;
     window.detectPitch = detectPitch;
-}class AudioVisualizer {
+}/**
+ * Audio Visualizer - Real-time canvas rendering for waveforms and pitch traces
+ * 
+ * @class AudioVisualizer
+ * 
+ * Features:
+ * - Scrolling pitch trace visualization (2px per sample)
+ * - Voice range bands (masculine 85-155 Hz, feminine 165-255 Hz)
+ * - Pitch stabilization pipeline (harmonic correction, gap hold, smoothing)
+ * - Signal quality tracking (idle, quiet, weak, lost, tracking)
+ * - Canvas context recovery handling
+ * 
+ * Rendering Flow:
+ * - AnalyserNode → getFloatTimeDomainData() → pitch detection → canvas drawing
+ */
+class AudioVisualizer {
     constructor(canvas, analyserNode) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.analyserNode = null;
         this.floatData = null;
 
+        // === Visual Style Configuration ===
         this.backgroundColor = 'rgba(255, 255, 255, 1)';
         this.borderColor = 'rgba(255, 107, 157, 0.65)';
         this.borderWidth = 0;
 
-        // Voice range bands (typical fundamental frequencies)
+        // === Voice Range Bands (typical fundamental frequencies) ===
         this.masculineVoiceMinHz = 85;
         this.masculineVoiceMaxHz = 155;
         this.feminineVoiceMinHz = 165;
@@ -760,6 +804,7 @@ if (typeof window !== 'undefined') {
         this.masculineVoiceColor = 'rgba(116, 192, 252, 0.15)';
         this.feminineVoiceColor = 'rgba(255, 107, 157, 0.15)';
 
+        // === Pitch Visualization Settings ===
         this.pitchHistory = [];
         this.secondaryPitchHistory = [];
         this.pitchMaxSamples = 200;
@@ -771,15 +816,19 @@ if (typeof window !== 'undefined') {
         this.secondarySparkColor = 'rgba(255, 120, 84, 0.92)';
         this.pitchSmoothing = 0.35;
         this.showSecondaryPitch = false;
+
+        // === Pitch Stabilization Parameters ===
         this.glowRadius = 12;
         this.lastPrimaryGlowY = null;
         this.lastSecondaryGlowY = null;
-        this.pitchGapHoldSamples = 3;
+        this.pitchGapHoldSamples = 3;              // Hold pitch for N frames during gaps
         this.consecutivePitchMisses = 0;
-        this.reacquireLowPitchWindowHz = 18;
-        this.reacquireMinStableSamples = 2;
+        this.reacquireLowPitchWindowHz = 18;       // Post-silence reacquisition window
+        this.reacquireMinStableSamples = 2;        // Samples needed for stable reacquisition
         this.pendingReacquirePitch = null;
         this.pendingReacquireCount = 0;
+
+        // === Signal Quality Tracking ===
         this.latestSignalRms = 0;
         this.latestTrackingStatus = {
             state: 'idle',
@@ -913,6 +962,11 @@ if (typeof window !== 'undefined') {
         return this.offscreenCtx;
     }
 
+    /**
+     * Attach or detach a Web Audio API AnalyserNode
+     * 
+     * @param {AnalyserNode|null} analyserNode - The analyser to attach, or null to detach
+     */
     setAnalyser(analyserNode) {
         this.analyserNode = analyserNode;
         if (this.analyserNode) {
@@ -924,6 +978,11 @@ if (typeof window !== 'undefined') {
         this.paintFrame();
     }
 
+    /**
+     * Inject a custom pitch detector function
+     * 
+     * @param {Function} detectorFn - Function with signature (buffer, sampleRate, detectSecondary, options) => pitchData
+     */
     setPitchDetector(detectorFn) {
         this.pitchDetectorFn = typeof detectorFn === 'function'
             ? detectorFn
@@ -1113,6 +1172,13 @@ if (typeof window !== 'undefined') {
         this.pitchSmoothing = smoothing;
     }
 
+    /**
+     * Get pitch statistics for the current recording
+     * 
+     * Calculates min, max, average pitch with outlier filtering using IQR method
+     * 
+     * @returns {Object|null} Statistics {min, max, average, sampleCount, filteredCount} or null if no data
+     */
     getPitchStatistics() {
         if (this.pitchStats.count === 0) {
             return null;
@@ -1392,6 +1458,10 @@ if (typeof window !== 'undefined') {
         }
     }
 
+    /**
+     * Clear the canvas and reset pitch history
+     * Repaints the background, voice range bands, and pitch grid
+     */
     clear() {
         this.paintFrame();
         this.resetPitchHistory();
@@ -1597,6 +1667,19 @@ if (typeof window !== 'undefined') {
         this.currentX = scrollTriggerX;
     }
 
+    /**
+     * Main rendering loop - called on every animation frame during recording
+     * 
+     * Flow:
+     * 1. Read audio data from AnalyserNode
+     * 2. Calculate signal RMS (loudness)
+     * 3. Detect pitch using injected detector function
+     * 4. Apply stabilization pipeline
+     * 5. Update tracking status
+     * 6. Render pitch trace on canvas
+     * 
+     * The canvas persists between frames (no clearing), creating a scrolling visualization
+     */
     render() {
         // Don't call paintFrame() here - we only repaint during scrolling or explicit clear
         // This allows the pitch trace to persist and scroll properly
@@ -1723,17 +1806,24 @@ if (typeof window !== 'undefined') {
 }/**
  * Voice Recorder App - Multi-clip recording with pitch visualization
  * 
+ * @class VoiceRecorderApp
+ * 
+ * Architecture:
+ * - Microphone → AudioContext/Analyser → AudioVisualizer → Canvas
+ * - Microphone → MediaRecorder → Audio Blob (MP4)
+ * - Canvas.captureStream() + Audio → MediaRecorder → Video Blob (MP4/WebM)
+ * 
  * DOM Element Dependencies:
  * This class requires specific HTML element IDs defined in voice-recorder.md.
- * When modifying the UI, ensure all getElementById() calls have matching HTML elements.
- * See docs/voice-recorder-dom-elements.md for the complete reference and maintenance guide.
- * 
- * A GitHub Actions workflow validates DOM elements on every PR to prevent initialization failures.
+ * See docs/voice-recorder-dom-elements.md for the complete reference.
+ * A GitHub Actions workflow validates DOM elements on every PR.
  */
 class VoiceRecorderApp {
+    // === Configuration ===
     static pitchDetectorPreferenceKey = 'voiceRecorder.usePitchyDetector';
     static pitchyModuleUrl = '/media/voice-recorder/pitchy/pitchy-4.1.0.esm.js';
 
+    // Random filename generation (two-word food names)
     static foods = [
         'apple', 'apricot', 'avocado', 'banana', 'basil', 'bean', 'berry', 'biscuit', 'bread', 'broccoli',
         'butter', 'cabbage', 'cake', 'carrot', 'cashew', 'celery', 'cheese', 'cherry', 'chicken', 'chili',
@@ -1747,6 +1837,7 @@ class VoiceRecorderApp {
         'tea', 'toast', 'tofu', 'tomato', 'truffle', 'tuna', 'vanilla', 'waffle', 'walnut', 'yogurt'
     ];
 
+    // MIME type preferences for recording
     static debugMimeTypes = [
         'audio/mp4',
         'audio/webm;codecs=opus',
@@ -1759,6 +1850,7 @@ class VoiceRecorderApp {
     ];
 
     constructor() {
+        // === DOM Elements (required for initialization) ===
         this.recordButton = document.getElementById('recordButton');
         this.testSignalButton = document.getElementById('testSignalButton');
         this.debugMsg = document.getElementById('debugMsg');
@@ -1769,32 +1861,37 @@ class VoiceRecorderApp {
 
         this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
 
+        // === Recording State ===
         this.isRecording = false;
+        this.mediaRecorder = null;          // Audio MediaRecorder
+        this.mediaStream = null;            // getUserMedia stream
+        this.audioChunks = [];              // Recorded audio data
 
-        this.mediaRecorder = null;
-        this.mediaStream = null;
-        this.audioChunks = [];
+        // === Web Audio API Components ===
+        this.audioContext = null;           // AudioContext for analysis
+        this.analyser = null;               // AnalyserNode for waveform data
+        this.visualizer = null;             // AudioVisualizer instance
+        this.animationId = null;            // requestAnimationFrame ID
 
-        this.audioContext = null;
-        this.analyser = null;
-        this.visualizer = null;
-        this.animationId = null;
+        // === Video Recording ===
+        this.videoMediaRecorder = null;     // Video MediaRecorder (canvas + audio)
+        this.videoChunks = [];              // Recorded video data
+        this.playbackAnimationId = null;    // Playback animation frame ID
 
-        this.videoMediaRecorder = null;
-        this.videoChunks = [];
-        this.playbackAnimationId = null;
-
+        // === Test Signal (220Hz sine wave) ===
         this.testOscillator = null;
         this.testGain = null;
         this.isTestSignalActive = false;
 
-        this.clips = [];
-        this.selectedClipId = null;
-        this.currentRecordingClipId = null;
-        this.recordingStartTime = null;
-        this.playingClipId = null;
-        this.discardRecordingOnStop = false;
+        // === Clip Management ===
+        this.clips = [];                    // Array of {id, name, audioBlob, videoBlob, ...}
+        this.selectedClipId = null;         // Currently selected clip
+        this.currentRecordingClipId = null; // Clip being recorded
+        this.recordingStartTime = null;     // Recording start timestamp
+        this.playingClipId = null;          // Currently playing clip
+        this.discardRecordingOnStop = false;// Flag to discard on stop (for cancel)
 
+        // === Pitch Detector (Pitchy integration) ===
         this.usePitchyDetector = this.getStoredPitchyPreference();
         this.pitchyModule = null;
         this.pitchyDetectorInstance = null;
@@ -1802,10 +1899,13 @@ class VoiceRecorderApp {
         this.pitchyLoadingPromise = null;
         this.pitchyLoadFailed = false;
 
-        // Cache for signal indicator to avoid unnecessary DOM updates
+        // === Performance Optimization ===
+        // Cache signal indicator state to avoid unnecessary DOM updates
         this._lastSignalState = null;
         this._lastSignalLabel = null;
 
+        // === Initialization ===
+        // Early exit if required DOM elements are missing
         if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
             || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
             return;
@@ -1958,6 +2058,20 @@ class VoiceRecorderApp {
         };
     }
 
+    /**
+     * Detect pitch using the currently selected engine (Pitchy or autocorrelation)
+     * 
+     * Falls back to autocorrelation if:
+     * - Pitchy is not enabled by user
+     * - Pitchy module is not loaded yet
+     * - Pitchy detection fails
+     * 
+     * @param {Float32Array} buffer - Audio samples
+     * @param {number} sampleRate - Sample rate in Hz
+     * @param {boolean} detectSecondary - Whether to detect secondary pitch
+     * @param {Object} options - Detection options
+     * @returns {Object|null} Pitch data or null
+     */
     detectPitchWithSelectedEngine(buffer, sampleRate, detectSecondary = false, options = {}) {
         const fallbackDetector = this.getAutocorrelationDetector();
         if (!fallbackDetector) {
@@ -2277,6 +2391,10 @@ class VoiceRecorderApp {
         this.setStatus('Browser capabilities checked', lines.join('\n'));
     }
 
+    /**
+     * Toggle 220Hz test signal on/off
+     * Used for testing pitch detection accuracy
+     */
     toggleTestSignal() {
         if (this.isTestSignalActive) {
             this.stopTestSignal();
@@ -2404,6 +2522,10 @@ class VoiceRecorderApp {
         this.mediaStream = null;
     }
 
+    /**
+     * Main recording button click handler
+     * Starts recording if idle, stops recording if active
+     */
     async onRecordClick() {
         if (this.isRecording) {
             this.stopRecording();
@@ -2412,6 +2534,18 @@ class VoiceRecorderApp {
         await this.startRecording();
     }
 
+    /**
+     * Start a new recording
+     * 
+     * Flow:
+     * 1. Request microphone access via getUserMedia
+     * 2. Create AudioContext and AnalyserNode for visualization
+     * 3. Start audio MediaRecorder (audio/mp4)
+     * 4. Start video MediaRecorder (canvas stream + audio)
+     * 5. Launch visualization render loop
+     * 
+     * @returns {Promise<void>}
+     */
     async startRecording() {
         if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) {
             this.setStatus(
@@ -2569,6 +2703,13 @@ class VoiceRecorderApp {
         }
     }
 
+    /**
+     * Stop the current recording
+     * 
+     * @param {Object} options - Stop options
+     * @param {boolean} options.discard - If true, discard the recording instead of saving
+     * @param {boolean} options.dueToContextRecovery - If true, stop is due to canvas context recovery
+     */
     stopRecording({ discard = false, dueToContextRecovery = false } = {}) {
         if (!this.mediaRecorder || this.mediaRecorder.state !== 'recording') {
             return;
