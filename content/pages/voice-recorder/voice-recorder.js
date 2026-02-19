@@ -1053,7 +1053,7 @@ class VoiceRecorderApp {
             return;
         }
         
-        const clipsHtml = this.clips.map((clip) => {
+        const clipsHtml = this.clips.slice().reverse().map((clip) => {
             const isSelected = clip.id === this.selectedClipId;
             const isPlaying = clip.id === this.playingClipId;
             const hasVideo = !!clip.videoUrl;
