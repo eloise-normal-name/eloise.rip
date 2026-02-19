@@ -15,7 +15,6 @@
  */
 class VoiceRecorderApp {
     // === Configuration ===
-    // === Configuration ===
     static pitchDetectorPreferenceKey = 'voiceRecorder.usePitchyDetector';
     static pitchyModuleUrl = '/media/voice-recorder/pitchy/pitchy-4.1.0.esm.js';
 
