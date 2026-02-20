@@ -17,7 +17,7 @@ class HearingAgeGuesser {
         this.resetButton = document.getElementById('resetButton');
 
         // Sweep configuration
-        this.startFrequency = 8000;
+        this.startFrequency = 440;
         this.maxFrequency = 20000;
         this.stepHz = 250;
         this.tickMs = 450;
