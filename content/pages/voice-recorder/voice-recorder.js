@@ -799,6 +799,14 @@ class VoiceRecorderApp {
      * @returns {Promise<void>}
      */
     async startRecording() {
+        if (this.playingClipId !== null) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+            this.renderClipsList();
+        }
+
         if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) {
             this.setStatus(
                 'Recording not supported in this browser.',
