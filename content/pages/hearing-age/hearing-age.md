@@ -25,7 +25,7 @@ Status: hidden
             <div class="readout-block">
                 <div class="readout-label">Current tone</div>
                 <div class="readout-value">
-                    <span id="frequencyValue">8000</span>
+                    <span id="frequencyValue">440</span>
                     <span class="readout-unit">Hz</span>
                 </div>
             </div>
@@ -55,7 +55,7 @@ Status: hidden
             <div class="progress-track">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
-            <div class="progress-caption">Sweep walks from 8 kHz to 20 kHz. Stay gentle with your volume.</div>
+            <div class="progress-caption">Sweep walks from 440 Hz to 20 kHz. Stay gentle with your volume.</div>
         </div>
 
         <ul class="notes">
