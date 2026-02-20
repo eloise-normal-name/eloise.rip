@@ -706,10 +706,13 @@ class VoiceRecorderApp {
         let statsText = 'Stats unavailable';
         if (resolvedStatus) {
             const label = resolvedStatus.label || 'Signal';
-            const pitch = Number.isFinite(resolvedStatus.sample) ? `${resolvedStatus.sample.toFixed(1)} Hz` : '—';
+            const pitchStats = this.visualizer && typeof this.visualizer.getPitchStatistics === 'function'
+                ? this.visualizer.getPitchStatistics()
+                : null;
+            const avgPitch = pitchStats && Number.isFinite(pitchStats.average) ? `${pitchStats.average.toFixed(1)} Hz` : '—';
             const strength = Number.isFinite(resolvedStatus.strength) ? `${Math.round(resolvedStatus.strength * 100)}%` : '—';
             const rms = Number.isFinite(resolvedStatus.rms) ? resolvedStatus.rms.toFixed(3) : '—';
-            statsText = `${label}\nPitch: ${pitch}\nStrength: ${strength}\nRMS: ${rms}`;
+            statsText = `${label}\nAvg Pitch: ${avgPitch}\nStrength: ${strength}\nRMS: ${rms}`;
         }
 
         const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
