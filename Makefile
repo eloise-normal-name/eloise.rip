@@ -10,6 +10,7 @@ FORCE ?= 0
 QUIET ?= 0
 PYTHON_BIN ?= python3
 FFMPEG_BIN ?= ffmpeg
+LOCAL_FFMPEG_BIN ?= $(firstword $(wildcard tools/ffmpeg-bin/ffmpeg tools/ffmpeg-bin/ffmpeg-*-static/ffmpeg))
 
 HQ_SUFFIX := _hq
 HQ_CRF_BONUS := 8
@@ -29,11 +30,17 @@ help:
 	@echo "  (set FFMPEG_BIN=ffmpeg or explicit ffmpeg executable path)"
 
 transcode:
-	@if [[ "$(FFMPEG_BIN)" == *"/"* || "$(FFMPEG_BIN)" == *"\\"* ]]; then \
-		[[ -x "$(FFMPEG_BIN)" ]] || { echo "[ERROR] ffmpeg executable not found: $(FFMPEG_BIN)" >&2; exit 1; }; \
+	@if [[ "$(FFMPEG_BIN)" == "ffmpeg" && -n "$(LOCAL_FFMPEG_BIN)" && -x "$(LOCAL_FFMPEG_BIN)" ]]; then \
+		selected_ffmpeg="$(LOCAL_FFMPEG_BIN)"; \
 	else \
-		command -v "$(FFMPEG_BIN)" >/dev/null 2>&1 || { echo "[ERROR] Required tool '$(FFMPEG_BIN)' not found in PATH." >&2; exit 1; }; \
-	fi
+		selected_ffmpeg="$(FFMPEG_BIN)"; \
+	fi; \
+	if [[ "$${selected_ffmpeg}" == *"/"* || "$${selected_ffmpeg}" == *"\\"* ]]; then \
+		[[ -x "$${selected_ffmpeg}" ]] || { echo "[ERROR] ffmpeg executable not found: $${selected_ffmpeg}" >&2; exit 1; }; \
+	else \
+		command -v "$${selected_ffmpeg}" >/dev/null 2>&1 || { echo "[ERROR] Required tool '$${selected_ffmpeg}' not found in PATH." >&2; exit 1; }; \
+	fi; \
+	echo "[INFO] Using ffmpeg: $${selected_ffmpeg}"
 
 	src_root="$(SRC)"
 	dest_root="$(DEST)"
@@ -47,7 +54,11 @@ transcode:
 	hevc_preset="$(HEVC_PRESET)"
 	hevc_audio_bitrate="$(HEVC_AUDIO_BITRATE)"
 	audio_bitrate="$(AUDIO_BITRATE)"
-	ffmpeg_bin="$(FFMPEG_BIN)"
+	if [[ "$(FFMPEG_BIN)" == "ffmpeg" && -n "$(LOCAL_FFMPEG_BIN)" && -x "$(LOCAL_FFMPEG_BIN)" ]]; then
+		ffmpeg_bin="$(LOCAL_FFMPEG_BIN)"
+	else
+		ffmpeg_bin="$(FFMPEG_BIN)"
+	fi
 
 	build_scale_filter() {
 		echo "scale='if(gt(iw,ih),min($${max_dimension},iw),-2)':'if(gt(ih,iw),min($${max_dimension},ih),-2)'"

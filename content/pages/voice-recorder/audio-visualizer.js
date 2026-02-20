@@ -93,6 +93,12 @@ class AudioVisualizer {
         this.pitchGridColor = 'rgba(0,0,0,0.08)';
         this.pitchGridWidth = 1;
 
+        // === Timeline Lines (vertical) ===
+        this.timelineIntervalSamples = 50; // Draw a vertical line every N samples
+        this.timelineColor = 'rgba(0,0,0,0.10)';
+        this.timelineWidth = 1;
+        this.totalSamplesRendered = 0;
+
         this.pitchDetectionOptions = {
             minHz: 70,
             maxHz: 280,
@@ -243,6 +249,7 @@ class AudioVisualizer {
             samples: [],
             strengths: []
         };
+        this.totalSamplesRendered = 0;
     }
 
     getRecentPrimaryAverage(sampleCount = 8) {
@@ -697,6 +704,46 @@ class AudioVisualizer {
     }
 
     // Rendering utilities
+    drawTimelineLineAt(x) {
+        // Draw a subtle vertical timeline marker at the given X position
+        this.ctx.save();
+        this.ctx.strokeStyle = this.timelineColor;
+        this.ctx.lineWidth = this.timelineWidth;
+        this.ctx.beginPath();
+        this.ctx.moveTo(Math.floor(x) + 0.5, 0);
+        this.ctx.lineTo(Math.floor(x) + 0.5, this.canvas.height);
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+
+    redrawTimelineLinesInRegion(regionStartX, regionEndX, upToIndex, latestIndex) {
+        // Redraw any timeline lines that fall within the given X region.
+        // Used when clearing the previous glow strip to prevent gaps in lines.
+        const interval = this.timelineIntervalSamples;
+        if (interval <= 0 || upToIndex < 0) return;
+
+        const T = this.totalSamplesRendered;
+        // Sample at history index i has sampleNum = T - (latestIndex - i).
+        // A timeline line was drawn when sampleNum % interval === 0,
+        // i.e. i ≡ latestIndex - T (mod interval).
+        const modOffset = ((latestIndex - T) % interval + interval) % interval;
+
+        this.ctx.save();
+        this.ctx.strokeStyle = this.timelineColor;
+        this.ctx.lineWidth = this.timelineWidth;
+        for (let i = modOffset; i <= upToIndex; i += interval) {
+            const sampleNum = T - (latestIndex - i);
+            if (sampleNum <= 0) continue;
+            const x = this.sampleIndexToX(i, latestIndex);
+            if (x < regionStartX - 1 || x > regionEndX + 1) continue;
+            this.ctx.beginPath();
+            this.ctx.moveTo(Math.floor(x) + 0.5, 0);
+            this.ctx.lineTo(Math.floor(x) + 0.5, this.canvas.height);
+            this.ctx.stroke();
+        }
+        this.ctx.restore();
+    }
+
     drawPitchLine(x1, y1, x2, y2, color, lineWidth) {
         // Draw a line segment for the pitch trace
         this.ctx.strokeStyle = color;
@@ -814,6 +861,7 @@ class AudioVisualizer {
         this.ctx.restore();
 
         const upToIndex = latestIndex - 1;
+        this.redrawTimelineLinesInRegion(regionStartX, regionEndX, upToIndex, latestIndex);
         this.redrawTraceInRegion(
             this.pitchHistory,
             this.pitchColor,
@@ -986,6 +1034,8 @@ class AudioVisualizer {
     renderPitchTrace() {
         if (!this.ensureContext()) return;
         if (!this.pitchHistory.length) return;
+
+        this.totalSamplesRendered += 1;
         
         // Check if we need to scroll and perform scrolling if necessary
         const scrollTriggerX = this.shouldScroll();
@@ -1004,6 +1054,11 @@ class AudioVisualizer {
         // only the line segments in that region
         const previousTipX = this.currentX - this.pixelsPerSample;
         this.clearPreviousTipGlow(previousTipX, latestIndex);
+
+        // Draw a vertical timeline marker at regular sample intervals
+        if (this.totalSamplesRendered % this.timelineIntervalSamples === 0) {
+            this.drawTimelineLineAt(this.currentX);
+        }
         
         // Draw the new primary pitch sample
         this.lastPrimaryGlowY = this.drawNewPitchSample(
