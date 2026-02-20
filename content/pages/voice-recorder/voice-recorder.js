@@ -142,10 +142,11 @@ class VoiceRecorderApp {
 
     getStoredPitchyPreference() {
         try {
-            if (typeof localStorage === 'undefined') return false;
-            return localStorage.getItem(VoiceRecorderApp.pitchDetectorPreferenceKey) === '1';
+            if (typeof localStorage === 'undefined') return true;
+            const stored = localStorage.getItem(VoiceRecorderApp.pitchDetectorPreferenceKey);
+            return stored === null || stored === '1';
         } catch (error) {
-            return false;
+            return true;
         }
     }
 

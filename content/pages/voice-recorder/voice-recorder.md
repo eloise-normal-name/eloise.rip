@@ -62,7 +62,7 @@ Status: hidden
             </div>
             <div class="setting-item setting-item-toggle">
                 <label for="usePitchyToggle">Use Pitchy detector (optional)</label>
-                <input type="checkbox" id="usePitchyToggle" aria-describedby="usePitchyHelp">
+                <input type="checkbox" id="usePitchyToggle" aria-describedby="usePitchyHelp" checked>
                 <small id="usePitchyHelp" class="setting-help">Keeps autocorrelation as fallback; secondary pitch still uses autocorrelation.</small>
             </div>
         </div>
