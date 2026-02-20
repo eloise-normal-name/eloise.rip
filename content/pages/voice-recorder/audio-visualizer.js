@@ -97,6 +97,7 @@ class AudioVisualizer {
         this.timelineIntervalSamples = 50; // Draw a vertical line every N samples
         this.timelineColor = 'rgba(0,0,0,0.10)';
         this.timelineWidth = 1;
+        this.timelineLineHeight = 40; // Height in px of tick marks (drawn from bottom up)
         this.totalSamplesRendered = 0;
 
         this.pitchDetectionOptions = {
@@ -710,7 +711,8 @@ class AudioVisualizer {
         this.ctx.strokeStyle = this.timelineColor;
         this.ctx.lineWidth = this.timelineWidth;
         this.ctx.beginPath();
-        this.ctx.moveTo(Math.floor(x) + 0.5, 0);
+        const tickTop = this.canvas.height - this.timelineLineHeight;
+        this.ctx.moveTo(Math.floor(x) + 0.5, tickTop);
         this.ctx.lineTo(Math.floor(x) + 0.5, this.canvas.height);
         this.ctx.stroke();
         this.ctx.restore();
@@ -731,13 +733,14 @@ class AudioVisualizer {
         this.ctx.save();
         this.ctx.strokeStyle = this.timelineColor;
         this.ctx.lineWidth = this.timelineWidth;
+        const tickTop = this.canvas.height - this.timelineLineHeight;
         for (let i = modOffset; i <= upToIndex; i += interval) {
             const sampleNum = T - (latestIndex - i);
             if (sampleNum <= 0) continue;
             const x = this.sampleIndexToX(i, latestIndex);
             if (x < regionStartX - 1 || x > regionEndX + 1) continue;
             this.ctx.beginPath();
-            this.ctx.moveTo(Math.floor(x) + 0.5, 0);
+            this.ctx.moveTo(Math.floor(x) + 0.5, tickTop);
             this.ctx.lineTo(Math.floor(x) + 0.5, this.canvas.height);
             this.ctx.stroke();
         }
