@@ -20,6 +20,7 @@ Status: hidden
     <div class="recorder-canvas-container">
         <canvas id="recordingCanvas" width="400" height="300"></canvas>
         <video id="playbackVideo" width="400" height="300" class="playback-video" playsinline></video>
+        <div id="visualizerStats" class="visualizer-stats" aria-live="off"></div>
     </div>
     <div class="recorder-actions">
         <button id="recordButton" class="btn btn-record">
