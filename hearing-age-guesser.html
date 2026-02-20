@@ -340,7 +340,7 @@ class HearingAgeGuesser {
         this.resetButton = document.getElementById('resetButton');
 
         // Sweep configuration
-        this.startFrequency = 8000;
+        this.startFrequency = 440;
         this.maxFrequency = 20000;
         this.stepHz = 250;
         this.tickMs = 450;
@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="readout-block">
                 <div class="readout-label">Current tone</div>
                 <div class="readout-value">
-                    <span id="frequencyValue">8000</span>
+                    <span id="frequencyValue">440</span>
                     <span class="readout-unit">Hz</span>
                 </div>
             </div>
@@ -646,7 +646,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="progress-track">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
-            <div class="progress-caption">Sweep walks from 8 kHz to 20 kHz. Stay gentle with your volume.</div>
+            <div class="progress-caption">Sweep walks from 440 Hz to 20 kHz. Stay gentle with your volume.</div>
         </div>
 
         <ul class="notes">
