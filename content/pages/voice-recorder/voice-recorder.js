@@ -390,13 +390,21 @@ class VoiceRecorderApp {
     }
 
     handleVisualizerContextRecovery(context = {}) {
-        if (this.isRecording) {
-            this.stopRecording({ discard: true, dueToContextRecovery: true });
-            return;
+        const refreshedCtx = this.recordingCanvas ? this.recordingCanvas.getContext('2d') : null;
+        if (refreshedCtx) {
+            this.recordingCtx = refreshedCtx;
         }
 
-        if (this.isTestSignalActive) {
-            this.stopTestSignal();
+        if (this.isRecording || this.isTestSignalActive) {
+            if (this.analyser) {
+                this.visualizer.setAnalyser(this.analyser);
+            }
+            this.startVisualizer();
+            const details = this.isRecording
+                ? 'Visualization resumed after returning to the page; recording continues.'
+                : 'Visualization resumed for the active test signal.';
+            this.setStatus('Canvas context recovered.', details);
+            return;
         }
 
         this.stopVisualizer();
@@ -683,6 +691,10 @@ class VoiceRecorderApp {
 
     startVisualizer() {
         if (!this.visualizer) return;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
         const loop = () => {
             this.visualizer.render();
             this.updateSignalIndicator();
