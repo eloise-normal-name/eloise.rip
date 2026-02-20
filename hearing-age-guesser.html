@@ -328,17 +328,6 @@
  */
 class HearingAgeGuesser {
     constructor() {
-        // DOM elements
-        this.frequencyValueEl = document.getElementById('frequencyValue');
-        this.lastHeardValueEl = document.getElementById('lastHeardValue');
-        this.sweepStatusEl = document.getElementById('sweepStatus');
-        this.ageGuessEl = document.getElementById('ageGuess');
-        this.ageDetailEl = document.getElementById('ageDetail');
-        this.progressFillEl = document.getElementById('progressFill');
-        this.startButton = document.getElementById('startSweep');
-        this.cantHearButton = document.getElementById('cantHearButton');
-        this.resetButton = document.getElementById('resetButton');
-
         // Sweep configuration
         this.startFrequency = 440;
         this.maxFrequency = 20000;
@@ -360,8 +349,13 @@ class HearingAgeGuesser {
         this.updateReadout();
     }
 
+
+    getElement(id) {
+        return document.getElementById(id);
+    }
+
     bindEvents() {
-        this.startButton.addEventListener('click', async () => {
+        this.getElement('startSweep').addEventListener('click', async () => {
             if (this.isRunning) {
                 this.pauseSweep();
                 return;
@@ -369,31 +363,31 @@ class HearingAgeGuesser {
             await this.startSweep();
         });
 
-        this.cantHearButton.addEventListener('click', () => {
+        this.getElement('cantHearButton').addEventListener('click', () => {
             if (!this.isRunning && !this.hasResult) {
                 return;
             }
             this.finishWithGuess();
         });
 
-        this.resetButton.addEventListener('click', () => {
+        this.getElement('resetButton').addEventListener('click', () => {
             this.reset();
         });
     }
 
     updateReadout() {
-        this.frequencyValueEl.textContent = Math.round(this.currentFrequency);
-        this.lastHeardValueEl.textContent = this.lastAudibleFrequency ? Math.round(this.lastAudibleFrequency) : '—';
+        this.getElement('frequencyValue').textContent = Math.round(this.currentFrequency);
+        this.getElement('lastHeardValue').textContent = this.lastAudibleFrequency ? Math.round(this.lastAudibleFrequency) : '—';
 
         const progress = (this.currentFrequency - this.startFrequency) / (this.maxFrequency - this.startFrequency);
-        this.progressFillEl.style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
+        this.getElement('progressFill').style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
     }
 
     updateStatus(label, state) {
-        this.sweepStatusEl.textContent = label;
-        this.sweepStatusEl.classList.remove('status--active', 'status--paused', 'status--done');
+        this.getElement('sweepStatus').textContent = label;
+        this.getElement('sweepStatus').classList.remove('status--active', 'status--paused', 'status--done');
         if (state) {
-            this.sweepStatusEl.classList.add(state);
+            this.getElement('sweepStatus').classList.add(state);
         }
     }
 
@@ -403,9 +397,9 @@ class HearingAgeGuesser {
         }
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) {
-            this.ageDetailEl.textContent = 'AudioContext is unavailable in this browser.';
-            this.startButton.disabled = true;
-            this.cantHearButton.disabled = true;
+            this.getElement('ageDetail').textContent = 'AudioContext is unavailable in this browser.';
+            this.getElement('startSweep').disabled = true;
+            this.getElement('cantHearButton').disabled = true;
             return;
         }
         this.audioContext = new AudioContextClass();
@@ -428,22 +422,22 @@ class HearingAgeGuesser {
                 await this.audioContext.resume();
             } catch (err) {
                 this.updateStatus('Audio blocked', 'status--paused');
-                this.ageDetailEl.textContent = 'Unable to start audio. Check autoplay or device sound settings.';
+                this.getElement('ageDetail').textContent = 'Unable to start audio. Check autoplay or device sound settings.';
                 return;
             }
         }
 
         if (this.audioContext.state !== 'running') {
             this.updateStatus('Audio unavailable', 'status--paused');
-            this.ageDetailEl.textContent = 'Audio output is not available right now. Please try again.';
+            this.getElement('ageDetail').textContent = 'Audio output is not available right now. Please try again.';
             return;
         }
 
         this.stopTone();
         this.isRunning = true;
         this.hasResult = false;
-        this.startButton.textContent = 'Pause';
-        this.cantHearButton.disabled = false;
+        this.getElement('startSweep').textContent = 'Pause';
+        this.getElement('cantHearButton').disabled = false;
         this.updateStatus('Sweeping…', 'status--active');
 
         this.oscillator = this.audioContext.createOscillator();
@@ -452,13 +446,18 @@ class HearingAgeGuesser {
         this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
         this.gainNode.gain.linearRampToValueAtTime(this.outputGain, this.audioContext.currentTime + 0.06);
         this.oscillator.frequency.value = this.currentFrequency;
-        this.oscillator.connect(this.gainNode).connect(this.audioContext.destination);
+
+        // Keep node connections explicit for Safari compatibility.
+        // Some engines do not return the destination node from connect(),
+        // which breaks chained calls and leaves the oscillator silent.
+        this.oscillator.connect(this.gainNode);
+        this.gainNode.connect(this.audioContext.destination);
         this.oscillator.start();
 
         this.lastAudibleFrequency = this.currentFrequency;
         this.updateReadout();
-        this.ageGuessEl.textContent = '—';
-        this.ageDetailEl.textContent = 'Tap "Can\'t hear it" the instant the tone vanishes for you.';
+        this.getElement('ageGuess').textContent = '—';
+        this.getElement('ageDetail').textContent = 'Tap "Can\'t hear it" the instant the tone vanishes for you.';
 
         this.sweepTimer = window.setInterval(() => this.advanceFrequency(), this.tickMs);
     }
@@ -466,8 +465,8 @@ class HearingAgeGuesser {
     pauseSweep() {
         this.stopTone();
         this.isRunning = false;
-        this.startButton.textContent = 'Resume sweep';
-        this.cantHearButton.disabled = true;
+        this.getElement('startSweep').textContent = 'Resume sweep';
+        this.getElement('cantHearButton').disabled = true;
         this.updateStatus('Paused', 'status--paused');
     }
 
@@ -528,12 +527,12 @@ class HearingAgeGuesser {
             : (this.lastAudibleFrequency || this.currentFrequency);
 
         const estimate = this.estimateAgeFromFrequency(guessedFrequency);
-        this.ageGuessEl.textContent = `${estimate.age} yrs`;
-        this.ageDetailEl.textContent = `${estimate.context} (cutoff ~${this.formatFrequency(guessedFrequency)}).`;
+        this.getElement('ageGuess').textContent = `${estimate.age} yrs`;
+        this.getElement('ageDetail').textContent = `${estimate.context} (cutoff ~${this.formatFrequency(guessedFrequency)}).`;
 
         this.updateStatus(hitCeiling ? 'Maxed out' : 'Captured', 'status--done');
-        this.startButton.textContent = 'Restart sweep';
-        this.cantHearButton.disabled = true;
+        this.getElement('startSweep').textContent = 'Restart sweep';
+        this.getElement('cantHearButton').disabled = true;
         this.updateReadout();
     }
 
@@ -543,11 +542,11 @@ class HearingAgeGuesser {
         this.hasResult = false;
         this.currentFrequency = this.startFrequency;
         this.lastAudibleFrequency = null;
-        this.startButton.textContent = 'Start sweep';
-        this.cantHearButton.disabled = true;
+        this.getElement('startSweep').textContent = 'Start sweep';
+        this.getElement('cantHearButton').disabled = true;
         this.updateStatus('Idle');
-        this.ageGuessEl.textContent = '—';
-        this.ageDetailEl.textContent = 'Press start to begin a quick sweep.';
+        this.getElement('ageGuess').textContent = '—';
+        this.getElement('ageDetail').textContent = 'Press start to begin a quick sweep.';
         this.updateReadout();
     }
 
