@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hearing Age Guesser - eloise.rip</title>
+    <meta name="description" content="">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="./theme/css/style.css">
+    
+    <!-- Favicon -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="./android-chrome-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="./android-chrome-512x512.png">
+    <link rel="shortcut icon" href="./favicon.ico">
+    
+    
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="header-content">
+            <h1 class="site-title">
+                <a href="./"><img src="./theme/images/devil-with-hat.svg" alt="Goblin with hat" class="site-logo"> eloise.rip 🍔</a>
+            </h1>
+            <p class="site-subtitle">wintertime goblin hole 🕳❄</p>
+            
+            <nav class="main-nav">
+                <ul>
+                        <li><a href="/archives.html">Archives</a></li>
+                            <li><a href="./about.html">About</a></li>
+                            <li><a href="./voice-practice.html">Voice Practice</a></li>
+                
+                </ul>
+                <ul>
+                            <li><a href="./category/art.html">Art</a></li>
+                            <li><a href="./category/cats.html">Cats</a></li>
+                            <li><a href="./category/crows.html">Crows</a></li>
+                            <li><a href="./category/pinball.html">Pinball</a></li>
+                            <li><a href="./category/pole-dance.html">Pole Dance</a></li>
+                            <li><a href="./category/self.html">Self</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+
+
+<article class="page">
+    <h1 class="page-title">Hearing Age Guesser</h1>
+    <header class="page-header">
+    </header>
+
+    <div class="page-content">
+        <style>
+.hearing-age {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 720px;
+    padding: 1rem;
+}
+
+.hearing-card {
+    width: 100%;
+    background: linear-gradient(145deg, #fff8fb 0%, #f4f7ff 50%, #f8fbff 100%);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 22px;
+    padding: 1.75rem;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.hearing-card__intro {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    color: var(--text-light);
+    margin-bottom: 0.35rem;
+}
+
+.hearing-card h1 {
+    font-size: 2rem;
+    margin: 0 0 0.35rem;
+}
+
+.lede {
+    color: var(--text-light);
+    margin: 0 auto;
+    max-width: 520px;
+    line-height: 1.5;
+}
+
+.hearing-readout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.readout-block {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+}
+
+.readout-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    letter-spacing: 0.01em;
+    margin-bottom: 0.15rem;
+}
+
+.readout-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1d1b3f;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.readout-unit {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.status-pill {
+    justify-self: end;
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.86rem;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-light);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    min-width: 110px;
+    text-align: center;
+}
+
+.status-pill.status--active {
+    color: #0c6b58;
+    background: rgba(32, 201, 151, 0.14);
+    border-color: rgba(32, 201, 151, 0.35);
+}
+
+.status-pill.status--paused {
+    color: #4c6f91;
+    background: rgba(116, 192, 252, 0.16);
+    border-color: rgba(116, 192, 252, 0.28);
+}
+
+.status-pill.status--done {
+    color: #6f42c1;
+    background: rgba(151, 117, 250, 0.12);
+    border-color: rgba(151, 117, 250, 0.22);
+}
+
+.age-panel {
+    background: #101221;
+    color: #f7f7ff;
+    border-radius: 18px;
+    padding: 1rem 1.2rem;
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    align-items: center;
+    gap: 0.5rem 1.2rem;
+    margin-bottom: 1.15rem;
+    box-shadow: 0 10px 24px rgba(16, 18, 33, 0.35);
+}
+
+.age-panel__label {
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    opacity: 0.8;
+}
+
+.age-panel__value {
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.age-panel__detail {
+    grid-column: span 2;
+    margin: 0;
+    font-size: 0.95rem;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+}
+
+.tone-btn {
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 0.9rem 1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+    background: #ffffff;
+    color: #1d1b3f;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.tone-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.tone-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.tone-btn--primary {
+    background: linear-gradient(180deg, #ffffff 0%, #e8f6ff 100%);
+    border-color: rgba(116, 192, 252, 0.35);
+}
+
+.tone-btn--alert {
+    background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%);
+    border-color: rgba(255, 107, 107, 0.35);
+    color: #b42318;
+}
+
+.tone-btn--ghost {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    color: var(--text-light);
+    box-shadow: none;
+}
+
+.progress-shell {
+    margin-bottom: 1.1rem;
+}
+
+.progress-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #6f42c1 0%, #ff6b9d 100%);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+}
+
+.progress-caption {
+    margin-top: 0.35rem;
+    font-size: 0.88rem;
+    color: var(--text-light);
+}
+
+.notes {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #414141;
+    line-height: 1.5;
+    font-size: 0.97rem;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.notes strong {
+    font-weight: 700;
+}
+
+@media (max-width: 640px) {
+    .hearing-card {
+        padding: 1.25rem;
+    }
+
+    .hearing-readout {
+        grid-template-columns: 1fr;
+    }
+
+    .status-pill {
+        justify-self: start;
+    }
+
+    .controls {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .controls .tone-btn:last-child {
+        grid-column: span 2;
+    }
+
+    .age-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .age-panel__detail {
+        grid-column: span 1;
+    }
+}</style>
+<script>
+/**
+ * HearingAgeGuesser sweeps a sine tone upward until the listener reports it is gone,
+ * then approximates a hearing age from the last audible frequency. Built to mirror
+ * the voice recorder's in-page initialization pattern.
+ */
+class HearingAgeGuesser {
+    constructor() {
+        // DOM elements
+        this.frequencyValueEl = document.getElementById('frequencyValue');
+        this.lastHeardValueEl = document.getElementById('lastHeardValue');
+        this.sweepStatusEl = document.getElementById('sweepStatus');
+        this.ageGuessEl = document.getElementById('ageGuess');
+        this.ageDetailEl = document.getElementById('ageDetail');
+        this.progressFillEl = document.getElementById('progressFill');
+        this.startButton = document.getElementById('startSweep');
+        this.cantHearButton = document.getElementById('cantHearButton');
+        this.resetButton = document.getElementById('resetButton');
+
+        // Sweep configuration
+        this.startFrequency = 8000;
+        this.maxFrequency = 20000;
+        this.stepHz = 250;
+        this.tickMs = 450;
+        this.outputGain = 0.08;
+
+        // State
+        this.audioContext = null;
+        this.oscillator = null;
+        this.gainNode = null;
+        this.sweepTimer = null;
+        this.currentFrequency = this.startFrequency;
+        this.lastAudibleFrequency = null;
+        this.isRunning = false;
+        this.hasResult = false;
+
+        this.bindEvents();
+        this.updateReadout();
+    }
+
+    bindEvents() {
+        this.startButton.addEventListener('click', () => {
+            if (this.isRunning) {
+                this.pauseSweep();
+                return;
+            }
+            this.startSweep();
+        });
+
+        this.cantHearButton.addEventListener('click', () => {
+            if (!this.isRunning && !this.hasResult) {
+                return;
+            }
+            this.finishWithGuess();
+        });
+
+        this.resetButton.addEventListener('click', () => {
+            this.reset();
+        });
+    }
+
+    updateReadout() {
+        this.frequencyValueEl.textContent = Math.round(this.currentFrequency);
+        this.lastHeardValueEl.textContent = this.lastAudibleFrequency ? Math.round(this.lastAudibleFrequency) : '—';
+
+        const progress = (this.currentFrequency - this.startFrequency) / (this.maxFrequency - this.startFrequency);
+        this.progressFillEl.style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
+    }
+
+    updateStatus(label, state) {
+        this.sweepStatusEl.textContent = label;
+        this.sweepStatusEl.classList.remove('status--active', 'status--paused', 'status--done');
+        if (state) {
+            this.sweepStatusEl.classList.add(state);
+        }
+    }
+
+    ensureAudioContext() {
+        if (this.audioContext) {
+            return;
+        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+            this.ageDetailEl.textContent = 'AudioContext is unavailable in this browser.';
+            this.startButton.disabled = true;
+            this.cantHearButton.disabled = true;
+            return;
+        }
+        this.audioContext = new AudioContextClass();
+    }
+
+    startSweep() {
+        this.ensureAudioContext();
+        if (!this.audioContext) {
+            return;
+        }
+        if (this.audioContext.state === 'suspended') {
+            this.audioContext.resume();
+        }
+
+        this.stopTone();
+        this.isRunning = true;
+        this.hasResult = false;
+        this.startButton.textContent = 'Pause';
+        this.cantHearButton.disabled = false;
+        this.updateStatus('Sweeping…', 'status--active');
+
+        this.oscillator = this.audioContext.createOscillator();
+        this.oscillator.type = 'sine';
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.gain.value = this.outputGain;
+        this.oscillator.frequency.value = this.currentFrequency;
+        this.oscillator.connect(this.gainNode).connect(this.audioContext.destination);
+        this.oscillator.start();
+
+        this.lastAudibleFrequency = this.currentFrequency;
+        this.updateReadout();
+        this.ageGuessEl.textContent = '—';
+        this.ageDetailEl.textContent = 'Tap "Can\'t hear it" the instant the tone vanishes for you.';
+
+        this.sweepTimer = window.setInterval(() => this.advanceFrequency(), this.tickMs);
+    }
+
+    pauseSweep() {
+        this.stopTone();
+        this.isRunning = false;
+        this.startButton.textContent = 'Resume sweep';
+        this.cantHearButton.disabled = true;
+        this.updateStatus('Paused', 'status--paused');
+    }
+
+    stopTone() {
+        if (this.sweepTimer) {
+            window.clearInterval(this.sweepTimer);
+            this.sweepTimer = null;
+        }
+        if (this.oscillator) {
+            try {
+                this.oscillator.stop();
+            } catch (err) {
+                /* oscillator may already be stopped */
+            }
+            this.oscillator.disconnect();
+            this.oscillator = null;
+        }
+        if (this.gainNode) {
+            this.gainNode.disconnect();
+            this.gainNode = null;
+        }
+    }
+
+    advanceFrequency() {
+        if (!this.isRunning || !this.oscillator) {
+            return;
+        }
+        if (this.currentFrequency >= this.maxFrequency) {
+            this.finishWithGuess(true);
+            return;
+        }
+
+        this.lastAudibleFrequency = this.currentFrequency;
+        const nextFrequency = Math.min(this.maxFrequency, this.currentFrequency + this.stepHz);
+        this.currentFrequency = nextFrequency;
+
+        this.oscillator.frequency.setTargetAtTime(nextFrequency, this.audioContext.currentTime, 0.08);
+        this.updateReadout();
+    }
+
+    finishWithGuess(hitCeiling = false) {
+        this.stopTone();
+        this.isRunning = false;
+        this.hasResult = true;
+
+        const guessedFrequency = hitCeiling
+            ? this.currentFrequency
+            : (this.lastAudibleFrequency || this.currentFrequency);
+
+        const estimate = this.estimateAgeFromFrequency(guessedFrequency);
+        this.ageGuessEl.textContent = `${estimate.age} yrs`;
+        this.ageDetailEl.textContent = `${estimate.context} (cutoff ~${this.formatFrequency(guessedFrequency)}).`;
+
+        this.updateStatus(hitCeiling ? 'Maxed out' : 'Captured', 'status--done');
+        this.startButton.textContent = 'Restart sweep';
+        this.cantHearButton.disabled = true;
+        this.updateReadout();
+    }
+
+    reset() {
+        this.stopTone();
+        this.isRunning = false;
+        this.hasResult = false;
+        this.currentFrequency = this.startFrequency;
+        this.lastAudibleFrequency = null;
+        this.startButton.textContent = 'Start sweep';
+        this.cantHearButton.disabled = true;
+        this.updateStatus('Idle');
+        this.ageGuessEl.textContent = '—';
+        this.ageDetailEl.textContent = 'Press start to begin a quick sweep.';
+        this.updateReadout();
+    }
+
+    estimateAgeFromFrequency(freq) {
+        const referencePoints = [
+            { freq: 19500, age: 12 },
+            { freq: 18500, age: 16 },
+            { freq: 17500, age: 20 },
+            { freq: 16500, age: 24 },
+            { freq: 15500, age: 28 },
+            { freq: 14500, age: 32 },
+            { freq: 13500, age: 36 },
+            { freq: 12500, age: 40 },
+            { freq: 11500, age: 45 },
+            { freq: 10500, age: 50 },
+            { freq: 9500, age: 55 },
+            { freq: 8500, age: 60 },
+            { freq: 7500, age: 65 },
+            { freq: 6500, age: 70 },
+            { freq: 5500, age: 75 }
+        ];
+
+        if (freq >= referencePoints[0].freq) {
+            return { age: referencePoints[0].age, context: 'Teen-like hearing range' };
+        }
+        const last = referencePoints[referencePoints.length - 1];
+        if (freq <= last.freq) {
+            return { age: last.age, context: 'Speech-focused range; age guess skews older' };
+        }
+
+        for (let i = 0; i < referencePoints.length - 1; i += 1) {
+            const upper = referencePoints[i];
+            const lower = referencePoints[i + 1];
+            if (freq <= upper.freq && freq >= lower.freq) {
+                const ratio = (upper.freq - freq) / (upper.freq - lower.freq);
+                const age = Math.round(upper.age + (lower.age - upper.age) * ratio);
+                const context = `Similar to ~${age}s hearing`;
+                return { age, context };
+            }
+        }
+
+        return { age: 40, context: 'Mid-range hearing profile' };
+    }
+
+    formatFrequency(freq) {
+        if (freq >= 1000) {
+            return `${(freq / 1000).toFixed(1)} kHz`;
+        }
+        return `${Math.round(freq)} Hz`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new HearingAgeGuesser();
+});</script>
+
+<section class="hearing-age">
+    <div class="hearing-card">
+        <div class="hearing-card__intro">
+            <p class="eyebrow">Tone sweep</p>
+            <h1>Hearing Age Guesser</h1>
+            <p class="lede">Play an increasingly higher pitched tone until it slips out of range, then tap the button to guess your hearing age.</p>
+        </div>
+
+        <div class="hearing-readout">
+            <div class="readout-block">
+                <div class="readout-label">Current tone</div>
+                <div class="readout-value">
+                    <span id="frequencyValue">8000</span>
+                    <span class="readout-unit">Hz</span>
+                </div>
+            </div>
+            <div class="readout-block">
+                <div class="readout-label">Latest audible</div>
+                <div class="readout-value">
+                    <span id="lastHeardValue">—</span>
+                    <span class="readout-unit">Hz</span>
+                </div>
+            </div>
+            <div class="status-pill" id="sweepStatus">Idle</div>
+        </div>
+
+        <div class="age-panel">
+            <div class="age-panel__label">Estimated hearing age</div>
+            <div id="ageGuess" class="age-panel__value">—</div>
+            <div id="ageDetail" class="age-panel__detail">Press start to begin a quick sweep.</div>
+        </div>
+
+        <div class="controls">
+            <button id="startSweep" class="tone-btn tone-btn--primary">Start sweep</button>
+            <button id="cantHearButton" class="tone-btn tone-btn--alert" disabled>Can't hear it</button>
+            <button id="resetButton" class="tone-btn tone-btn--ghost">Reset</button>
+        </div>
+
+        <div class="progress-shell" aria-hidden="true">
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-caption">Sweep walks from 8 kHz to 20 kHz. Stay gentle with your volume.</div>
+        </div>
+
+        <ul class="notes">
+            <li>Use comfortable headphones at a safe volume. Keep your device volume modest.</li>
+            <li>Tap <strong>Can't hear it</strong> the moment the tone disappears for you; the app guesses based on the last audible frequency.</li>
+            <li>This is a playful approximation, not a medical test.</li>
+        </ul>
+    </div>
+</section>
+    </div>
+</article>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-content">
+            <div class="social-links">
+                <a href="https://www.instagram.com/eloise_normal_name" target="_blank" rel="noopener noreferrer" aria-label="Follow on Instagram">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                    Instagram
+                </a>
+                <a href="https://www.threads.net/@eloise_normal_name" target="_blank" rel="noopener noreferrer" aria-label="Follow on Threads">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <text x="6" y="26" font-size="26" font-family="Arial, sans-serif" font-weight="bold">@</text>
+                    </svg>
+                    Threads
+                </a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
