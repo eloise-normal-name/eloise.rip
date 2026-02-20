@@ -1,0 +1,263 @@
+.hearing-age {
+    display: flex;
+    justify-content: center;
+    margin: 0 auto;
+    max-width: 720px;
+    padding: 1rem;
+}
+
+.hearing-card {
+    width: 100%;
+    background: linear-gradient(145deg, #fff8fb 0%, #f4f7ff 50%, #f8fbff 100%);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 22px;
+    padding: 1.75rem;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.hearing-card__intro {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.72rem;
+    color: var(--text-light);
+    margin-bottom: 0.35rem;
+}
+
+.hearing-card h1 {
+    font-size: 2rem;
+    margin: 0 0 0.35rem;
+}
+
+.lede {
+    color: var(--text-light);
+    margin: 0 auto;
+    max-width: 520px;
+    line-height: 1.5;
+}
+
+.hearing-readout {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.readout-block {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+}
+
+.readout-label {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    letter-spacing: 0.01em;
+    margin-bottom: 0.15rem;
+}
+
+.readout-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1d1b3f;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.readout-unit {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.status-pill {
+    justify-self: end;
+    align-self: stretch;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.86rem;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-light);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    min-width: 110px;
+    text-align: center;
+}
+
+.status-pill.status--active {
+    color: #0c6b58;
+    background: rgba(32, 201, 151, 0.14);
+    border-color: rgba(32, 201, 151, 0.35);
+}
+
+.status-pill.status--paused {
+    color: #4c6f91;
+    background: rgba(116, 192, 252, 0.16);
+    border-color: rgba(116, 192, 252, 0.28);
+}
+
+.status-pill.status--done {
+    color: #6f42c1;
+    background: rgba(151, 117, 250, 0.12);
+    border-color: rgba(151, 117, 250, 0.22);
+}
+
+.age-panel {
+    background: #101221;
+    color: #f7f7ff;
+    border-radius: 18px;
+    padding: 1rem 1.2rem;
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    align-items: center;
+    gap: 0.5rem 1.2rem;
+    margin-bottom: 1.15rem;
+    box-shadow: 0 10px 24px rgba(16, 18, 33, 0.35);
+}
+
+.age-panel__label {
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+    opacity: 0.8;
+}
+
+.age-panel__value {
+    font-size: 2.2rem;
+    font-weight: 700;
+}
+
+.age-panel__detail {
+    grid-column: span 2;
+    margin: 0;
+    font-size: 0.95rem;
+    opacity: 0.9;
+    line-height: 1.4;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+}
+
+.tone-btn {
+    border-radius: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 0.9rem 1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+    background: #ffffff;
+    color: #1d1b3f;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.tone-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.tone-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.tone-btn--primary {
+    background: linear-gradient(180deg, #ffffff 0%, #e8f6ff 100%);
+    border-color: rgba(116, 192, 252, 0.35);
+}
+
+.tone-btn--alert {
+    background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%);
+    border-color: rgba(255, 107, 107, 0.35);
+    color: #b42318;
+}
+
+.tone-btn--ghost {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    color: var(--text-light);
+    box-shadow: none;
+}
+
+.progress-shell {
+    margin-bottom: 1.1rem;
+}
+
+.progress-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #6f42c1 0%, #ff6b9d 100%);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+}
+
+.progress-caption {
+    margin-top: 0.35rem;
+    font-size: 0.88rem;
+    color: var(--text-light);
+}
+
+.notes {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #414141;
+    line-height: 1.5;
+    font-size: 0.97rem;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.notes strong {
+    font-weight: 700;
+}
+
+@media (max-width: 640px) {
+    .hearing-card {
+        padding: 1.25rem;
+    }
+
+    .hearing-readout {
+        grid-template-columns: 1fr;
+    }
+
+    .status-pill {
+        justify-self: start;
+    }
+
+    .controls {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .controls .tone-btn:last-child {
+        grid-column: span 2;
+    }
+
+    .age-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .age-panel__detail {
+        grid-column: span 1;
+    }
+}
