@@ -18,4 +18,9 @@ desktop.ini
 
 # Local media source (not tracked - very large files)
 media-source/
+
+# Node / Playwright
+node_modules/
+test-results/
+playwright-report/
 tools/

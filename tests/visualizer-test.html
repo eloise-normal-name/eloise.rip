@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Visualizer Test Page</title>
+</head>
+<body>
+    <canvas id="testCanvas" width="400" height="300"></canvas>
+    <!-- Stub detectPitch before loading the visualizer -->
+    <script>
+        function detectPitch() { return null; }
+    </script>
+    <script src="../content/pages/voice-recorder/audio-visualizer.js"></script>
+    <script>
+        const canvas = document.getElementById('testCanvas');
+        const visualizer = new AudioVisualizer(canvas, null);
+
+        window.testVisualizer = visualizer;
+
+        // Simulate N silent samples (null pitch) without needing a real AnalyserNode
+        window.simulateSamples = function(count) {
+            for (let i = 0; i < count; i++) {
+                visualizer.pushPitchSample(null);
+                visualizer.renderPitchTrace();
+            }
+        };
+
+        // Read a column of pixels at a given x, returning all R values
+        window.getColumnPixels = function(x) {
+            const imageData = canvas.getContext('2d').getImageData(x, 0, 1, canvas.height);
+            const rValues = [];
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                rValues.push(imageData.data[i]);
+            }
+            return rValues;
+        };
+    </script>
+</body>
+</html>
