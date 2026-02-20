@@ -416,6 +416,13 @@ class HearingAgeGuesser {
         if (!this.audioContext) {
             return;
         }
+
+        if (this.hasResult) {
+            this.currentFrequency = this.startFrequency;
+            this.lastAudibleFrequency = null;
+            this.hasResult = false;
+        }
+
         if (this.audioContext.state === 'suspended') {
             try {
                 await this.audioContext.resume();
@@ -494,11 +501,21 @@ class HearingAgeGuesser {
         }
 
         this.lastAudibleFrequency = this.currentFrequency;
-        const nextFrequency = Math.min(this.maxFrequency, this.currentFrequency + this.stepHz);
+        const nextFrequency = Math.min(this.maxFrequency, this.currentFrequency + this.getStepHz(this.currentFrequency));
         this.currentFrequency = nextFrequency;
 
         this.oscillator.frequency.setTargetAtTime(nextFrequency, this.audioContext.currentTime, 0.08);
         this.updateReadout();
+    }
+
+    getStepHz(freq) {
+        if (freq >= 17000) {
+            return 50;
+        }
+        if (freq >= 14000) {
+            return 125;
+        }
+        return this.stepHz;
     }
 
     finishWithGuess(hitCeiling = false) {
