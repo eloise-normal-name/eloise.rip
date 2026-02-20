@@ -14,7 +14,6 @@ Status: hidden
 
 {% block content %}
 <section class="hearing-age">
-    <div class="hearing-card">
         <div class="hearing-card__intro">
             <p class="eyebrow">Tone sweep</p>
             <h1>Hearing Age Guesser</h1>
@@ -59,10 +58,7 @@ Status: hidden
         </div>
 
         <ul class="notes">
-            <li>Use comfortable headphones at a safe volume. Keep your device volume modest.</li>
             <li>Tap <strong>Can't hear it</strong> the moment the tone disappears for you; the app guesses based on the last audible frequency.</li>
-            <li>This is a playful approximation, not a medical test.</li>
         </ul>
-    </div>
 </section>
 {% endblock %}
