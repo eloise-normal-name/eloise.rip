@@ -38,12 +38,12 @@ class HearingAgeGuesser {
     }
 
     bindEvents() {
-        this.startButton.addEventListener('click', () => {
+        this.startButton.addEventListener('click', async () => {
             if (this.isRunning) {
                 this.pauseSweep();
                 return;
             }
-            this.startSweep();
+            await this.startSweep();
         });
 
         this.cantHearButton.addEventListener('click', () => {
@@ -88,13 +88,25 @@ class HearingAgeGuesser {
         this.audioContext = new AudioContextClass();
     }
 
-    startSweep() {
+    async startSweep() {
         this.ensureAudioContext();
         if (!this.audioContext) {
             return;
         }
         if (this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
+            try {
+                await this.audioContext.resume();
+            } catch (err) {
+                this.updateStatus('Audio blocked', 'status--paused');
+                this.ageDetailEl.textContent = 'Unable to start audio. Check autoplay or device sound settings.';
+                return;
+            }
+        }
+
+        if (this.audioContext.state !== 'running') {
+            this.updateStatus('Audio unavailable', 'status--paused');
+            this.ageDetailEl.textContent = 'Audio output is not available right now. Please try again.';
+            return;
         }
 
         this.stopTone();
@@ -107,7 +119,8 @@ class HearingAgeGuesser {
         this.oscillator = this.audioContext.createOscillator();
         this.oscillator.type = 'sine';
         this.gainNode = this.audioContext.createGain();
-        this.gainNode.gain.value = this.outputGain;
+        this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+        this.gainNode.gain.linearRampToValueAtTime(this.outputGain, this.audioContext.currentTime + 0.06);
         this.oscillator.frequency.value = this.currentFrequency;
         this.oscillator.connect(this.gainNode).connect(this.audioContext.destination);
         this.oscillator.start();
