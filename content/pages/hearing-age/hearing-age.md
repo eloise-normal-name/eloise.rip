@@ -14,51 +14,32 @@ Status: hidden
 
 {% block content %}
 <section class="hearing-age">
-        <div class="hearing-card__intro">
-            <p class="eyebrow">Tone sweep</p>
-            <h1>Hearing Age Guesser</h1>
-            <p class="lede">Play an increasingly higher pitched tone until it slips out of range, then tap the button to guess your hearing age.</p>
+        <div class="analog-gauge" aria-hidden="true">
+            <div class="analog-gauge__dial">
+                <div class="analog-gauge__ticks"></div>
+                <div class="gauge-label gauge-label--1">0</div>
+                <div class="gauge-label gauge-label--2">6k</div>
+                <div class="gauge-label gauge-label--3">12k</div>
+                <div class="gauge-label gauge-label--4">18k</div>
+                <div id="gaugeNeedle" class="analog-gauge__needle"></div>
+                <div class="analog-gauge__hub"></div>
+            </div>
         </div>
 
-        <div class="hearing-readout">
-            <div class="readout-block">
-                <div class="readout-label">Current tone</div>
-                <div class="readout-value">
-                    <span id="frequencyValue">440</span>
-                    <span class="readout-unit">Hz</span>
-                </div>
-            </div>
-            <div class="readout-block">
-                <div class="readout-label">Latest audible</div>
-                <div class="readout-value">
-                    <span id="lastHeardValue">—</span>
-                    <span class="readout-unit">Hz</span>
-                </div>
-            </div>
-            <div class="status-pill" id="sweepStatus">Idle</div>
-        </div>
-
-        <div class="age-panel">
-            <div class="age-panel__label">Estimated hearing age</div>
-            <div id="ageGuess" class="age-panel__value">—</div>
-            <div id="ageDetail" class="age-panel__detail">Press start to begin a quick sweep.</div>
+        <div class="age-text">
+            Estimated hearing age: <strong id="ageGuess">—</strong>
         </div>
 
         <div class="controls">
-            <button id="startSweep" class="tone-btn tone-btn--primary">Start sweep</button>
-            <button id="cantHearButton" class="tone-btn tone-btn--alert" disabled>Can't hear it</button>
-            <button id="resetButton" class="tone-btn tone-btn--ghost">Reset</button>
+            <select id="waveType" class="tone-btn">
+                <option value="sine">Sine</option>
+                <option value="square">Square</option>
+                <option value="sawtooth">Sawtooth</option>
+                <option value="triangle">Triangle</option>
+            </select>
+            <button id="startSweep" class="tone-btn tone-btn--primary">Start</button>
+            <button id="shareResult" class="tone-btn tone-btn--share" disabled>Share</button>
         </div>
 
-        <div class="progress-shell" aria-hidden="true">
-            <div class="progress-track">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-caption">Sweep walks from 440 Hz to 20 kHz. Stay gentle with your volume.</div>
-        </div>
-
-        <ul class="notes">
-            <li>Tap <strong>Can't hear it</strong> the moment the tone disappears for you; the app guesses based on the last audible frequency.</li>
-        </ul>
 </section>
 {% endblock %}
