@@ -42,6 +42,7 @@
                             <li><a href="./category/pinball.html">Pinball</a></li>
                             <li><a href="./category/pole-dance.html">Pole Dance</a></li>
                             <li><a href="./category/self.html">Self</a></li>
+                            <li><a href="./category/tech.html">Tech</a></li>
                 </ul>
             </nav>
         </div>
@@ -57,174 +58,216 @@
 
     <div class="page-content">
         <style>
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Pinyon+Script&display=swap');
+
 .hearing-age {
     display: flex;
-    justify-content: center;
     margin: 0 auto;
     max-width: 720px;
     padding: 1rem;
-}
-
-.hearing-card {
-    width: 100%;
-    background: linear-gradient(145deg, #fff8fb 0%, #f4f7ff 50%, #f8fbff 100%);
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 22px;
-    padding: 1.75rem;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
-}
-
-.hearing-card__intro {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.eyebrow {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.72rem;
-    color: var(--text-light);
-    margin-bottom: 0.35rem;
-}
-
-.hearing-card h1 {
-    font-size: 2rem;
-    margin: 0 0 0.35rem;
-}
-
-.lede {
-    color: var(--text-light);
-    margin: 0 auto;
-    max-width: 520px;
-    line-height: 1.5;
-}
-
-.hearing-readout {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.85rem;
+    flex-direction: column;
     align-items: center;
+    font-family: 'Kalam', cursive;
+}
+
+.analog-gauge {
+    width: min(100%, 420px);
     margin-bottom: 1rem;
+    /* curved glass feel with light blue tint */
+    background-image: radial-gradient(120% 60% at 50% 5%, rgba(255, 255, 255, 0.45), transparent 30%),
+        linear-gradient(180deg, rgba(225, 240, 255, 0.65), rgba(200, 225, 245, 0.28));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 24px;
+    border: 1px solid rgba(210, 230, 245, 0.7);
+    box-shadow: 0 10px 30px rgba(20, 30, 40, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    padding: 1.5rem 0 1.2rem;
 }
 
-.readout-block {
-    background: #ffffff;
-    border-radius: 18px;
-    padding: 0.9rem 1rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.05);
+.analog-gauge__dial {
+    width: min(100%, 280px);
+    aspect-ratio: 2/1;
+    margin: 0 auto;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    border: 6px solid #2d3748;
+    border-bottom: 0;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 40%), linear-gradient(90deg, #374151, #1f2937);
+    box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 -2px 6px #fff;
 }
 
-.readout-label {
-    font-size: 0.85rem;
-    color: var(--text-light);
-    letter-spacing: 0.01em;
-    margin-bottom: 0.15rem;
+.analog-gauge__ticks {
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(from 270deg at 50% 100%, rgba(255, 255, 255, 0.5) 0 1.5deg, transparent 1.5deg 6deg);
+    -webkit-mask: radial-gradient(circle at 50% 100%, transparent 65%, #000 66%);
+    mask: radial-gradient(circle at 50% 100%, transparent 65%, #000 66%);
 }
 
-.readout-value {
-    font-size: 1.6rem;
+.analog-gauge__needle {
+    position: absolute;
+    bottom: 0;
+    left: calc(50% - 3px);
+    width: 6px;
+    height: 116px;
+    border-radius: 6px;
+    transform-origin: 50% 100%;
+    transform: rotate(-90deg);
+    background: linear-gradient(180deg, #ff758c, #ff7eb3);
+    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.15), inset 1px 1px 2px rgba(255, 255, 255, 0.6);
+    transition: transform 0.08s linear;
+    z-index: 2;
+    /* needle sits under hub so pivot looks anchored */
+}
+
+.analog-gauge__hub {
+    position: absolute;
+    bottom: -12px;
+    left: calc(50% - 14px);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a5568, #2d3748);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 2px 2px 4px rgba(255, 255, 255, 0.2), inset -2px -2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 4;
+    /* render above needle to hide base and create one pivot point */
+}
+
+.analog-gauge__hub::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.gauge-label {
+    position: absolute;
+    color: #e6eef8;
+    font-size: 1rem;
     font-weight: 700;
-    color: #1d1b3f;
-    display: flex;
-    align-items: baseline;
-    gap: 0.35rem;
+    pointer-events: none;
+    font-family: 'Pinyon Script', 'Kalam', cursive;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+    letter-spacing: 0.03em;
 }
 
-.readout-unit {
-    font-size: 0.9rem;
-    color: var(--text-light);
+.gauge-label--1 {
+    left: 22px;
+    bottom: 18px;
+    /* move away from ticks */
 }
 
-.status-pill {
-    justify-self: end;
-    align-self: stretch;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.55rem 0.8rem;
-    border-radius: 999px;
-    font-size: 0.86rem;
-    background: rgba(0, 0, 0, 0.04);
-    color: var(--text-light);
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    min-width: 110px;
+.gauge-label--2 {
+    left: 28%;
+    top: 22%;
+    /* moved inward to avoid tick overlap */
+    transform: translateX(-50%);
+}
+
+.gauge-label--3 {
+    left: 72%;
+    top: 22%;
+    transform: translateX(-50%);
+}
+
+.gauge-label--4 {
+    right: 22px;
+    bottom: 18px;
+}
+
+/* Elegant icons for the Start/Stop button using inline SVG data-URIs */
+.tone-btn--primary::before,
+.tone-btn--alert::before,
+.tone-btn--share::before,
+.tone-btn::before {
+    content: "";
+    display: inline-block;
+    width: 1.4em;
+    /* increased icon size */
+    height: 1.4em;
+    /* increased icon size */
+    margin-right: 0.6rem;
+    vertical-align: middle;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.25));
+}
+
+/* default: green circular play */
+.tone-btn--primary::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='%232b8a3e'/><path d='M10 8 L16 12 L10 16 Z' fill='%23ffffff'/></svg>");
+}
+
+/* When button has alert state (stop) show a red rounded-square stop - scale up so inner square reads larger */
+.tone-btn--alert::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='5.5' y='5.5' width='13' height='13' rx='3' ry='3' fill='%23c92a2a'/><rect x='7.2' y='7.2' width='9.6' height='9.6' rx='1' ry='1' fill='%23ffffff'/></svg>");
+}
+
+.tone-btn--share::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='18' cy='5' r='2.3' fill='%23495057'/><circle cx='6' cy='12' r='2.3' fill='%23495057'/><circle cx='18' cy='19' r='2.3' fill='%23495057'/><path d='M8.1 11l7.8-4.5M8.1 13l7.8 4.5' stroke='%23495057' stroke-width='2' stroke-linecap='round'/></svg>");
+}
+
+.age-text {
+    font-size: 1.4rem;
+    color: #4a4a4a;
+    margin-bottom: 1.2rem;
     text-align: center;
 }
 
-.status-pill.status--active {
-    color: #0c6b58;
-    background: rgba(32, 201, 151, 0.14);
-    border-color: rgba(32, 201, 151, 0.35);
-}
-
-.status-pill.status--paused {
-    color: #4c6f91;
-    background: rgba(116, 192, 252, 0.16);
-    border-color: rgba(116, 192, 252, 0.28);
-}
-
-.status-pill.status--done {
-    color: #6f42c1;
-    background: rgba(151, 117, 250, 0.12);
-    border-color: rgba(151, 117, 250, 0.22);
-}
-
-.age-panel {
-    background: #101221;
-    color: #f7f7ff;
-    border-radius: 18px;
-    padding: 1rem 1.2rem;
-    display: grid;
-    grid-template-columns: 2fr 3fr;
-    align-items: center;
-    gap: 0.5rem 1.2rem;
-    margin-bottom: 1.15rem;
-    box-shadow: 0 10px 24px rgba(16, 18, 33, 0.35);
-}
-
-.age-panel__label {
-    font-size: 0.95rem;
-    letter-spacing: 0.01em;
-    opacity: 0.8;
-}
-
-.age-panel__value {
-    font-size: 2.2rem;
-    font-weight: 700;
-}
-
-.age-panel__detail {
-    grid-column: span 2;
-    margin: 0;
-    font-size: 0.95rem;
-    opacity: 0.9;
-    line-height: 1.4;
+.age-text strong {
+    font-size: 1.8rem;
+    color: #ff6b9d;
+    margin-left: 0.5rem;
+    font-family: "Consolas", "SFMono-Regular", "Menlo", "Monaco", "Liberation Mono", "Courier New", monospace;
 }
 
 .controls {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.75rem;
     margin-bottom: 1.1rem;
 }
 
 .tone-btn {
-    border-radius: 14px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    padding: 0.9rem 1rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-    background: #ffffff;
+    border: none;
+    border-radius: 0;
+    background: transparent;
     color: #1d1b3f;
-    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: 0.6em 1.2em;
+    box-shadow: none;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    outline: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    user-select: none;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 0.08em;
+}
+
+select.tone-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #fff url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 1rem center / 1em;
+    padding-right: 2.5rem;
 }
 
 .tone-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+    box-shadow: none;
 }
 
 .tone-btn:disabled {
@@ -234,90 +277,23 @@
 }
 
 .tone-btn--primary {
-    background: linear-gradient(180deg, #ffffff 0%, #e8f6ff 100%);
-    border-color: rgba(116, 192, 252, 0.35);
-}
-
-.tone-btn--alert {
-    background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%);
-    border-color: rgba(255, 107, 107, 0.35);
-    color: #b42318;
-}
-
-.tone-btn--ghost {
-    background: #ffffff;
-    border-color: rgba(0, 0, 0, 0.08);
-    color: var(--text-light);
+    background: transparent;
+    color: #1d1b3f;
     box-shadow: none;
 }
 
-.progress-shell {
-    margin-bottom: 1.1rem;
-}
-
-.progress-track {
-    width: 100%;
-    height: 12px;
-    background: rgba(0, 0, 0, 0.06);
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    width: 0%;
-    height: 100%;
-    background: linear-gradient(90deg, #6f42c1 0%, #ff6b9d 100%);
-    border-radius: 999px;
-    transition: width 0.25s ease;
-}
-
-.progress-caption {
-    margin-top: 0.35rem;
-    font-size: 0.88rem;
-    color: var(--text-light);
-}
-
-.notes {
-    margin: 0;
-    padding-left: 1.1rem;
-    color: #414141;
-    line-height: 1.5;
-    font-size: 0.97rem;
-    display: grid;
-    gap: 0.35rem;
-}
-
-.notes strong {
-    font-weight: 700;
+.tone-btn--alert {
+    background: transparent;
+    color: #1d1b3f;
 }
 
 @media (max-width: 640px) {
-    .hearing-card {
-        padding: 1.25rem;
-    }
-
-    .hearing-readout {
-        grid-template-columns: 1fr;
-    }
-
-    .status-pill {
-        justify-self: start;
+    .analog-gauge {
+        margin-bottom: 0.85rem;
     }
 
     .controls {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .controls .tone-btn:last-child {
-        grid-column: span 2;
-    }
-
-    .age-panel {
         grid-template-columns: 1fr;
-    }
-
-    .age-panel__detail {
-        grid-column: span 1;
     }
 }</style>
 <script>
@@ -330,7 +306,7 @@ class HearingAgeGuesser {
     constructor() {
         // Sweep configuration
         this.startFrequency = 440;
-        this.maxFrequency = 20000;
+        this.maxFrequency = 18000;
         this.stepHz = 250;
         this.tickMs = 450;
         this.outputGain = 0.08;
@@ -340,13 +316,17 @@ class HearingAgeGuesser {
         this.oscillator = null;
         this.gainNode = null;
         this.sweepTimer = null;
+        this.lastSweepTimestamp = null;
         this.currentFrequency = this.startFrequency;
         this.lastAudibleFrequency = null;
         this.isRunning = false;
         this.hasResult = false;
+        this.needsResetBeforeStart = false;
+        this.isSharing = false;
 
         this.bindEvents();
         this.updateReadout();
+        this.updateShareButtonState();
     }
 
 
@@ -357,38 +337,51 @@ class HearingAgeGuesser {
     bindEvents() {
         this.getElement('startSweep').addEventListener('click', async () => {
             if (this.isRunning) {
-                this.pauseSweep();
+                this.finishWithGuess();
                 return;
+            }
+            if (this.needsResetBeforeStart) {
+                this.reset();
             }
             await this.startSweep();
         });
-
-        this.getElement('cantHearButton').addEventListener('click', () => {
-            if (!this.isRunning && !this.hasResult) {
-                return;
-            }
-            this.finishWithGuess();
+        this.getElement('shareResult').addEventListener('click', async () => {
+            await this.shareResult();
         });
-
-        this.getElement('resetButton').addEventListener('click', () => {
-            this.reset();
-        });
+        // Allow changing waveform type while playing
+        const waveSelect = this.getElement('waveType');
+        if (waveSelect) {
+            waveSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (this.oscillator) {
+                    try {
+                        this.oscillator.type = val;
+                    } catch (err) {
+                        // some browsers may restrict changing type mid-playback; ignore safely
+                    }
+                }
+            });
+        }
     }
 
     updateReadout() {
-        this.getElement('frequencyValue').textContent = Math.round(this.currentFrequency);
-        this.getElement('lastHeardValue').textContent = this.lastAudibleFrequency ? Math.round(this.lastAudibleFrequency) : '—';
-
         const progress = (this.currentFrequency - this.startFrequency) / (this.maxFrequency - this.startFrequency);
-        this.getElement('progressFill').style.width = `${Math.max(0, Math.min(1, progress)) * 100}%`;
+        const normalized = Math.max(0, Math.min(1, progress));
+        this.getElement('gaugeNeedle').style.transform = `rotate(${(normalized * 180) - 90}deg)`;
+
+        if (this.isRunning) {
+            const randomAge = Math.floor(Math.random() * (70 - 18 + 1)) + 18;
+            this.getElement('ageGuess').textContent = `${randomAge} yrs`;
+        }
     }
 
-    updateStatus(label, state) {
-        this.getElement('sweepStatus').textContent = label;
-        this.getElement('sweepStatus').classList.remove('status--active', 'status--paused', 'status--done');
-        if (state) {
-            this.getElement('sweepStatus').classList.add(state);
+    updateShareButtonState() {
+        const shareButton = this.getElement('shareResult');
+        if (!shareButton) {
+            return;
         }
+        const canShareResult = this.hasResult && !this.isRunning && !this.isSharing;
+        shareButton.disabled = !canShareResult;
     }
 
     ensureAudioContext() {
@@ -397,9 +390,8 @@ class HearingAgeGuesser {
         }
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) {
-            this.getElement('ageDetail').textContent = 'AudioContext is unavailable in this browser.';
+            this.getElement('ageGuess').textContent = 'N/A';
             this.getElement('startSweep').disabled = true;
-            this.getElement('cantHearButton').disabled = true;
             return;
         }
         this.audioContext = new AudioContextClass();
@@ -421,27 +413,27 @@ class HearingAgeGuesser {
             try {
                 await this.audioContext.resume();
             } catch (err) {
-                this.updateStatus('Audio blocked', 'status--paused');
-                this.getElement('ageDetail').textContent = 'Unable to start audio. Check autoplay or device sound settings.';
+                this.getElement('ageGuess').textContent = 'N/A';
                 return;
             }
         }
 
         if (this.audioContext.state !== 'running') {
-            this.updateStatus('Audio unavailable', 'status--paused');
-            this.getElement('ageDetail').textContent = 'Audio output is not available right now. Please try again.';
+            this.getElement('ageGuess').textContent = 'N/A';
             return;
         }
 
         this.stopTone();
         this.isRunning = true;
         this.hasResult = false;
-        this.getElement('startSweep').textContent = 'Pause';
-        this.getElement('cantHearButton').disabled = false;
-        this.updateStatus('Sweeping…', 'status--active');
+        this.needsResetBeforeStart = false;
+        this.updateShareButtonState();
+        this.getElement('startSweep').textContent = 'Stop';
+        this.getElement('startSweep').classList.remove('tone-btn--primary');
+        this.getElement('startSweep').classList.add('tone-btn--alert');
 
         this.oscillator = this.audioContext.createOscillator();
-        this.oscillator.type = 'sine';
+        this.oscillator.type = this.getElement('waveType').value || 'sine';
         this.gainNode = this.audioContext.createGain();
         this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
         this.gainNode.gain.linearRampToValueAtTime(this.outputGain, this.audioContext.currentTime + 0.06);
@@ -456,25 +448,27 @@ class HearingAgeGuesser {
 
         this.lastAudibleFrequency = this.currentFrequency;
         this.updateReadout();
-        this.getElement('ageGuess').textContent = '—';
-        this.getElement('ageDetail').textContent = 'Tap "Can\'t hear it" the instant the tone vanishes for you.';
 
-        this.sweepTimer = window.setInterval(() => this.advanceFrequency(), this.tickMs);
+        this.lastSweepTimestamp = null;
+        this.sweepTimer = window.requestAnimationFrame((timestamp) => this.advanceFrequency(timestamp));
     }
 
-    pauseSweep() {
+    stopSweep() {
         this.stopTone();
         this.isRunning = false;
-        this.getElement('startSweep').textContent = 'Resume sweep';
-        this.getElement('cantHearButton').disabled = true;
-        this.updateStatus('Paused', 'status--paused');
+        this.needsResetBeforeStart = true;
+        this.updateShareButtonState();
+        this.getElement('startSweep').textContent = 'Start';
+        this.getElement('startSweep').classList.remove('tone-btn--alert');
+        this.getElement('startSweep').classList.add('tone-btn--primary');
     }
 
     stopTone() {
         if (this.sweepTimer) {
-            window.clearInterval(this.sweepTimer);
+            window.cancelAnimationFrame(this.sweepTimer);
             this.sweepTimer = null;
         }
+        this.lastSweepTimestamp = null;
         if (this.oscillator) {
             try {
                 this.oscillator.stop();
@@ -490,21 +484,33 @@ class HearingAgeGuesser {
         }
     }
 
-    advanceFrequency() {
+    advanceFrequency(timestamp) {
         if (!this.isRunning || !this.oscillator) {
             return;
         }
+
+        if (this.lastSweepTimestamp == null) {
+            this.lastSweepTimestamp = timestamp;
+            this.sweepTimer = window.requestAnimationFrame((nextTimestamp) => this.advanceFrequency(nextTimestamp));
+            return;
+        }
+
+        const deltaSeconds = Math.max(0, (timestamp - this.lastSweepTimestamp) / 1000);
+        this.lastSweepTimestamp = timestamp;
+
         if (this.currentFrequency >= this.maxFrequency) {
             this.finishWithGuess(true);
             return;
         }
 
         this.lastAudibleFrequency = this.currentFrequency;
-        const nextFrequency = Math.min(this.maxFrequency, this.currentFrequency + this.getStepHz(this.currentFrequency));
+        const rateHzPerSecond = this.getStepHz(this.currentFrequency) / (this.tickMs / 1000);
+        const nextFrequency = Math.min(this.maxFrequency, this.currentFrequency + (rateHzPerSecond * deltaSeconds));
         this.currentFrequency = nextFrequency;
 
-        this.oscillator.frequency.setTargetAtTime(nextFrequency, this.audioContext.currentTime, 0.08);
+        this.oscillator.frequency.setValueAtTime(nextFrequency, this.audioContext.currentTime);
         this.updateReadout();
+        this.sweepTimer = window.requestAnimationFrame((nextTimestamp) => this.advanceFrequency(nextTimestamp));
     }
 
     getStepHz(freq) {
@@ -521,18 +527,19 @@ class HearingAgeGuesser {
         this.stopTone();
         this.isRunning = false;
         this.hasResult = true;
+        this.needsResetBeforeStart = true;
 
         const guessedFrequency = hitCeiling
             ? this.currentFrequency
             : (this.lastAudibleFrequency || this.currentFrequency);
 
-        const estimate = this.estimateAgeFromFrequency(guessedFrequency);
-        this.getElement('ageGuess').textContent = `${estimate.age} yrs`;
-        this.getElement('ageDetail').textContent = `${estimate.context} (cutoff ~${this.formatFrequency(guessedFrequency)}).`;
+        const estimatedAge = this.estimateAgeFromFrequency(guessedFrequency);
+        this.getElement('ageGuess').textContent = `${estimatedAge} yrs`;
 
-        this.updateStatus(hitCeiling ? 'Maxed out' : 'Captured', 'status--done');
-        this.getElement('startSweep').textContent = 'Restart sweep';
-        this.getElement('cantHearButton').disabled = true;
+        this.getElement('startSweep').textContent = 'Start';
+        this.getElement('startSweep').classList.remove('tone-btn--alert');
+        this.getElement('startSweep').classList.add('tone-btn--primary');
+        this.updateShareButtonState();
         this.updateReadout();
     }
 
@@ -540,41 +547,254 @@ class HearingAgeGuesser {
         this.stopTone();
         this.isRunning = false;
         this.hasResult = false;
+        this.needsResetBeforeStart = false;
         this.currentFrequency = this.startFrequency;
         this.lastAudibleFrequency = null;
-        this.getElement('startSweep').textContent = 'Start sweep';
-        this.getElement('cantHearButton').disabled = true;
-        this.updateStatus('Idle');
+        this.getElement('startSweep').textContent = 'Start';
+        this.getElement('startSweep').classList.remove('tone-btn--alert');
+        this.getElement('startSweep').classList.add('tone-btn--primary');
         this.getElement('ageGuess').textContent = '—';
-        this.getElement('ageDetail').textContent = 'Press start to begin a quick sweep.';
+        this.updateShareButtonState();
         this.updateReadout();
     }
 
+    renderShareImage() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1200;
+        canvas.height = 820;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            return null;
+        }
+
+        const progress = (this.currentFrequency - this.startFrequency) / (this.maxFrequency - this.startFrequency);
+        const normalized = Math.max(0, Math.min(1, progress));
+        // Match the on-page gauge sweep: left (0) -> top (mid) -> right (max).
+        const angle = Math.PI - (Math.PI * normalized);
+        const ageText = this.getElement('ageGuess').textContent || '—';
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        gradient.addColorStop(0, '#f7fbff');
+        gradient.addColorStop(1, '#eaf4ff');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.strokeStyle = 'rgba(205, 222, 238, 1)';
+        ctx.lineWidth = 3;
+        this.roundRect(ctx, 0, 0, canvas.width, canvas.height, 0);
+        ctx.fill();
+        ctx.stroke();
+
+        const centerX = canvas.width / 2;
+        const centerY = 520;
+        const radius = 250;
+
+        // Recreate the gauge card background so the shared image matches the page.
+        const cardX = centerX - 300;
+        const cardY = 300;
+        const cardW = 600;
+        const cardH = 300;
+        const cardRadius = 24;
+        const cardGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
+        cardGradient.addColorStop(0, 'rgba(225, 240, 255, 0.65)');
+        cardGradient.addColorStop(1, 'rgba(200, 225, 245, 0.28)');
+        this.roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius);
+        ctx.fillStyle = cardGradient;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(210, 230, 245, 0.85)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const cardHighlight = ctx.createRadialGradient(
+            centerX,
+            cardY + 20,
+            20,
+            centerX,
+            cardY + 20,
+            260
+        );
+        cardHighlight.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+        cardHighlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        this.roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius);
+        ctx.fillStyle = cardHighlight;
+        ctx.fill();
+
+        // Dial fill mirrors the dark metallic look from the live gauge.
+        const dialGradient = ctx.createLinearGradient(centerX - radius, 0, centerX + radius, 0);
+        dialGradient.addColorStop(0, '#374151');
+        dialGradient.addColorStop(1, '#1f2937');
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, Math.PI, 0, false);
+        ctx.lineTo(centerX + radius, centerY);
+        ctx.lineTo(centerX - radius, centerY);
+        ctx.closePath();
+        ctx.fillStyle = dialGradient;
+        ctx.fill();
+
+        ctx.lineCap = 'round';
+        for (let i = 0; i <= 30; i += 1) {
+            const tickRatio = i / 30;
+            const tickAngle = (-Math.PI) + (Math.PI * tickRatio);
+            const outerX = centerX + Math.cos(tickAngle) * radius;
+            const outerY = centerY + Math.sin(tickAngle) * radius;
+            const innerX = centerX + Math.cos(tickAngle) * (radius - 18);
+            const innerY = centerY + Math.sin(tickAngle) * (radius - 18);
+            ctx.strokeStyle = 'rgba(63, 81, 97, 0.7)';
+            ctx.lineWidth = i % 5 === 0 ? 4 : 2;
+            ctx.beginPath();
+            ctx.moveTo(innerX, innerY);
+            ctx.lineTo(outerX, outerY);
+            ctx.stroke();
+        }
+
+        ctx.font = '700 42px Kalam, cursive';
+        ctx.fillStyle = '#334155';
+        ctx.textAlign = 'center';
+        ctx.fillText('0', centerX - 250, centerY + 18);
+        ctx.fillText('6k', centerX - 120, centerY - 185);
+        ctx.fillText('12k', centerX + 120, centerY - 185);
+        ctx.fillText('18k', centerX + 250, centerY + 18);
+
+        ctx.strokeStyle = '#1f2937';
+        ctx.lineWidth = 12;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, Math.PI, 0, false);
+        ctx.stroke();
+
+        const needleLength = radius - 45;
+        const needleX = centerX + Math.cos(angle) * needleLength;
+        const needleY = centerY + Math.sin(angle) * needleLength;
+        const needleGradient = ctx.createLinearGradient(centerX, centerY, needleX, needleY);
+        needleGradient.addColorStop(0, '#ff7eb3');
+        needleGradient.addColorStop(1, '#ff758c');
+        ctx.strokeStyle = needleGradient;
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(needleX, needleY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#2d3748';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 22, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.beginPath();
+        ctx.arc(centerX - 5, centerY - 5, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = '700 42px Kalam, cursive';
+        ctx.fillStyle = '#4a4a4a';
+        ctx.fillText('Estimated hearing age:', centerX, 190);
+        ctx.font = '700 72px Consolas, monospace';
+        ctx.fillStyle = '#ff6b9d';
+        ctx.fillText(ageText, centerX, 270);
+
+        return canvas;
+    }
+
+    roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+
+    canvasToBlob(canvas) {
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), 'image/png');
+        });
+    }
+
+    downloadBlob(blob, fileName) {
+        const downloadUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = downloadUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(downloadUrl);
+    }
+
+    async shareResult() {
+        if (!this.hasResult || this.isRunning || this.isSharing) {
+            return;
+        }
+        const shareButton = this.getElement('shareResult');
+        const canvas = this.renderShareImage();
+        if (!canvas) {
+            return;
+        }
+
+        this.isSharing = true;
+        shareButton.textContent = 'Sharing...';
+        this.updateShareButtonState();
+
+        try {
+            const blob = await this.canvasToBlob(canvas);
+            if (!blob) {
+                throw new Error('Unable to create image.');
+            }
+            const fileName = `hearing-age-${Date.now()}.png`;
+            const file = new File([blob], fileName, { type: 'image/png' });
+            const shareText = `My estimated hearing age is ${this.getElement('ageGuess').textContent}.`;
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'Hearing Age Guesser',
+                    text: shareText,
+                    files: [file]
+                });
+            } else {
+                this.downloadBlob(blob, fileName);
+            }
+        } catch (err) {
+            // The user may cancel share intent; silently ignore.
+        } finally {
+            this.isSharing = false;
+            shareButton.textContent = 'Share';
+            this.updateShareButtonState();
+        }
+    }
+
     estimateAgeFromFrequency(freq) {
+        /**
+         * Hearing age approximations based on general presbycusis (age-related hearing loss) trends.
+         * Sources: 
+         * - ISO 7029: Acoustics — Statistical distribution of hearing thresholds as a function of age.
+         * - General audiology consensus for high-frequency roll-off.
+         * Note: Individual hearing varies greatly due to environmental exposure and genetics.
+         */
         const referencePoints = [
-            { freq: 19500, age: 12 },
-            { freq: 18500, age: 16 },
-            { freq: 17500, age: 20 },
-            { freq: 16500, age: 24 },
-            { freq: 15500, age: 28 },
-            { freq: 14500, age: 32 },
-            { freq: 13500, age: 36 },
-            { freq: 12500, age: 40 },
-            { freq: 11500, age: 45 },
-            { freq: 10500, age: 50 },
-            { freq: 9500, age: 55 },
-            { freq: 8500, age: 60 },
-            { freq: 7500, age: 65 },
-            { freq: 6500, age: 70 },
-            { freq: 5500, age: 75 }
+            { freq: 20000, age: 18 },
+            { freq: 19000, age: 20 },
+            { freq: 18000, age: 24 },
+            { freq: 17000, age: 28 },
+            { freq: 16000, age: 30 },
+            { freq: 15000, age: 35 },
+            { freq: 14000, age: 40 },
+            { freq: 13000, age: 45 },
+            { freq: 12000, age: 50 },
+            { freq: 11000, age: 55 },
+            { freq: 10000, age: 60 },
+            { freq: 8000, age: 70 }
         ];
 
         if (freq >= referencePoints[0].freq) {
-            return { age: referencePoints[0].age, context: 'Teen-like hearing range' };
+            return referencePoints[0].age;
         }
         const last = referencePoints[referencePoints.length - 1];
         if (freq <= last.freq) {
-            return { age: last.age, context: 'Speech-focused range; age guess skews older' };
+            return last.age;
         }
 
         for (let i = 0; i < referencePoints.length - 1; i += 1) {
@@ -583,19 +803,11 @@ class HearingAgeGuesser {
             if (freq <= upper.freq && freq >= lower.freq) {
                 const ratio = (upper.freq - freq) / (upper.freq - lower.freq);
                 const age = Math.round(upper.age + (lower.age - upper.age) * ratio);
-                const context = `Similar to ~${age}s hearing`;
-                return { age, context };
+                return age;
             }
         }
 
-        return { age: 40, context: 'Mid-range hearing profile' };
-    }
-
-    formatFrequency(freq) {
-        if (freq >= 1000) {
-            return `${(freq / 1000).toFixed(1)} kHz`;
-        }
-        return `${Math.round(freq)} Hz`;
+        return 40;
     }
 }
 
@@ -604,52 +816,33 @@ document.addEventListener('DOMContentLoaded', () => {
 });</script>
 
 <section class="hearing-age">
-        <div class="hearing-card__intro">
-            <p class="eyebrow">Tone sweep</p>
-            <h1>Hearing Age Guesser</h1>
-            <p class="lede">Play an increasingly higher pitched tone until it slips out of range, then tap the button to guess your hearing age.</p>
+        <div class="analog-gauge" aria-hidden="true">
+            <div class="analog-gauge__dial">
+                <div class="analog-gauge__ticks"></div>
+                <div class="gauge-label gauge-label--1">0</div>
+                <div class="gauge-label gauge-label--2">6k</div>
+                <div class="gauge-label gauge-label--3">12k</div>
+                <div class="gauge-label gauge-label--4">18k</div>
+                <div id="gaugeNeedle" class="analog-gauge__needle"></div>
+                <div class="analog-gauge__hub"></div>
+            </div>
         </div>
 
-        <div class="hearing-readout">
-            <div class="readout-block">
-                <div class="readout-label">Current tone</div>
-                <div class="readout-value">
-                    <span id="frequencyValue">440</span>
-                    <span class="readout-unit">Hz</span>
-                </div>
-            </div>
-            <div class="readout-block">
-                <div class="readout-label">Latest audible</div>
-                <div class="readout-value">
-                    <span id="lastHeardValue">—</span>
-                    <span class="readout-unit">Hz</span>
-                </div>
-            </div>
-            <div class="status-pill" id="sweepStatus">Idle</div>
-        </div>
-
-        <div class="age-panel">
-            <div class="age-panel__label">Estimated hearing age</div>
-            <div id="ageGuess" class="age-panel__value">—</div>
-            <div id="ageDetail" class="age-panel__detail">Press start to begin a quick sweep.</div>
+        <div class="age-text">
+            Estimated hearing age: <strong id="ageGuess">—</strong>
         </div>
 
         <div class="controls">
-            <button id="startSweep" class="tone-btn tone-btn--primary">Start sweep</button>
-            <button id="cantHearButton" class="tone-btn tone-btn--alert" disabled>Can't hear it</button>
-            <button id="resetButton" class="tone-btn tone-btn--ghost">Reset</button>
+            <select id="waveType" class="tone-btn">
+                <option value="sine">Sine</option>
+                <option value="square">Square</option>
+                <option value="sawtooth">Sawtooth</option>
+                <option value="triangle">Triangle</option>
+            </select>
+            <button id="startSweep" class="tone-btn tone-btn--primary">Start</button>
+            <button id="shareResult" class="tone-btn tone-btn--share" disabled>Share</button>
         </div>
 
-        <div class="progress-shell" aria-hidden="true">
-            <div class="progress-track">
-                <div class="progress-fill" id="progressFill"></div>
-            </div>
-            <div class="progress-caption">Sweep walks from 440 Hz to 20 kHz. Stay gentle with your volume.</div>
-        </div>
-
-        <ul class="notes">
-            <li>Tap <strong>Can't hear it</strong> the moment the tone disappears for you; the app guesses based on the last audible frequency.</li>
-        </ul>
 </section>
     </div>
 </article>
