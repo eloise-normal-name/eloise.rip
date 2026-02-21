@@ -3,7 +3,6 @@ Date: 2026-02-20
 Summary: Introducing a playful web app that estimates your hearing age by sweeping a tone from 8–20 kHz. Try it and see how your ears compare!
 Category: Tech
 Tags: hearing, accessibility, webapp, audio, science, fun
-thumbnail: images/hearing-age-preview.avif
 
 ---
 
@@ -36,7 +35,7 @@ Human hearing typically ranges from 20 Hz to 20 kHz, but most adults can't hear 
 
 ## Try It Yourself
 
-[hearing-age-guesser.html](hearing-age-guesser.html)
+[hearing-age-guesser.html](/hearing-age-guesser.html)
 
 ## Open Source & Feedback
 
