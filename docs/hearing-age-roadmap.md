@@ -14,3 +14,11 @@ Quick tone-sweep experiment that estimates hearing age from the last audible fre
 - **Audio behavior:** "Tighten the sweep logic: keep gain tame, make increments adaptive near 14-18 kHz, and stop oscillators cleanly between runs."
 - **Data/verbiage:** "Rework the age estimation copy to be clearer about playfulness and to cite the cutoff frequency in both Hz and kHz."
 - **QA:** "Add a lightweight scriptable test that sanity-checks the sweep progress math (0-100%) and the age estimator interpolation edges."
+
+## Codex VS Code extension note
+These shell command conventions are for the Codex agent running in the VS Code extension (PowerShell):
+
+- Do not use `&&` in PowerShell command strings; use `;` or separate commands.
+- Prefer single-quoted search patterns, e.g. `rg -n 'ageDetail|lastHeardValue' content/pages/hearing-age`.
+- Use `--fixed-strings` for literal text containing quotes/symbols, e.g. `rg -n --fixed-strings 'class="notes"' content/pages/hearing-age/hearing-age.md`.
+- When quoting gets complex, assign pattern text to a variable first, then pass the variable to `rg`.
