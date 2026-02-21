@@ -22,7 +22,7 @@
 &lt;h2&gt;Science Behind It&lt;/h2&gt;
 &lt;p&gt;Human hearing typically ranges from 20 Hz to 20 kHz, but most adults can't hear above 15–17 kHz. The app uses published age-frequency curves to estimate age from the last audible frequency. It's not a medical test, but it's surprisingly accurate for a quick check!&lt;/p&gt;
 &lt;h2&gt;Try It Yourself&lt;/h2&gt;
-&lt;p&gt;&lt;a href="hearing-age-guesser.html"&gt;hearing-age-guesser.html&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;&lt;a href="/hearing-age-guesser.html"&gt;hearing-age-guesser.html&lt;/a&gt;&lt;/p&gt;
 &lt;h2&gt;Open Source &amp;amp; Feedback&lt;/h2&gt;
 &lt;p&gt;The app is open source and built with Pelican, custom CSS, and JavaScript. If you have feedback or want to contribute, check out the &lt;a href="https://github.com/eloise-normal-name/eloise.rip"&gt;GitHub repo&lt;/a&gt;.&lt;/p&gt;
 &lt;hr&gt;
