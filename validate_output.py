@@ -29,6 +29,32 @@ except ImportError:
     sys.exit(2)
 
 
+def supports_utf_output() -> bool:
+    """Return True when stdout encoding can reliably print Unicode symbols."""
+    encoding = (getattr(sys.stdout, 'encoding', '') or '').lower()
+    return 'utf' in encoding
+
+
+USE_UNICODE_SYMBOLS = supports_utf_output()
+ICON_ERROR = "❌" if USE_UNICODE_SYMBOLS else "[ERROR]"
+ICON_OK = "✅" if USE_UNICODE_SYMBOLS else "[OK]"
+ICON_WARN = "⚠️" if USE_UNICODE_SYMBOLS else "[WARN]"
+ICON_INFO = "ℹ️" if USE_UNICODE_SYMBOLS else "[INFO]"
+ICON_TIP = "💡" if USE_UNICODE_SYMBOLS else "[TIP]"
+ICON_FAIL = "💥" if USE_UNICODE_SYMBOLS else "[FAIL]"
+ICON_PASS = "✨" if USE_UNICODE_SYMBOLS else "[PASS]"
+BULLET = "•" if USE_UNICODE_SYMBOLS else "-"
+
+
+def safe_text(value: object) -> str:
+    """Convert text to the active stdout encoding, replacing unsupported chars."""
+    text = str(value)
+    if USE_UNICODE_SYMBOLS:
+        return text
+    encoding = getattr(sys.stdout, 'encoding', None) or 'ascii'
+    return text.encode(encoding, errors='replace').decode(encoding, errors='replace')
+
+
 def normalize_path(href: str, source_html: Path, output_dir: Path) -> Path | None:
     """Convert href to absolute filesystem path, or None if external/anchor."""
     href = href.strip()
@@ -244,7 +270,7 @@ def print_report(internal_errors: dict, external_errors: dict, orphaned: dict[st
     # Internal validation results
     if internal_errors:
         total_errors = sum(len(v) for v in internal_errors.values())
-        print(f"\n❌ INTERNAL ERRORS ({total_errors} total):\n")
+        print(f"\n{ICON_ERROR} INTERNAL ERRORS ({total_errors} total):\n")
         
         # Group by error type
         missing_videos = []
@@ -253,9 +279,9 @@ def print_report(internal_errors: dict, external_errors: dict, orphaned: dict[st
         broken_links = []
         
         for source, issues in sorted(internal_errors.items()):
-            print(f"  {source}:")
+            print(f"  {safe_text(source)}:")
             for issue in issues:
-                print(f"    • {issue}")
+                print(f"    {BULLET} {safe_text(issue)}")
                 if 'Missing video:' in issue or 'Missing poster:' in issue:
                     missing_videos.append(issue)
                 elif 'Missing image:' in issue:
@@ -266,33 +292,33 @@ def print_report(internal_errors: dict, external_errors: dict, orphaned: dict[st
                     broken_links.append(issue)
         
         # Suggestions
-        print("\n  💡 Suggestions:")
+        print(f"\n  {ICON_TIP} Suggestions:")
         if missing_videos or missing_images or missing_audio:
-            print("     • Add missing media files to content/media/ (transcoding happens in a local repository due to Git LFS bandwidth limits)")
+            print("     - Add missing media files to content/media/ (transcoding happens in a local repository due to Git LFS bandwidth limits)")
         if broken_links:
-            print("     • Check article cross-references and navigation links")
+            print("     - Check article cross-references and navigation links")
         
     else:
-        print("\n✅ All internal links and media validated successfully!")
+        print(f"\n{ICON_OK} All internal links and media validated successfully!")
     
     # External validation results
     if external_errors:
-        print(f"\n❌ EXTERNAL LINK ERRORS ({len(external_errors['external'])} total):\n")
+        print(f"\n{ICON_ERROR} EXTERNAL LINK ERRORS ({len(external_errors['external'])} total):\n")
         for issue in external_errors['external']:
-            print(f"  • {issue}")
+            print(f"  {BULLET} {safe_text(issue)}")
     
     # Orphaned media report
     orphaned_count = sum(len(files) for key, files in orphaned.items() if key != 'fallbacks')
     
     if orphaned_count > 0:
-        print(f"\n⚠️  ORPHANED MEDIA ({orphaned_count} unreferenced files):\n")
+        print(f"\n{ICON_WARN}  ORPHANED MEDIA ({orphaned_count} unreferenced files):\n")
         
         if orphaned['images']:
             print(f"  Images ({len(orphaned['images'])}):")
             for media_file in orphaned['images'][:10]:  # Show first 10
                 rel_path = media_file.relative_to(output_dir)
                 size_kb = media_file.stat().st_size / 1024
-                print(f"    • {rel_path} ({size_kb:.1f} KB)")
+                print(f"    {BULLET} {safe_text(rel_path)} ({size_kb:.1f} KB)")
             if len(orphaned['images']) > 10:
                 print(f"    ... and {len(orphaned['images']) - 10} more")
         
@@ -301,7 +327,7 @@ def print_report(internal_errors: dict, external_errors: dict, orphaned: dict[st
             for media_file in orphaned['videos'][:5]:
                 rel_path = media_file.relative_to(output_dir)
                 size_kb = media_file.stat().st_size / 1024
-                print(f"    • {rel_path} ({size_kb:.1f} KB)")
+                print(f"    {BULLET} {safe_text(rel_path)} ({size_kb:.1f} KB)")
             if len(orphaned['videos']) > 5:
                 print(f"    ... and {len(orphaned['videos']) - 5} more")
         
@@ -310,32 +336,32 @@ def print_report(internal_errors: dict, external_errors: dict, orphaned: dict[st
             for media_file in orphaned['audio'][:5]:
                 rel_path = media_file.relative_to(output_dir)
                 size_kb = media_file.stat().st_size / 1024
-                print(f"    • {rel_path} ({size_kb:.1f} KB)")
+                print(f"    {BULLET} {safe_text(rel_path)} ({size_kb:.1f} KB)")
             if len(orphaned['audio']) > 5:
                 print(f"    ... and {len(orphaned['audio']) - 5} more")
         
         if orphaned['fallbacks']:
-            print(f"\n  ℹ️  JPG fallbacks ({len(orphaned['fallbacks'])}) - OK to keep for browser compatibility")
+            print(f"\n  {ICON_INFO}  JPG fallbacks ({len(orphaned['fallbacks'])}) - OK to keep for browser compatibility")
         
-        print(f"\n  💡 Consider removing unused media or check for missing [[video:]] / [[carousel:]] references.")
+        print(f"\n  {ICON_TIP} Consider removing unused media or check for missing [[video:]] / [[carousel:]] references.")
     else:
-        print("\n✅ No orphaned media files found.")
+        print(f"\n{ICON_OK} No orphaned media files found.")
     
     # Summary
     print("\n" + "=" * 70)
     print("SUMMARY:")
-    print(f"  • HTML files checked: {len(list(output_dir.rglob('*.html')))}")
-    print(f"  • Internal errors: {sum(len(v) for v in internal_errors.values())}")
+    print(f"  - HTML files checked: {len(list(output_dir.rglob('*.html')))}")
+    print(f"  - Internal errors: {sum(len(v) for v in internal_errors.values())}")
     if external_errors:
-        print(f"  • External errors: {len(external_errors.get('external', []))}")
-    print(f"  • Orphaned media: {orphaned_count}")
+        print(f"  - External errors: {len(external_errors.get('external', []))}")
+    print(f"  - Orphaned media: {orphaned_count}")
     print("=" * 70)
     
     if has_errors:
-        print("\n💥 Validation FAILED - fix errors before deploying!")
+        print(f"\n{ICON_FAIL} Validation FAILED - fix errors before deploying!")
         return 1
     else:
-        print("\n✨ Validation PASSED - site is ready to deploy!")
+        print(f"\n{ICON_PASS} Validation PASSED - site is ready to deploy!")
         return 0
 
 
