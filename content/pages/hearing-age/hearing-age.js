@@ -351,13 +351,29 @@ class HearingAgeGuesser {
             ctx.stroke();
         }
 
-        ctx.font = '700 42px Kalam, cursive';
-        ctx.fillStyle = '#334155';
+        const dialX = centerX - radius;
+        const dialY = centerY - radius;
+        const dialW = radius * 2;
+        const dialH = radius;
+        const gaugeLabelFontSize = Math.round(16 * scale);
+        ctx.font = `700 ${gaugeLabelFontSize}px "Pinyon Script", "Kalam", cursive`;
+        ctx.fillStyle = '#e6eef8';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 1;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+        ctx.textBaseline = 'top';
+
+        ctx.textAlign = 'left';
+        ctx.fillText('0', dialX + (22 * scale), dialY + dialH - (18 * scale));
+
         ctx.textAlign = 'center';
-        ctx.fillText('0', centerX - radius, centerY + 18);
-        ctx.fillText('6k', centerX - (radius * 0.48), centerY - (radius * 0.74));
-        ctx.fillText('12k', centerX + (radius * 0.48), centerY - (radius * 0.74));
-        ctx.fillText('18k', centerX + radius, centerY + 18);
+        ctx.fillText('6k', dialX + (dialW * 0.28), dialY + (22 * scale));
+        ctx.fillText('12k', dialX + (dialW * 0.72), dialY + (22 * scale));
+
+        ctx.textAlign = 'right';
+        ctx.fillText('18k', dialX + dialW - (22 * scale), dialY + dialH - (18 * scale));
+        ctx.shadowColor = 'transparent';
 
         ctx.strokeStyle = '#1f2937';
         ctx.lineWidth = 12;
@@ -416,6 +432,7 @@ class HearingAgeGuesser {
         try {
             await Promise.all([
                 document.fonts.load('700 42px Kalam'),
+                document.fonts.load('700 27px "Pinyon Script"'),
                 document.fonts.load('700 54px Consolas')
             ]);
         } catch (err) {
