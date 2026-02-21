@@ -261,8 +261,8 @@ class HearingAgeGuesser {
 
     renderShareImage() {
         const canvas = document.createElement('canvas');
-        canvas.width = 1200;
-        canvas.height = 820;
+        canvas.width = 960;
+        canvas.height = 500;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             return null;
@@ -288,15 +288,17 @@ class HearingAgeGuesser {
         ctx.stroke();
 
         const centerX = canvas.width / 2;
-        const centerY = 520;
-        const radius = 250;
+        const centerY = 340;
+        const scale = 1.7;
+        const radius = (280 * scale) / 2;
 
         // Recreate the gauge card background so the shared image matches the page.
-        const cardX = centerX - 300;
-        const cardY = 300;
-        const cardW = 600;
-        const cardH = 300;
-        const cardRadius = 24;
+        const cardW = 420 * scale;
+        const cardX = centerX - (cardW / 2);
+        const cardY = (centerY - radius) - (20 * scale); // dial top minus card top padding
+        const cardBottom = centerY + (23 * scale); // baseline + bottom padding + hub footprint
+        const cardH = cardBottom - cardY;
+        const cardRadius = 24 * scale;
         const cardGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
         cardGradient.addColorStop(0, 'rgba(225, 240, 255, 0.65)');
         cardGradient.addColorStop(1, 'rgba(200, 225, 245, 0.28)');
@@ -309,10 +311,10 @@ class HearingAgeGuesser {
 
         const cardHighlight = ctx.createRadialGradient(
             centerX,
-            cardY + 20,
+            cardY + (20 * scale),
             20,
             centerX,
-            cardY + 20,
+            cardY + (20 * scale),
             260
         );
         cardHighlight.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
@@ -352,10 +354,10 @@ class HearingAgeGuesser {
         ctx.font = '700 42px Kalam, cursive';
         ctx.fillStyle = '#334155';
         ctx.textAlign = 'center';
-        ctx.fillText('0', centerX - 250, centerY + 18);
-        ctx.fillText('6k', centerX - 120, centerY - 185);
-        ctx.fillText('12k', centerX + 120, centerY - 185);
-        ctx.fillText('18k', centerX + 250, centerY + 18);
+        ctx.fillText('0', centerX - radius, centerY + 18);
+        ctx.fillText('6k', centerX - (radius * 0.48), centerY - (radius * 0.74));
+        ctx.fillText('12k', centerX + (radius * 0.48), centerY - (radius * 0.74));
+        ctx.fillText('18k', centerX + radius, centerY + 18);
 
         ctx.strokeStyle = '#1f2937';
         ctx.lineWidth = 12;
@@ -365,7 +367,7 @@ class HearingAgeGuesser {
 
         const needleLength = radius - 45;
         const needleX = centerX + Math.cos(angle) * needleLength;
-        const needleY = centerY + Math.sin(angle) * needleLength;
+        const needleY = centerY - Math.sin(angle) * needleLength;
         const needleGradient = ctx.createLinearGradient(centerX, centerY, needleX, needleY);
         needleGradient.addColorStop(0, '#ff7eb3');
         needleGradient.addColorStop(1, '#ff758c');
@@ -385,14 +387,40 @@ class HearingAgeGuesser {
         ctx.arc(centerX - 5, centerY - 5, 7, 0, Math.PI * 2);
         ctx.fill();
 
+        const labelText = 'Estimated hearing age: ';
+        ctx.textAlign = 'left';
+        ctx.font = '700 42px Kalam, cursive';
+        const labelWidth = ctx.measureText(labelText).width;
+        ctx.font = '700 54px Consolas, monospace';
+        const ageWidth = ctx.measureText(ageText).width;
+        const totalTextWidth = labelWidth + ageWidth;
+        const textY = 450;
+        let textX = centerX - (totalTextWidth / 2);
+
         ctx.font = '700 42px Kalam, cursive';
         ctx.fillStyle = '#4a4a4a';
-        ctx.fillText('Estimated hearing age:', centerX, 190);
-        ctx.font = '700 72px Consolas, monospace';
+        ctx.fillText(labelText, textX, textY);
+        textX += labelWidth;
+
+        ctx.font = '700 54px Consolas, monospace';
         ctx.fillStyle = '#ff6b9d';
-        ctx.fillText(ageText, centerX, 270);
+        ctx.fillText(ageText, textX, textY);
 
         return canvas;
+    }
+
+    async ensureShareFonts() {
+        if (!document.fonts || !document.fonts.load) {
+            return;
+        }
+        try {
+            await Promise.all([
+                document.fonts.load('700 42px Kalam'),
+                document.fonts.load('700 54px Consolas')
+            ]);
+        } catch (err) {
+            // Font loading failures should not block sharing.
+        }
     }
 
     roundRect(ctx, x, y, width, height, radius) {
@@ -431,6 +459,7 @@ class HearingAgeGuesser {
             return;
         }
         const shareButton = this.getElement('shareResult');
+        await this.ensureShareFonts();
         const canvas = this.renderShareImage();
         if (!canvas) {
             return;
@@ -513,5 +542,5 @@ class HearingAgeGuesser {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    new HearingAgeGuesser();
+    window.__hearingAgeInstance = new HearingAgeGuesser();
 });
