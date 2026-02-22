@@ -24,6 +24,13 @@
     padding: 1.5rem 0 1.2rem;
 }
 
+.hearing-age--share-export .analog-gauge {
+    /* foreignObject rasterization can misrender backdrop effects as white arcs */
+    background-image: linear-gradient(180deg, rgba(225, 240, 255, 0.65), rgba(200, 225, 245, 0.28));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
 .analog-gauge__dial {
     width: min(100%, 280px);
     aspect-ratio: 2/1;
