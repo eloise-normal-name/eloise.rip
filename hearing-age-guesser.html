@@ -307,7 +307,7 @@ class HearingAgeGuesser {
         this.startFrequency = 440;
         this.maxFrequency = 18000;
         this.stepHz = 250;
-        this.tickMs = 450;
+        this.tickMs = 375;
         this.outputGain = 0.08;
 
         // State
@@ -383,6 +383,16 @@ class HearingAgeGuesser {
         shareButton.disabled = !canShareResult;
     }
 
+    setStartButtonRunning(isRunning) {
+        const startButton = this.getElement('startSweep');
+        if (!startButton) {
+            return;
+        }
+        startButton.textContent = isRunning ? 'Stop' : 'Start';
+        startButton.classList.toggle('tone-btn--alert', isRunning);
+        startButton.classList.toggle('tone-btn--primary', !isRunning);
+    }
+
     ensureAudioContext() {
         if (this.audioContext) {
             return;
@@ -427,9 +437,7 @@ class HearingAgeGuesser {
         this.hasResult = false;
         this.needsResetBeforeStart = false;
         this.updateShareButtonState();
-        this.getElement('startSweep').textContent = 'Stop';
-        this.getElement('startSweep').classList.remove('tone-btn--primary');
-        this.getElement('startSweep').classList.add('tone-btn--alert');
+        this.setStartButtonRunning(true);
 
         this.oscillator = this.audioContext.createOscillator();
         this.oscillator.type = this.getElement('waveType').value || 'sine';
@@ -450,16 +458,6 @@ class HearingAgeGuesser {
 
         this.lastSweepTimestamp = null;
         this.sweepTimer = window.requestAnimationFrame((timestamp) => this.advanceFrequency(timestamp));
-    }
-
-    stopSweep() {
-        this.stopTone();
-        this.isRunning = false;
-        this.needsResetBeforeStart = true;
-        this.updateShareButtonState();
-        this.getElement('startSweep').textContent = 'Start';
-        this.getElement('startSweep').classList.remove('tone-btn--alert');
-        this.getElement('startSweep').classList.add('tone-btn--primary');
     }
 
     stopTone() {
@@ -535,9 +533,7 @@ class HearingAgeGuesser {
         const estimatedAge = this.estimateAgeFromFrequency(guessedFrequency);
         this.getElement('ageGuess').textContent = `${estimatedAge} yrs`;
 
-        this.getElement('startSweep').textContent = 'Start';
-        this.getElement('startSweep').classList.remove('tone-btn--alert');
-        this.getElement('startSweep').classList.add('tone-btn--primary');
+        this.setStartButtonRunning(false);
         this.updateShareButtonState();
         this.updateReadout();
     }
@@ -549,178 +545,148 @@ class HearingAgeGuesser {
         this.needsResetBeforeStart = false;
         this.currentFrequency = this.startFrequency;
         this.lastAudibleFrequency = null;
-        this.getElement('startSweep').textContent = 'Start';
-        this.getElement('startSweep').classList.remove('tone-btn--alert');
-        this.getElement('startSweep').classList.add('tone-btn--primary');
+        this.setStartButtonRunning(false);
         this.getElement('ageGuess').textContent = '—';
         this.updateShareButtonState();
         this.updateReadout();
     }
 
-    renderShareImage() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 960;
-        canvas.height = 500;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
+    getShareTargetElement() {
+        return document.querySelector('.hearing-age');
+    }
+
+    prepareShareClone(element) {
+        const clone = document.createElement('section');
+        clone.className = 'hearing-age';
+
+        const gauge = element.querySelector('.analog-gauge');
+        if (gauge) {
+            clone.appendChild(gauge.cloneNode(true));
+        }
+
+        const ageText = element.querySelector('.age-text');
+        if (ageText) {
+            const ageClone = ageText.cloneNode(true);
+            ageClone.style.marginBottom = '0';
+            clone.appendChild(ageClone);
+        }
+
+        clone.style.margin = '0';
+        clone.style.maxWidth = 'none';
+        clone.style.paddingBottom = '0';
+        return clone;
+    }
+
+    measureClone(node) {
+        const host = document.createElement('div');
+        host.style.position = 'fixed';
+        host.style.left = '-100000px';
+        host.style.top = '0';
+        host.style.visibility = 'hidden';
+        host.style.pointerEvents = 'none';
+        host.appendChild(node);
+        document.body.appendChild(host);
+
+        try {
+            const rect = node.getBoundingClientRect();
+            return {
+                width: Math.max(1, Math.ceil(rect.width)),
+                height: Math.max(1, Math.ceil(rect.height))
+            };
+        } finally {
+            document.body.removeChild(host);
+        }
+    }
+
+    inlineComputedStyles(sourceRoot, targetRoot) {
+        const sourceNodes = [sourceRoot, ...sourceRoot.querySelectorAll('*')];
+        const targetNodes = [targetRoot, ...targetRoot.querySelectorAll('*')];
+        const count = Math.min(sourceNodes.length, targetNodes.length);
+
+        for (let i = 0; i < count; i += 1) {
+            const sourceNode = sourceNodes[i];
+            const targetNode = targetNodes[i];
+            const computed = window.getComputedStyle(sourceNode);
+            for (let p = 0; p < computed.length; p += 1) {
+                const prop = computed[p];
+                const value = computed.getPropertyValue(prop);
+                const priority = computed.getPropertyPriority(prop);
+                targetNode.style.setProperty(prop, value, priority);
+            }
+        }
+    }
+
+    getShareBackgroundColor() {
+        const pageBg = window.getComputedStyle(document.body).backgroundColor;
+        if (pageBg && pageBg !== 'rgba(0, 0, 0, 0)' && pageBg !== 'transparent') {
+            return pageBg;
+        }
+        return '#ffffff';
+    }
+
+    async renderShareImage() {
+        const target = this.getShareTargetElement();
+        if (!target) {
             return null;
         }
 
-        const progress = (this.currentFrequency - this.startFrequency) / (this.maxFrequency - this.startFrequency);
-        const normalized = Math.max(0, Math.min(1, progress));
-        // Match the on-page gauge sweep: left (0) -> top (mid) -> right (max).
-        const angle = Math.PI - (Math.PI * normalized);
-        const ageText = this.getElement('ageGuess').textContent || '—';
+        try {
+            const clonedTarget = this.prepareShareClone(target);
+            this.inlineComputedStyles(target, clonedTarget);
+            const sourceGauge = target.querySelector('.analog-gauge');
+            const clonedGauge = clonedTarget.querySelector('.analog-gauge');
+            if (sourceGauge && clonedGauge) {
+                this.inlineComputedStyles(sourceGauge, clonedGauge);
+            }
+            const sourceAgeText = target.querySelector('.age-text');
+            const clonedAgeText = clonedTarget.querySelector('.age-text');
+            if (sourceAgeText && clonedAgeText) {
+                this.inlineComputedStyles(sourceAgeText, clonedAgeText);
+            }
+            // Do not carry over the live container height (which includes controls).
+            // Let the share clone size itself to gauge + age text only.
+            clonedTarget.style.height = 'auto';
+            clonedTarget.style.minHeight = '0';
+            // Do not carry over the live container width constraints.
+            // Let the share clone size itself to its own content width.
+            clonedTarget.style.width = 'auto';
+            clonedTarget.style.minWidth = '0';
+            clonedTarget.style.display = 'inline-flex';
+            const { width, height } = this.measureClone(clonedTarget);
+            const serializedTarget = new XMLSerializer().serializeToString(clonedTarget);
+            const backgroundColor = this.getShareBackgroundColor();
+            const svgMarkup = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect width="100%" height="100%" fill="${backgroundColor}" />
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:${backgroundColor};">
+      ${serializedTarget}
+    </div>
+  </foreignObject>
+</svg>`.trim();
 
-        const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        gradient.addColorStop(0, '#f7fbff');
-        gradient.addColorStop(1, '#eaf4ff');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const image = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Unable to render DOM snapshot.'));
+                img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+            });
 
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.strokeStyle = 'rgba(205, 222, 238, 1)';
-        ctx.lineWidth = 3;
-        this.roundRect(ctx, 0, 0, canvas.width, canvas.height, 0);
-        ctx.fill();
-        ctx.stroke();
+            const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(width * pixelRatio));
+            canvas.height = Math.max(1, Math.round(height * pixelRatio));
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return null;
+            }
 
-        const centerX = canvas.width / 2;
-        const centerY = 340;
-        const scale = 1.7;
-        const radius = (280 * scale) / 2;
-
-        // Recreate the gauge card background so the shared image matches the page.
-        const cardW = 420 * scale;
-        const cardX = centerX - (cardW / 2);
-        const cardY = (centerY - radius) - (20 * scale); // dial top minus card top padding
-        const cardBottom = centerY + (23 * scale); // baseline + bottom padding + hub footprint
-        const cardH = cardBottom - cardY;
-        const cardRadius = 24 * scale;
-        const cardGradient = ctx.createLinearGradient(0, cardY, 0, cardY + cardH);
-        cardGradient.addColorStop(0, 'rgba(225, 240, 255, 0.65)');
-        cardGradient.addColorStop(1, 'rgba(200, 225, 245, 0.28)');
-        this.roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius);
-        ctx.fillStyle = cardGradient;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(210, 230, 245, 0.85)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        const cardHighlight = ctx.createRadialGradient(
-            centerX,
-            cardY + (20 * scale),
-            20,
-            centerX,
-            cardY + (20 * scale),
-            260
-        );
-        cardHighlight.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
-        cardHighlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        this.roundRect(ctx, cardX, cardY, cardW, cardH, cardRadius);
-        ctx.fillStyle = cardHighlight;
-        ctx.fill();
-
-        // Dial fill mirrors the dark metallic look from the live gauge.
-        const dialGradient = ctx.createLinearGradient(centerX - radius, 0, centerX + radius, 0);
-        dialGradient.addColorStop(0, '#374151');
-        dialGradient.addColorStop(1, '#1f2937');
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, Math.PI, 0, false);
-        ctx.lineTo(centerX + radius, centerY);
-        ctx.lineTo(centerX - radius, centerY);
-        ctx.closePath();
-        ctx.fillStyle = dialGradient;
-        ctx.fill();
-
-        ctx.lineCap = 'round';
-        for (let i = 0; i <= 30; i += 1) {
-            const tickRatio = i / 30;
-            const tickAngle = (-Math.PI) + (Math.PI * tickRatio);
-            const outerX = centerX + Math.cos(tickAngle) * radius;
-            const outerY = centerY + Math.sin(tickAngle) * radius;
-            const innerX = centerX + Math.cos(tickAngle) * (radius - 18);
-            const innerY = centerY + Math.sin(tickAngle) * (radius - 18);
-            ctx.strokeStyle = 'rgba(63, 81, 97, 0.7)';
-            ctx.lineWidth = i % 5 === 0 ? 4 : 2;
-            ctx.beginPath();
-            ctx.moveTo(innerX, innerY);
-            ctx.lineTo(outerX, outerY);
-            ctx.stroke();
+            ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            ctx.drawImage(image, 0, 0, width, height);
+            return canvas;
+        } catch (err) {
+            return null;
         }
-
-        const dialX = centerX - radius;
-        const dialY = centerY - radius;
-        const dialW = radius * 2;
-        const dialH = radius;
-        const gaugeLabelFontSize = Math.round(16 * scale);
-        ctx.font = `700 ${gaugeLabelFontSize}px "Pinyon Script", "Kalam", cursive`;
-        ctx.fillStyle = '#e6eef8';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-        ctx.shadowBlur = 1;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 1;
-        ctx.textBaseline = 'top';
-
-        ctx.textAlign = 'left';
-        ctx.fillText('0', dialX + (22 * scale), dialY + dialH - (18 * scale));
-
-        ctx.textAlign = 'center';
-        ctx.fillText('6k', dialX + (dialW * 0.28), dialY + (22 * scale));
-        ctx.fillText('12k', dialX + (dialW * 0.72), dialY + (22 * scale));
-
-        ctx.textAlign = 'right';
-        ctx.fillText('18k', dialX + dialW - (22 * scale), dialY + dialH - (18 * scale));
-        ctx.shadowColor = 'transparent';
-
-        ctx.strokeStyle = '#1f2937';
-        ctx.lineWidth = 12;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, Math.PI, 0, false);
-        ctx.stroke();
-
-        const needleLength = radius - 45;
-        const needleX = centerX + Math.cos(angle) * needleLength;
-        const needleY = centerY - Math.sin(angle) * needleLength;
-        const needleGradient = ctx.createLinearGradient(centerX, centerY, needleX, needleY);
-        needleGradient.addColorStop(0, '#ff7eb3');
-        needleGradient.addColorStop(1, '#ff758c');
-        ctx.strokeStyle = needleGradient;
-        ctx.lineWidth = 10;
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(needleX, needleY);
-        ctx.stroke();
-
-        ctx.fillStyle = '#2d3748';
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, 22, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.beginPath();
-        ctx.arc(centerX - 5, centerY - 5, 7, 0, Math.PI * 2);
-        ctx.fill();
-
-        const labelText = 'Estimated hearing age: ';
-        ctx.textAlign = 'left';
-        ctx.font = '700 42px Kalam, cursive';
-        const labelWidth = ctx.measureText(labelText).width;
-        ctx.font = '700 54px Consolas, monospace';
-        const ageWidth = ctx.measureText(ageText).width;
-        const totalTextWidth = labelWidth + ageWidth;
-        const textY = 450;
-        let textX = centerX - (totalTextWidth / 2);
-
-        ctx.font = '700 42px Kalam, cursive';
-        ctx.fillStyle = '#4a4a4a';
-        ctx.fillText(labelText, textX, textY);
-        textX += labelWidth;
-
-        ctx.font = '700 54px Consolas, monospace';
-        ctx.fillStyle = '#ff6b9d';
-        ctx.fillText(ageText, textX, textY);
-
-        return canvas;
     }
 
     async ensureShareFonts() {
@@ -738,24 +704,61 @@ class HearingAgeGuesser {
         }
     }
 
-    roundRect(ctx, x, y, width, height, radius) {
-        ctx.beginPath();
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + width - radius, y);
-        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-        ctx.lineTo(x + width, y + height - radius);
-        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        ctx.lineTo(x + radius, y + height);
-        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-        ctx.lineTo(x, y + radius);
-        ctx.quadraticCurveTo(x, y, x + radius, y);
-        ctx.closePath();
-    }
-
     canvasToBlob(canvas) {
         return new Promise((resolve) => {
-            canvas.toBlob((blob) => resolve(blob), 'image/png');
+            if (!canvas || typeof canvas.toBlob !== 'function') {
+                resolve(null);
+                return;
+            }
+            try {
+                canvas.toBlob((blob) => resolve(blob), 'image/png');
+            } catch (err) {
+                resolve(null);
+            }
         });
+    }
+
+    canvasToDataUrl(canvas) {
+        if (!canvas || typeof canvas.toDataURL !== 'function') {
+            return null;
+        }
+        try {
+            return canvas.toDataURL('image/png');
+        } catch (err) {
+            return null;
+        }
+    }
+
+    dataUrlToBlob(dataUrl) {
+        if (!dataUrl || !dataUrl.startsWith('data:')) {
+            return null;
+        }
+        const parts = dataUrl.split(',');
+        if (parts.length < 2) {
+            return null;
+        }
+        const header = parts[0];
+        const mimeMatch = header.match(/data:([^;]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+        try {
+            const binaryString = atob(parts[1]);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i += 1) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return new Blob([bytes], { type: mimeType });
+        } catch (err) {
+            return null;
+        }
+    }
+
+    downloadDataUrl(dataUrl, fileName) {
+        const anchor = document.createElement('a');
+        anchor.href = dataUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
     }
 
     downloadBlob(blob, fileName) {
@@ -775,7 +778,7 @@ class HearingAgeGuesser {
         }
         const shareButton = this.getElement('shareResult');
         await this.ensureShareFonts();
-        const canvas = this.renderShareImage();
+        const canvas = await this.renderShareImage();
         if (!canvas) {
             return;
         }
@@ -785,11 +788,19 @@ class HearingAgeGuesser {
         this.updateShareButtonState();
 
         try {
-            const blob = await this.canvasToBlob(canvas);
+            const fileName = `hearing-age-${Date.now()}.png`;
+            let blob = await this.canvasToBlob(canvas);
+            if (!blob) {
+                const dataUrl = this.canvasToDataUrl(canvas);
+                blob = this.dataUrlToBlob(dataUrl);
+                if (!blob && dataUrl) {
+                    this.downloadDataUrl(dataUrl, fileName);
+                    return;
+                }
+            }
             if (!blob) {
                 throw new Error('Unable to create image.');
             }
-            const fileName = `hearing-age-${Date.now()}.png`;
             const file = new File([blob], fileName, { type: 'image/png' });
             const shareText = `My estimated hearing age is ${this.getElement('ageGuess').textContent}.`;
 
