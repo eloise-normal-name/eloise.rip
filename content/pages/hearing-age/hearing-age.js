@@ -259,7 +259,7 @@ class HearingAgeGuesser {
 
     prepareShareClone(element) {
         const clone = document.createElement('section');
-        clone.className = 'hearing-age';
+        clone.className = 'hearing-age hearing-age--share-export';
 
         const gauge = element.querySelector('.analog-gauge');
         if (gauge) {
