@@ -14,8 +14,8 @@ class HearingAgeGuesser {
 
         // State
         this.audioContext = null;
-        this.oscillator = null;
-        this.gainNode = null;
+        this.waveNodes = null;
+        this.masterGainNode = null;
         this.sweepTimer = null;
         this.lastSweepTimestamp = null;
         this.currentFrequency = this.startFrequency;
@@ -54,15 +54,49 @@ class HearingAgeGuesser {
         if (waveSelect) {
             waveSelect.addEventListener('change', (e) => {
                 const val = e.target.value;
-                if (this.oscillator) {
-                    try {
-                        this.oscillator.type = val;
-                    } catch (err) {
-                        // some browsers may restrict changing type mid-playback; ignore safely
-                    }
+                if (this.waveNodes) {
+                    this.setActiveWave(val);
                 }
             });
         }
+    }
+
+    createWaveTracks() {
+        const waveTypes = ['sine', 'square', 'sawtooth', 'triangle'];
+        this.masterGainNode = this.audioContext.createGain();
+        this.masterGainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+        this.masterGainNode.gain.linearRampToValueAtTime(this.outputGain, this.audioContext.currentTime + 0.06);
+        this.masterGainNode.connect(this.audioContext.destination);
+
+        this.waveNodes = {};
+        waveTypes.forEach((waveType) => {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            oscillator.type = waveType;
+            oscillator.frequency.value = this.currentFrequency;
+            gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(this.masterGainNode);
+            oscillator.start();
+
+            this.waveNodes[waveType] = { oscillator, gainNode };
+        });
+
+        this.setActiveWave(this.getElement('waveType').value || 'sine');
+    }
+
+    setActiveWave(activeWaveType) {
+        if (!this.waveNodes) {
+            return;
+        }
+        const now = this.audioContext.currentTime;
+        Object.entries(this.waveNodes).forEach(([waveType, nodes]) => {
+            nodes.gainNode.gain.cancelScheduledValues(now);
+            nodes.gainNode.gain.setValueAtTime(nodes.gainNode.gain.value, now);
+            const targetGain = waveType === activeWaveType ? 1 : 0;
+            nodes.gainNode.gain.linearRampToValueAtTime(targetGain, now + 0.02);
+        });
     }
 
     updateReadout() {
@@ -133,19 +167,7 @@ class HearingAgeGuesser {
         this.getElement('startSweep').classList.remove('tone-btn--primary');
         this.getElement('startSweep').classList.add('tone-btn--alert');
 
-        this.oscillator = this.audioContext.createOscillator();
-        this.oscillator.type = this.getElement('waveType').value || 'sine';
-        this.gainNode = this.audioContext.createGain();
-        this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-        this.gainNode.gain.linearRampToValueAtTime(this.outputGain, this.audioContext.currentTime + 0.06);
-        this.oscillator.frequency.value = this.currentFrequency;
-
-        // Keep node connections explicit for Safari compatibility.
-        // Some engines do not return the destination node from connect(),
-        // which breaks chained calls and leaves the oscillator silent.
-        this.oscillator.connect(this.gainNode);
-        this.gainNode.connect(this.audioContext.destination);
-        this.oscillator.start();
+        this.createWaveTracks();
 
         this.lastAudibleFrequency = this.currentFrequency;
         this.updateReadout();
@@ -170,23 +192,26 @@ class HearingAgeGuesser {
             this.sweepTimer = null;
         }
         this.lastSweepTimestamp = null;
-        if (this.oscillator) {
-            try {
-                this.oscillator.stop();
-            } catch (err) {
-                /* oscillator may already be stopped */
-            }
-            this.oscillator.disconnect();
-            this.oscillator = null;
+        if (this.waveNodes) {
+            Object.values(this.waveNodes).forEach(({ oscillator, gainNode }) => {
+                try {
+                    oscillator.stop();
+                } catch (err) {
+                    /* oscillator may already be stopped */
+                }
+                oscillator.disconnect();
+                gainNode.disconnect();
+            });
+            this.waveNodes = null;
         }
-        if (this.gainNode) {
-            this.gainNode.disconnect();
-            this.gainNode = null;
+        if (this.masterGainNode) {
+            this.masterGainNode.disconnect();
+            this.masterGainNode = null;
         }
     }
 
     advanceFrequency(timestamp) {
-        if (!this.isRunning || !this.oscillator) {
+        if (!this.isRunning || !this.waveNodes) {
             return;
         }
 
@@ -209,7 +234,9 @@ class HearingAgeGuesser {
         const nextFrequency = Math.min(this.maxFrequency, this.currentFrequency + (rateHzPerSecond * deltaSeconds));
         this.currentFrequency = nextFrequency;
 
-        this.oscillator.frequency.setValueAtTime(nextFrequency, this.audioContext.currentTime);
+        Object.values(this.waveNodes).forEach(({ oscillator }) => {
+            oscillator.frequency.setValueAtTime(nextFrequency, this.audioContext.currentTime);
+        });
         this.updateReadout();
         this.sweepTimer = window.requestAnimationFrame((nextTimestamp) => this.advanceFrequency(nextTimestamp));
     }
