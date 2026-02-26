@@ -7,4 +7,3 @@ Pillow==11.1.0
 requests>=2.31.0
 # Optional: install pillow-heif separately for HEIC support when wheels are available
 pelican-jinja2content>=1.0
-pelican-yaml-metadata>=2.1.2
