@@ -56,17 +56,3181 @@
     </header>
 
     <div class="page-content">
-        <p>{% block extra_head %} </p>
-<style>
-{% include 'pages/voice-recorder/voice-recorder.css' %}
-</style>
+        <style>
+.voice-recorder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+
+.recorder-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    margin-bottom: 1.2rem;
+}
+
+.button-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.button-label {
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+}
+
+.signal-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.7rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+    margin-bottom: 0.9rem;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.signal-indicator.signal-idle {
+    color: var(--text-light);
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.signal-indicator.signal-tracking {
+    color: #0c6b58;
+    background: rgba(32, 201, 151, 0.14);
+    border-color: rgba(32, 201, 151, 0.35);
+}
+
+.signal-indicator.signal-weak {
+    color: #9a6700;
+    background: rgba(255, 193, 7, 0.16);
+    border-color: rgba(255, 193, 7, 0.35);
+}
+
+.signal-indicator.signal-quiet {
+    color: #4c6f91;
+    background: rgba(116, 192, 252, 0.16);
+    border-color: rgba(116, 192, 252, 0.35);
+}
+
+.signal-indicator.signal-lost {
+    color: #b42318;
+    background: rgba(255, 107, 107, 0.14);
+    border-color: rgba(255, 107, 107, 0.3);
+}
+
+.btn {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    width: 64px;
+    height: 64px;
+    padding: 0;
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    text-transform: none;
+    background: #ffffff;
+    color: var(--text-color);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+}
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.btn-record {
+    background: linear-gradient(180deg, #ffffff 0%, #f7f0ff 100%);
+    border-color: rgba(255, 107, 157, 0.25);
+}
+
+.btn-play {
+    background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%);
+    border-color: rgba(116, 192, 252, 0.35);
+}
+
+.btn-download {
+    background: linear-gradient(180deg, #ffffff 0%, #f3f0ff 100%);
+    border-color: rgba(151, 117, 250, 0.3);
+}
+
+.btn-download-audio {
+    background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+    border-color: rgba(32, 201, 151, 0.3);
+}
+
+.btn-test {
+    background: linear-gradient(180deg, #ffffff 0%, #fffbe6 100%);
+    border-color: rgba(255, 193, 7, 0.35);
+}
+
+.btn-test.active {
+    background: linear-gradient(180deg, #fff8e1 0%, #ffecb3 100%);
+    border-color: rgba(255, 193, 7, 0.6);
+    box-shadow: 0 6px 14px rgba(255, 193, 7, 0.25);
+}
+
+.btn-save {
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.btn-save-text {
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+}
+
+.icon {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.icon-circle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #ff6b9d;
+    border: 2px solid #ff6b9d;
+}
+
+.icon-triangle {
+    width: 0;
+    height: 0;
+    border-left: 12px solid #74c0fc;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    margin-left: 4px;
+}
+
+.icon-square {
+    width: 16px;
+    height: 16px;
+    background-color: #ff6b6b;
+    border: 2px solid #ff6b6b;
+    border-radius: 2px;
+}
+
+.icon-sine {
+    width: 28px;
+    height: 16px;
+    background: no-repeat center / contain url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 16'%3E%3Cpath d='M0 8 C3 2, 5 2, 7 8 S11 14, 14 8 S18 2, 21 8 S25 14, 28 8' fill='none' stroke='%23f0a020' stroke-width='2'/%3E%3C/svg%3E");
+}
+
+.emoji-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.recorder-status {
+    width: 100%;
+    max-width: 600px;
+    margin: 1rem auto;
+}
+
+.recorder-settings {
+    width: 100%;
+    max-width: 600px;
+    margin: 1rem auto;
+}
+
+.recorder-status summary,
+.recorder-settings summary {
+    cursor: pointer;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+    list-style: none;
+}
+
+.recorder-status summary::-webkit-details-marker,
+.recorder-settings summary::-webkit-details-marker {
+    display: none;
+}
+
+.recorder-status[open] summary,
+.recorder-settings[open] summary {
+    margin-bottom: 0.6rem;
+}
+
+.settings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.setting-item-secondary-threshold {
+    display: none;
+}
+
+.setting-item label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.setting-item input[type="range"] {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, #74c0fc 0%, #9775fa 100%);
+    outline: none;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.setting-item input[type="range"]:hover {
+    opacity: 1;
+}
+
+.setting-item input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #74c0fc;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.setting-item input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #74c0fc;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.setting-item-toggle {
+    align-items: flex-start;
+}
+
+.setting-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 0.2rem;
+    accent-color: #9775fa;
+    cursor: pointer;
+}
+
+.setting-help {
+    font-size: 0.78rem;
+    color: var(--text-light);
+    text-align: left;
+    line-height: 1.4;
+}
+
+.recorder-canvas-container {
+    position: relative;
+}
+
+.playback-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.visualizer-stats {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    padding: 0.4rem 0.55rem;
+    background: rgba(255, 255, 255, 0.82);
+    color: var(--text-color);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    pointer-events: none;
+    text-align: left;
+    white-space: pre-line;
+}
+
+#debugMsg {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    text-align: left;
+    padding: 1rem;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    color: var(--text-color);
+    max-height: 300px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.clips-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 1.5rem auto 1rem;
+}
+
+.clips-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-color);
+    letter-spacing: 0.02em;
+}
+
+.clips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    padding: 0.75rem;
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.clips-empty {
+    text-align: center;
+    color: var(--text-light);
+    padding: 2rem;
+    font-size: 0.9rem;
+}
+
+.clip-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.clip-item:hover {
+    background: #f8f9fa;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.clip-item.selected {
+    background: linear-gradient(180deg, #eef6ff 0%, #e0f2fe 100%);
+    border-color: rgba(116, 192, 252, 0.4);
+    box-shadow: 0 2px 8px rgba(116, 192, 252, 0.2);
+}
+
+.clip-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.clip-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.clip-item.selected .clip-name {
+    color: #1971c2;
+}
+
+.clip-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.clip-pitch-stats {
+    font-size: 0.75rem;
+    color: var(--text-color);
+    margin-top: 0.25rem;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    opacity: 0.85;
+}
+
+.clip-timestamp::after {
+    content: '•';
+    margin-left: 0.75rem;
+    color: var(--text-light);
+}
+
+.clip-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 0.5rem;
+}
+
+.clip-play {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: linear-gradient(180deg, #ffffff 0%, #eef6ff 100%);
+    border: 1px solid rgba(116, 192, 252, 0.35);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.clip-play:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(116, 192, 252, 0.3);
+}
+
+.clip-play:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.clip-share-video,
+.clip-share-audio {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.clip-share-video:hover:not(:disabled),
+.clip-share-audio:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.clip-share-video:disabled,
+.clip-share-audio:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.icon-triangle-small {
+    width: 0;
+    height: 0;
+    border-left: 9px solid #74c0fc;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    margin-left: 2px;
+}
+
+.icon-square-small {
+    width: 10px;
+    height: 10px;
+    background-color: #ff6b6b;
+    border: 1px solid #ff6b6b;
+    border-radius: 2px;
+}
+
+.clip-delete {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff6b6b;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    line-height: 1;
+    transition: all 0.2s ease;
+    margin-left: 0.5rem;
+}
+
+.clip-delete:hover {
+    background: rgba(255, 107, 107, 0.2);
+    transform: scale(1.1);
+}</style>
 <script>
-{% include 'pages/voice-recorder/pitch-detector.js' %}
-{% include 'pages/voice-recorder/audio-visualizer.js' %}
-{% include 'pages/voice-recorder/voice-recorder.js' %}
-</script>
-<p>{% endblock %}</p>
-<p>{% block content %}</p>
+/**
+ * Detect pitch using normalized autocorrelation algorithm
+ * 
+ * Algorithm Overview:
+ * 1. Center signal (remove DC bias)
+ * 2. Calculate RMS and check for silence
+ * 3. Perform autocorrelation search over frequency range
+ * 4. Apply parabolic interpolation for sub-sample precision
+ * 5. Optionally detect secondary pitch
+ * 
+ * @param {Float32Array} buffer - Audio samples
+ * @param {number} sampleRate - Sample rate in Hz
+ * @param {boolean} detectSecondary - Whether to detect secondary pitch
+ * @param {Object} options - Detection options
+ * @param {number} options.minHz - Minimum frequency to detect (default: 80)
+ * @param {number} options.maxHz - Maximum frequency to detect (default: 400)
+ * @param {number} options.primaryThreshold - Correlation threshold for primary (default: 0.2)
+ * @param {number} options.secondaryThreshold - Correlation threshold for secondary (default: 0.15)
+ * @returns {Object|null} Pitch data {primary, secondary, rms, primaryStrength, secondaryStrength} or null if no pitch detected
+ * 
+ * See docs/voice-recorder-pitch-algorithm.md for detailed explanation
+ */
+function detectPitchAutocorrelation(buffer, sampleRate, detectSecondary = false, options = {}) {
+    if (!buffer || buffer.length === 0 || !sampleRate) {
+        return null;
+    }
+
+    const minHz = options.minHz || 80;
+    const maxHz = options.maxHz || 400;
+    const primaryThreshold = options.primaryThreshold || 0.2;
+    const secondaryThreshold = options.secondaryThreshold || 0.15;
+
+    // Center the signal by removing DC bias (improves correlation accuracy)
+    let mean = 0;
+    for (let i = 0; i < buffer.length; i += 1) {
+        mean += buffer[i];
+    }
+    mean /= buffer.length;
+
+    // Calculate RMS (Root Mean Square) to measure signal energy
+    let rms = 0;
+    for (let i = 0; i < buffer.length; i += 1) {
+        const centered = buffer[i] - mean;
+        rms += centered * centered;
+    }
+    rms = Math.sqrt(rms / buffer.length);
+
+    // Early return if signal is too quiet (silence detection)
+    if (rms < 0.01) {
+        return null;
+    }
+
+    // Convert frequency range to lag range (lag = sampleRate / frequency)
+    const minLag = Math.max(1, Math.floor(sampleRate / maxHz));
+    const maxLag = Math.min(Math.floor(sampleRate / minHz), buffer.length - 1);
+
+    const energy = rms * rms;  // Used for normalization
+
+    // Autocorrelation search: find lag with highest correlation
+    const correlations = [];
+    let bestCorrelation = 0;
+    let bestLag = -1;
+
+    for (let lag = minLag; lag <= maxLag; lag += 1) {
+        let correlation = 0;
+        for (let i = 0; i < buffer.length - lag; i += 1) {
+            correlation += (buffer[i] - mean) * (buffer[i + lag] - mean);
+        }
+        correlation /= (buffer.length - lag);
+        correlation /= energy;
+
+        correlations.push({ lag: lag, correlation: correlation });
+
+        // Prefer smaller lags (higher frequencies) to avoid octave errors
+        // Accept a new peak if it's significantly better, or slightly better but at a smaller lag
+        if (correlation > bestCorrelation * 1.01 || 
+            (correlation > bestCorrelation * 0.99 && lag < bestLag)) {
+            bestCorrelation = correlation;
+            bestLag = lag;
+        }
+    }
+
+    if (bestLag === -1 || bestCorrelation < primaryThreshold) {
+        return null;
+    }
+
+    // Apply parabolic interpolation for sub-sample precision
+    // This significantly reduces quantization noise in pitch detection
+    let refinedLag = bestLag;
+    if (bestLag > minLag && bestLag < maxLag) {
+        // Get correlation values at lag-1, lag, and lag+1
+        const prevCorr = correlations[bestLag - minLag - 1].correlation;
+        const currCorr = bestCorrelation;
+        const nextCorr = correlations[bestLag - minLag + 1].correlation;
+
+        // Parabolic interpolation formula: offset = (prev - next) / (2 * (prev - 2*curr + next))
+        const denominator = 2 * (prevCorr - 2 * currCorr + nextCorr);
+        if (denominator !== 0) {
+            const offset = (prevCorr - nextCorr) / denominator;
+            // Clamp offset to reasonable range to avoid outliers
+            if (offset >= -0.5 && offset <= 0.5) {
+                refinedLag = bestLag + offset;
+            }
+        }
+    }
+
+    const primaryPitch = sampleRate / refinedLag;
+
+    if (!detectSecondary) {
+        return { primary: primaryPitch, secondary: null, primaryStrength: bestCorrelation, secondaryStrength: 0 };
+    }
+
+    let secondBestCorrelation = 0;
+    let secondBestLag = -1;
+    const exclusionRange = bestLag * 0.15;
+
+    for (let i = 0; i < correlations.length; i += 1) {
+        const item = correlations[i];
+        const lagDiff = Math.abs(item.lag - bestLag);
+
+        if (lagDiff > exclusionRange && item.correlation > secondBestCorrelation) {
+            const ratio = Math.max(item.lag, bestLag) / Math.min(item.lag, bestLag);
+            if (ratio < 1.9 || ratio > 2.1) {
+                secondBestCorrelation = item.correlation;
+                secondBestLag = item.lag;
+            }
+        }
+    }
+
+    if (secondBestLag !== -1 && secondBestCorrelation > secondaryThreshold) {
+        // Apply parabolic interpolation for secondary pitch as well
+        let refinedSecondaryLag = secondBestLag;
+        if (secondBestLag > minLag && secondBestLag < maxLag) {
+            const idx = secondBestLag - minLag;
+            if (idx > 0 && idx < correlations.length - 1) {
+                const prevCorr = correlations[idx - 1].correlation;
+                const currCorr = secondBestCorrelation;
+                const nextCorr = correlations[idx + 1].correlation;
+
+                const denominator = 2 * (prevCorr - 2 * currCorr + nextCorr);
+                if (denominator !== 0) {
+                    const offset = (prevCorr - nextCorr) / denominator;
+                    if (offset >= -0.5 && offset <= 0.5) {
+                        refinedSecondaryLag = secondBestLag + offset;
+                    }
+                }
+            }
+        }
+
+        const secondaryPitch = sampleRate / refinedSecondaryLag;
+        return {
+            primary: primaryPitch,
+            secondary: secondaryPitch,
+            primaryStrength: bestCorrelation,
+            secondaryStrength: secondBestCorrelation
+        };
+    }
+
+    return { primary: primaryPitch, secondary: null, primaryStrength: bestCorrelation, secondaryStrength: 0 };
+}
+
+function detectPitch(buffer, sampleRate, detectSecondary = false, options = {}) {
+    return detectPitchAutocorrelation(buffer, sampleRate, detectSecondary, options);
+}
+
+if (typeof window !== 'undefined') {
+    window.detectPitchAutocorrelation = detectPitchAutocorrelation;
+    window.detectPitch = detectPitch;
+}/**
+ * Audio Visualizer - Real-time canvas rendering for waveforms and pitch traces
+ * 
+ * @class AudioVisualizer
+ * 
+ * Features:
+ * - Scrolling pitch trace visualization (2px per sample)
+ * - Voice range bands (masculine 85-155 Hz, feminine 165-255 Hz)
+ * - Pitch stabilization pipeline (harmonic correction, gap hold, smoothing)
+ * - Signal quality tracking (idle, quiet, weak, lost, tracking)
+ * - Canvas context recovery handling
+ * 
+ * Rendering Flow:
+ * - AnalyserNode → getFloatTimeDomainData() → pitch detection → canvas drawing
+ */
+class AudioVisualizer {
+    constructor(canvas, analyserNode) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.analyserNode = null;
+        this.floatData = null;
+
+        // === Visual Style Configuration ===
+        this.backgroundColor = 'rgba(255, 255, 255, 1)';
+        this.borderColor = 'rgba(255, 107, 157, 0.65)';
+        this.borderWidth = 0;
+
+        // === Voice Range Bands (typical fundamental frequencies) ===
+        this.masculineVoiceMinHz = 85;
+        this.masculineVoiceMaxHz = 155;
+        this.feminineVoiceMinHz = 165;
+        this.feminineVoiceMaxHz = 255;
+        this.masculineVoiceColor = 'rgba(116, 192, 252, 0.15)';
+        this.feminineVoiceColor = 'rgba(255, 107, 157, 0.15)';
+
+        // === Pitch Visualization Settings ===
+        this.pitchHistory = [];
+        this.secondaryPitchHistory = [];
+        this.pitchMaxSamples = 200;
+        this.pitchMinHz = 70;
+        this.pitchMaxHz = 280;
+        this.pitchColor = 'rgba(116, 192, 252, 0.9)';
+        this.secondaryPitchColor = 'rgba(255, 180, 100, 0.7)';
+        this.sparkColor = 'rgba(255, 88, 66, 0.95)';
+        this.secondarySparkColor = 'rgba(255, 120, 84, 0.92)';
+        this.pitchSmoothing = 0.35;
+        this.showSecondaryPitch = false;
+
+        // === Pitch Stabilization Parameters ===
+        this.glowRadius = 12;
+        this.lastPrimaryGlowY = null;
+        this.lastSecondaryGlowY = null;
+        this.pitchGapHoldSamples = 3;              // Hold pitch for N frames during gaps
+        this.consecutivePitchMisses = 0;
+        this.reacquireLowPitchWindowHz = 18;       // Post-silence reacquisition window
+        this.reacquireMinStableSamples = 2;        // Samples needed for stable reacquisition
+        this.pendingReacquirePitch = null;
+        this.pendingReacquireCount = 0;
+
+        // === Signal Quality Tracking ===
+        this.latestSignalRms = 0;
+        this.latestTrackingStatus = {
+            state: 'idle',
+            label: 'Signal: idle',
+            rms: 0,
+            strength: 0,
+            sample: null
+        };
+
+        // Scrolling visualization settings
+        this.currentX = 0; // Current X position where next sample will be drawn
+        this.pixelsPerSample = 2; // Width in pixels for each sample
+        this.scrollBufferPx = 24; // Start scrolling this many pixels before the right edge
+
+        // Cached offscreen canvas for efficient scrolling (avoids allocation/GC on every frame)
+        this.offscreenCanvas = null;
+        this.offscreenCtx = null;
+
+        // Pitch statistics tracking
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0,
+            // Store all samples for outlier filtering
+            samples: [],
+            // Store correlation strengths for weighted averaging
+            strengths: []
+        };
+
+        this.pitchGridSpacing = 50;
+        // Subtle gray grid (works on white background introduced in main)
+        this.pitchGridColor = 'rgba(0,0,0,0.08)';
+        this.pitchGridWidth = 1;
+
+        // === Timeline Lines (vertical) ===
+        this.timelineIntervalSamples = 50; // Draw a vertical line every N samples
+        this.timelineColor = 'rgba(0,0,0,0.10)';
+        this.timelineWidth = 1;
+        this.timelineLineHeight = 40; // Height in px of tick marks (drawn from bottom up)
+        this.totalSamplesRendered = 0;
+
+        this.pitchDetectionOptions = {
+            minHz: 70,
+            maxHz: 280,
+            primaryThreshold: 0.2,
+            secondaryThreshold: 0.15
+        };
+        this.pitchDetectorFn = typeof detectPitch === 'function' ? detectPitch : null;
+
+        this.onContextRecovery = null;
+        this.pendingContextRecoveryReset = false;
+        this.discardNextAcquiredSample = false;
+
+        // Handle canvas context loss (can occur when switching tabs, especially on mobile)
+        this.canvas.addEventListener('contextlost', (event) => {
+            event.preventDefault();
+            this.pendingContextRecoveryReset = true;
+            this.discardNextAcquiredSample = true;
+        });
+
+        this.canvas.addEventListener('contextrestored', () => {
+            this.restoreContext();
+        });
+
+        this.setAnalyser(analyserNode);
+    }
+
+    restoreContext() {
+        // Restore the 2D context after it was lost
+        const newCtx = this.canvas.getContext('2d');
+        if (!newCtx) {
+            console.warn('Failed to restore canvas context');
+            return;
+        }
+        this.ctx = newCtx;
+        // Redraw the background; recovery flow now resets recording/session state
+        this.paintFrame();
+
+        // If context was restored while idle, there is no live sample to discard.
+        // Trigger recovery handling immediately so the app can reset playback/UI state.
+        if (this.pendingContextRecoveryReset && !this.analyserNode && this.onContextRecovery) {
+            this.pendingContextRecoveryReset = false;
+            this.discardNextAcquiredSample = false;
+            this.onContextRecovery({ whileIdle: true });
+        }
+    }
+
+    setContextRecoveryHandler(handler) {
+        this.onContextRecovery = typeof handler === 'function' ? handler : null;
+    }
+
+    ensureContext() {
+        // Check if context is lost and try to restore it
+        if (this.ctx && typeof this.ctx.isContextLost === 'function' && this.ctx.isContextLost()) {
+            // Get a fresh context without triggering recursive redraws
+            const newCtx = this.canvas.getContext('2d');
+            if (newCtx) {
+                this.ctx = newCtx;
+            }
+            return false; // Context was lost, skip this frame
+        }
+        return true; // Context is valid
+    }
+
+    // Coordinate conversion utilities
+    hzToY(hz) {
+        // Convert frequency (Hz) to Y coordinate on canvas
+        const height = this.canvas.height;
+        const padding = 6;
+        const usableHeight = height - padding * 2;
+        const range = this.pitchMaxHz - this.pitchMinHz || 1;
+        const ratio = (hz - this.pitchMinHz) / range;
+        const clamped = Math.min(1, Math.max(0, ratio));
+        return padding + (1 - clamped) * usableHeight;
+    }
+
+    sampleIndexToX(index, latestIndex) {
+        // Convert a historical sample index to its X coordinate on the canvas,
+        // relative to currentX (the position where the most recent sample was drawn).
+        return this.currentX - (latestIndex - index) * this.pixelsPerSample;
+    }
+
+    ensureOffscreenCanvas(width, height) {
+        // Create or resize the cached offscreen canvas to match the main canvas dimensions
+        // This is called during scrolling to avoid allocating a new canvas every frame
+        if (!this.offscreenCanvas || this.offscreenCanvas.width !== width || this.offscreenCanvas.height !== height) {
+            // Use OffscreenCanvas if available (better performance in some browsers)
+            if (typeof OffscreenCanvas !== 'undefined') {
+                this.offscreenCanvas = new OffscreenCanvas(width, height);
+            } else {
+                this.offscreenCanvas = document.createElement('canvas');
+                this.offscreenCanvas.width = width;
+                this.offscreenCanvas.height = height;
+            }
+            this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+        }
+        return this.offscreenCtx;
+    }
+
+    /**
+     * Attach or detach a Web Audio API AnalyserNode
+     * 
+     * @param {AnalyserNode|null} analyserNode - The analyser to attach, or null to detach
+     */
+    setAnalyser(analyserNode) {
+        this.analyserNode = analyserNode;
+        if (this.analyserNode) {
+            this.floatData = new Float32Array(this.analyserNode.fftSize);
+        } else {
+            this.floatData = null;
+        }
+        this.resetPitchHistory();
+        this.paintFrame();
+    }
+
+    /**
+     * Inject a custom pitch detector function
+     * 
+     * @param {Function} detectorFn - Function with signature (buffer, sampleRate, detectSecondary, options) => pitchData
+     */
+    setPitchDetector(detectorFn) {
+        this.pitchDetectorFn = typeof detectorFn === 'function'
+            ? detectorFn
+            : (typeof detectPitch === 'function' ? detectPitch : null);
+    }
+
+    resetPitchHistory() {
+        this.pitchHistory = [];
+        this.secondaryPitchHistory = [];
+        this.currentX = 0;
+        this.lastPrimaryGlowY = null;
+        this.lastSecondaryGlowY = null;
+        this.consecutivePitchMisses = 0;
+        this.pendingReacquirePitch = null;
+        this.pendingReacquireCount = 0;
+        this.latestSignalRms = 0;
+        this.latestTrackingStatus = {
+            state: 'idle',
+            label: 'Signal: idle',
+            rms: 0,
+            strength: 0,
+            sample: null
+        };
+        this.pitchStats = {
+            min: null,
+            max: null,
+            sum: 0,
+            count: 0,
+            samples: [],
+            strengths: []
+        };
+        this.totalSamplesRendered = 0;
+    }
+
+    getRecentPrimaryAverage(sampleCount = 8) {
+        let sum = 0;
+        let count = 0;
+
+        for (let i = this.pitchHistory.length - 1; i >= 0 && count < sampleCount; i -= 1) {
+            const value = this.pitchHistory[i];
+            if (value !== null && Number.isFinite(value)) {
+                sum += value;
+                count += 1;
+            }
+        }
+
+        return count > 0 ? (sum / count) : null;
+    }
+
+    applyHarmonicContinuityCorrection(value, strength) {
+        if (!Number.isFinite(value)) return value;
+
+        const recentAvg = this.getRecentPrimaryAverage(10);
+        if (!Number.isFinite(recentAvg) || recentAvg <= 0) {
+            return value;
+        }
+
+        // Correct likely low subharmonic selections (e.g., ~73 Hz instead of ~220 Hz)
+        // when they approximately match an integer fraction of the recent contour.
+        const ratio = recentAvg / value;
+        const nearest = Math.round(ratio);
+        if (
+            nearest >= 2 &&
+            nearest <= 4 &&
+            Math.abs(ratio - nearest) <= 0.2 &&
+            strength < 0.85
+        ) {
+            const corrected = value * nearest;
+            if (corrected >= this.pitchMinHz && corrected <= this.pitchMaxHz) {
+                return corrected;
+            }
+        }
+
+        // Reject abrupt low-frequency dives that are unlikely to be real pitch changes.
+        if (value < recentAvg * 0.62 && strength < 0.75) {
+            return null;
+        }
+
+        return value;
+    }
+
+    applyPostSilenceReacquisitionGuard(value, strength) {
+        if (!Number.isFinite(value)) {
+            return null;
+        }
+
+        const wasDropout = this.consecutivePitchMisses > this.pitchGapHoldSamples;
+        if (!wasDropout) {
+            this.pendingReacquirePitch = null;
+            this.pendingReacquireCount = 0;
+            return value;
+        }
+
+        const nearFloor = value <= this.pitchMinHz + this.reacquireLowPitchWindowHz;
+        const lowConfidence = strength < Math.max(this.pitchDetectionOptions.primaryThreshold + 0.08, 0.28);
+
+        // Only gate suspicious reacquisition samples; clear signals pass through immediately.
+        if (!nearFloor && !lowConfidence) {
+            this.pendingReacquirePitch = null;
+            this.pendingReacquireCount = 0;
+            return value;
+        }
+
+        if (
+            this.pendingReacquirePitch === null ||
+            Math.abs(this.pendingReacquirePitch - value) > 12
+        ) {
+            this.pendingReacquirePitch = value;
+            this.pendingReacquireCount = 1;
+            return null;
+        }
+
+        this.pendingReacquireCount += 1;
+        if (this.pendingReacquireCount < this.reacquireMinStableSamples) {
+            return null;
+        }
+
+        const accepted = this.pendingReacquirePitch;
+        this.pendingReacquirePitch = null;
+        this.pendingReacquireCount = 0;
+        return accepted;
+    }
+
+    computeSignalRms(buffer) {
+        if (!buffer || !buffer.length) return 0;
+        let sumSquares = 0;
+        for (let i = 0; i < buffer.length; i += 1) {
+            const value = buffer[i];
+            sumSquares += value * value;
+        }
+        return Math.sqrt(sumSquares / buffer.length);
+    }
+
+    updateTrackingStatus(meta = {}) {
+        const hasPrimary = Boolean(meta.hasPrimary);
+        const strength = Number.isFinite(meta.primaryStrength) ? meta.primaryStrength : 0;
+        const rms = Number.isFinite(meta.rms) ? meta.rms : 0;
+        const latestSample = this.pitchHistory.length ? this.pitchHistory[this.pitchHistory.length - 1] : null;
+
+        let state = 'tracking';
+        if (!this.analyserNode) {
+            state = 'idle';
+        } else if (rms < 0.01) {
+            state = 'quiet';
+        } else if (this.consecutivePitchMisses > this.pitchGapHoldSamples) {
+            state = 'lost';
+        } else if (!hasPrimary || strength < this.pitchDetectionOptions.primaryThreshold + 0.05) {
+            state = 'weak';
+        }
+
+        const labelByState = {
+            idle: 'Signal: idle',
+            quiet: 'Signal: quiet',
+            weak: 'Signal: weak tracking',
+            lost: 'Signal: lost pitch',
+            tracking: 'Signal: tracking'
+        };
+
+        this.latestTrackingStatus = {
+            state,
+            label: labelByState[state] || labelByState.tracking,
+            rms,
+            strength,
+            sample: Number.isFinite(latestSample) ? latestSample : null
+        };
+    }
+
+    getTrackingStatus() {
+        return this.latestTrackingStatus;
+    }
+
+    updatePitchRange(minHz, maxHz) {
+        this.pitchMinHz = minHz;
+        this.pitchMaxHz = maxHz;
+        this.pitchDetectionOptions.minHz = minHz;
+        this.pitchDetectionOptions.maxHz = maxHz;
+    }
+
+    updatePrimaryThreshold(threshold) {
+        this.pitchDetectionOptions.primaryThreshold = threshold;
+    }
+
+    updateSecondaryThreshold(threshold) {
+        this.pitchDetectionOptions.secondaryThreshold = threshold;
+    }
+
+    updateSmoothing(smoothing) {
+        this.pitchSmoothing = smoothing;
+    }
+
+    /**
+     * Get pitch statistics for the current recording
+     * 
+     * Calculates min, max, average pitch with outlier filtering using IQR method
+     * 
+     * @returns {Object|null} Statistics {min, max, average, sampleCount, filteredCount} or null if no data
+     */
+    getPitchStatistics() {
+        if (this.pitchStats.count === 0) {
+            return null;
+        }
+
+        // If we have very few samples, just return basic statistics
+        if (this.pitchStats.samples.length < 10) {
+            return {
+                min: this.pitchStats.min,
+                max: this.pitchStats.max,
+                average: this.pitchStats.sum / this.pitchStats.count,
+                sampleCount: this.pitchStats.count,
+                filteredCount: this.pitchStats.count
+            };
+        }
+
+        // Sort samples for outlier detection
+        const sortedSamples = [...this.pitchStats.samples].sort((a, b) => a - b);
+        const n = sortedSamples.length;
+
+        // Calculate quartiles for IQR method
+        const q1Index = Math.floor(n * 0.25);
+        const q3Index = Math.floor(n * 0.75);
+        const q1 = sortedSamples[q1Index];
+        const q3 = sortedSamples[q3Index];
+        const iqr = q3 - q1;
+
+        // Handle case where IQR is 0 (very stable/quantized signal)
+        // Skip IQR filtering but still compute confidence-weighted average
+        if (iqr === 0) {
+            let weightedSum = 0;
+            let totalWeight = 0;
+            for (let i = 0; i < this.pitchStats.samples.length; i++) {
+                const sample = this.pitchStats.samples[i];
+                const strength = this.pitchStats.strengths[i] || 1.0;
+                weightedSum += sample * strength;
+                totalWeight += strength;
+            }
+            return {
+                min: this.pitchStats.min,
+                max: this.pitchStats.max,
+                average: weightedSum / totalWeight,
+                sampleCount: this.pitchStats.count,
+                filteredCount: this.pitchStats.count
+            };
+        }
+
+        // Define outlier bounds (using 1.5 * IQR, standard method)
+        const lowerBound = q1 - 1.5 * iqr;
+        const upperBound = q3 + 1.5 * iqr;
+
+        // Filter samples and calculate statistics without outliers
+        let filteredMin = null;
+        let filteredMax = null;
+        let weightedSum = 0;
+        let totalWeight = 0;
+        let filteredCount = 0;
+
+        for (let i = 0; i < this.pitchStats.samples.length; i++) {
+            const sample = this.pitchStats.samples[i];
+            const strength = this.pitchStats.strengths[i] || 1.0;
+
+            // Include sample if it's within the IQR bounds
+            if (sample >= lowerBound && sample <= upperBound) {
+                if (filteredMin === null || sample < filteredMin) {
+                    filteredMin = sample;
+                }
+                if (filteredMax === null || sample > filteredMax) {
+                    filteredMax = sample;
+                }
+                // Use correlation strength as weight for averaging
+                weightedSum += sample * strength;
+                totalWeight += strength;
+                filteredCount++;
+            }
+        }
+
+        // Fall back to unfiltered stats if filtering removed too many samples
+        // Use >50% threshold as documented (but minimum of 5 samples for statistical validity)
+        const removalPercentage = (this.pitchStats.count - filteredCount) / this.pitchStats.count;
+        if (filteredCount < 5 || removalPercentage > 0.5) {
+            return {
+                min: this.pitchStats.min,
+                max: this.pitchStats.max,
+                average: this.pitchStats.sum / this.pitchStats.count,
+                sampleCount: this.pitchStats.count,
+                filteredCount: this.pitchStats.count
+            };
+        }
+
+        return {
+            min: filteredMin,
+            max: filteredMax,
+            average: weightedSum / totalWeight,
+            sampleCount: this.pitchStats.count,
+            filteredCount: filteredCount
+        };
+    }
+
+    pushPitchSample(pitchData) {
+        let primaryValue = null;
+        let secondaryValue = null;
+        let primaryStrength = 1.0;
+
+        if (pitchData !== null) {
+            if (typeof pitchData === 'number') {
+                primaryValue = pitchData;
+            } else if (typeof pitchData === 'object') {
+                primaryValue = pitchData.primary;
+                secondaryValue = pitchData.secondary;
+                primaryStrength = pitchData.primaryStrength || 1.0;
+            }
+        }
+
+        if (primaryValue !== null && Number.isFinite(primaryValue)) {
+            const correctedValue = this.applyHarmonicContinuityCorrection(primaryValue, primaryStrength);
+            const clampedValue = correctedValue !== null && Number.isFinite(correctedValue)
+                ? Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, correctedValue))
+                : null;
+            const guardedValue = clampedValue !== null
+                ? this.applyPostSilenceReacquisitionGuard(clampedValue, primaryStrength)
+                : null;
+
+            if (guardedValue === null) {
+                primaryValue = null;
+            } else {
+                // Temporal consistency check: reject if too far from recent average
+                // This helps filter out octave errors and spurious detections
+                let isConsistent = true;
+                if (this.pitchStats.samples.length >= 3) {
+                    // Calculate recent average from last 10 samples
+                    const recentSamples = this.pitchStats.samples.slice(-10);
+                    const recentAvg = recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length;
+                    const maxJump = recentAvg * 0.3; // Allow 30% deviation
+
+                    // Reject if jump is too large and confidence is not very high
+                    if (Math.abs(guardedValue - recentAvg) > maxJump && primaryStrength < 0.7) {
+                        isConsistent = false;
+                    }
+                }
+
+                // Only update statistics for consistent, valid samples
+                if (isConsistent) {
+                    // Store raw sample and strength for outlier filtering later
+                    this.pitchStats.samples.push(guardedValue);
+                    this.pitchStats.strengths.push(primaryStrength);
+
+                    // Update simple running statistics (kept for backward compatibility)
+                    if (this.pitchStats.min === null || guardedValue < this.pitchStats.min) {
+                        this.pitchStats.min = guardedValue;
+                    }
+                    if (this.pitchStats.max === null || guardedValue > this.pitchStats.max) {
+                        this.pitchStats.max = guardedValue;
+                    }
+                    this.pitchStats.sum += guardedValue;
+                    this.pitchStats.count += 1;
+                }
+
+                // Apply smoothing for display (always done, even for inconsistent samples)
+                primaryValue = guardedValue;
+                if (this.pitchHistory.length) {
+                    const previous = this.pitchHistory[this.pitchHistory.length - 1];
+                    if (previous !== null) {
+                        primaryValue = previous + (primaryValue - previous) * this.pitchSmoothing;
+                    }
+                }
+            }
+        } else {
+            primaryValue = null;
+        }
+
+        if (primaryValue === null) {
+            this.consecutivePitchMisses += 1;
+            if (this.consecutivePitchMisses <= this.pitchGapHoldSamples && this.pitchHistory.length) {
+                const previous = this.pitchHistory[this.pitchHistory.length - 1];
+                if (previous !== null && Number.isFinite(previous)) {
+                    primaryValue = previous;
+                }
+            }
+        } else {
+            this.consecutivePitchMisses = 0;
+        }
+
+        if (secondaryValue !== null && Number.isFinite(secondaryValue)) {
+            secondaryValue = Math.min(this.pitchMaxHz, Math.max(this.pitchMinHz, secondaryValue));
+            if (this.secondaryPitchHistory.length) {
+                const previous = this.secondaryPitchHistory[this.secondaryPitchHistory.length - 1];
+                if (previous !== null) {
+                    secondaryValue = previous + (secondaryValue - previous) * this.pitchSmoothing;
+                }
+            }
+        } else {
+            secondaryValue = null;
+        }
+
+        this.pitchHistory.push(primaryValue);
+        if (this.pitchHistory.length > this.pitchMaxSamples) {
+            this.pitchHistory.shift();
+        }
+
+        this.secondaryPitchHistory.push(secondaryValue);
+        if (this.secondaryPitchHistory.length > this.pitchMaxSamples) {
+            this.secondaryPitchHistory.shift();
+        }
+    }
+
+    paintFrame() {
+        if (!this.ensureContext()) return;
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+
+        this.ctx.save();
+
+        // Fill white background
+        this.ctx.fillStyle = this.backgroundColor;
+        this.ctx.fillRect(0, 0, width, height);
+
+        // Draw voice range bands across the full width
+        this.drawVoiceRangeBands(0, width);
+
+        if (this.borderWidth > 0) {
+            const inset = this.borderWidth / 2;
+            this.ctx.lineWidth = this.borderWidth;
+            this.ctx.strokeStyle = this.borderColor;
+            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
+        }
+        this.ctx.restore();
+    }
+
+    drawVoiceRangeBands(startX, width) {
+        // Helper method to draw voice range bands in a specific region of the canvas
+        // This reduces code duplication between paintFrame and scrolling logic
+        const height = this.canvas.height;
+        const padding = 6;
+        const usableHeight = height - padding * 2;
+        const range = this.pitchMaxHz - this.pitchMinHz || 1;
+
+        // Draw masculine voice range band (blue)
+        if (this.masculineVoiceMaxHz > this.pitchMinHz && this.masculineVoiceMinHz < this.pitchMaxHz) {
+            const topY = this.hzToY(Math.min(this.masculineVoiceMaxHz, this.pitchMaxHz));
+            const bottomY = this.hzToY(Math.max(this.masculineVoiceMinHz, this.pitchMinHz));
+            this.ctx.fillStyle = this.masculineVoiceColor;
+            this.ctx.fillRect(startX, topY, width, bottomY - topY);
+        }
+
+        // Draw feminine voice range band (pink)
+        if (this.feminineVoiceMaxHz > this.pitchMinHz && this.feminineVoiceMinHz < this.pitchMaxHz) {
+            const topY = this.hzToY(Math.min(this.feminineVoiceMaxHz, this.pitchMaxHz));
+            const bottomY = this.hzToY(Math.max(this.feminineVoiceMinHz, this.pitchMinHz));
+            this.ctx.fillStyle = this.feminineVoiceColor;
+            this.ctx.fillRect(startX, topY, width, bottomY - topY);
+        }
+
+        // Draw pitch reference grid (static layer)
+        if (range > 0) {
+            const spacing = this.pitchGridSpacing;
+            const firstHz = Math.ceil(this.pitchMinHz / spacing) * spacing;
+
+            this.ctx.strokeStyle = this.pitchGridColor;
+            this.ctx.lineWidth = this.pitchGridWidth;
+
+            for (let hz = firstHz; hz <= this.pitchMaxHz; hz += spacing) {
+                const y = this.hzToY(hz);
+                this.ctx.beginPath();
+                this.ctx.moveTo(startX, y);
+                this.ctx.lineTo(startX + width, y);
+                this.ctx.stroke();
+            }
+        }
+
+        if (this.borderWidth > 0) {
+            const inset = this.borderWidth / 2;
+            this.ctx.lineWidth = this.borderWidth;
+            this.ctx.strokeStyle = this.borderColor;
+            this.ctx.strokeRect(inset, inset, width - this.borderWidth, height - this.borderWidth);
+        }
+    }
+
+    /**
+     * Clear the canvas and reset pitch history
+     * Repaints the background, voice range bands, and pitch grid
+     */
+    clear() {
+        this.paintFrame();
+        this.resetPitchHistory();
+    }
+
+    // Rendering utilities
+    drawTimelineLineAt(x) {
+        // Draw a subtle vertical timeline marker at the given X position
+        this.ctx.save();
+        this.ctx.strokeStyle = this.timelineColor;
+        this.ctx.lineWidth = this.timelineWidth;
+        this.ctx.beginPath();
+        const tickTop = this.canvas.height - this.timelineLineHeight;
+        this.ctx.moveTo(Math.floor(x) + 0.5, tickTop);
+        this.ctx.lineTo(Math.floor(x) + 0.5, this.canvas.height);
+        this.ctx.stroke();
+        this.ctx.restore();
+    }
+
+    redrawTimelineLinesInRegion(regionStartX, regionEndX, upToIndex, latestIndex) {
+        // Redraw any timeline lines that fall within the given X region.
+        // Used when clearing the previous glow strip to prevent gaps in lines.
+        const interval = this.timelineIntervalSamples;
+        if (interval <= 0 || upToIndex < 0) return;
+
+        const T = this.totalSamplesRendered;
+        // Sample at history index i has sampleNum = T - (latestIndex - i).
+        // A timeline line was drawn when sampleNum % interval === 0,
+        // i.e. i ≡ latestIndex - T (mod interval).
+        const modOffset = ((latestIndex - T) % interval + interval) % interval;
+
+        this.ctx.save();
+        this.ctx.strokeStyle = this.timelineColor;
+        this.ctx.lineWidth = this.timelineWidth;
+        const tickTop = this.canvas.height - this.timelineLineHeight;
+        for (let i = modOffset; i <= upToIndex; i += interval) {
+            const sampleNum = T - (latestIndex - i);
+            if (sampleNum <= 0) continue;
+            const x = this.sampleIndexToX(i, latestIndex);
+            if (x < regionStartX - 1 || x > regionEndX + 1) continue;
+            this.ctx.beginPath();
+            this.ctx.moveTo(Math.floor(x) + 0.5, tickTop);
+            this.ctx.lineTo(Math.floor(x) + 0.5, this.canvas.height);
+            this.ctx.stroke();
+        }
+        this.ctx.restore();
+    }
+
+    drawPitchLine(x1, y1, x2, y2, color, lineWidth) {
+        // Draw a line segment for the pitch trace
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = lineWidth;
+        this.ctx.beginPath();
+        this.ctx.moveTo(x1, y1);
+        this.ctx.lineTo(x2, y2);
+        this.ctx.stroke();
+    }
+
+    drawPitchPoint(x, y, color) {
+        // Draw an isolated point for the pitch trace
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 1, 0, 2 * Math.PI);
+        this.ctx.fill();
+    }
+
+    drawSparkGlow(x, y, baseColor) {
+        // Extract RGB values from the baseColor
+        // Note: expects rgba(r,g,b,a) or rgb(r,g,b) format
+        const match = baseColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (!match) return;
+
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+
+        // Create radial gradient for the glow effect
+        const glowRadius = this.glowRadius;
+        const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+
+        // Bright center (almost opaque)
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+        // Medium glow
+        gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, 0.6)`);
+        // Soft outer glow
+        gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.3)`);
+        // Fade to transparent
+        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+        // Draw the glow
+        this.ctx.save();
+        this.ctx.fillStyle = gradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Add a bright white core for extra sparkle
+        const coreGradient = this.ctx.createRadialGradient(x, y, 0, x, y, 4);
+        coreGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        coreGradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, 0.8)`);
+        coreGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+
+        this.ctx.fillStyle = coreGradient;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+    }
+
+    redrawTraceInRegion(history, color, lineWidth, regionStartX, regionEndX, upToIndex, latestIndex) {
+        if (upToIndex < 0 || !history.length) return;
+
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = lineWidth;
+
+        let prevX = null;
+        let prevY = null;
+
+        for (let i = 0; i <= upToIndex; i++) {
+            const sample = history[i];
+            if (sample === null) {
+                prevX = null;
+                prevY = null;
+                continue;
+            }
+
+            const x = this.sampleIndexToX(i, latestIndex);
+            const y = this.hzToY(sample);
+
+            if (prevX !== null && prevY !== null) {
+                const segMinX = Math.min(prevX, x);
+                const segMaxX = Math.max(prevX, x);
+                if (segMaxX >= regionStartX && segMinX <= regionEndX) {
+                    this.drawPitchLine(prevX, prevY, x, y, color, lineWidth);
+                }
+            } else if (x >= regionStartX && x <= regionEndX) {
+                this.drawPitchPoint(x, y, color);
+            }
+
+            prevX = x;
+            prevY = y;
+        }
+    }
+
+    clearPreviousTipGlow(previousTipX, latestIndex) {
+        if (latestIndex < 1) return;
+        if (this.lastPrimaryGlowY === null && this.lastSecondaryGlowY === null) return;
+
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const clearPadding = 4;
+        const regionStartX = Math.max(0, Math.floor(previousTipX - this.glowRadius - clearPadding));
+        const regionEndX = Math.min(width, Math.ceil(previousTipX + this.glowRadius + clearPadding));
+        const regionWidth = regionEndX - regionStartX;
+
+        if (regionWidth <= 0) return;
+
+        // Restore background/bands in the glow strip, then redraw line segments only.
+        this.ctx.save();
+        this.ctx.fillStyle = this.backgroundColor;
+        this.ctx.fillRect(regionStartX, 0, regionWidth, height);
+        this.drawVoiceRangeBands(regionStartX, regionWidth);
+        this.ctx.restore();
+
+        const upToIndex = latestIndex - 1;
+        this.redrawTimelineLinesInRegion(regionStartX, regionEndX, upToIndex, latestIndex);
+        this.redrawTraceInRegion(
+            this.pitchHistory,
+            this.pitchColor,
+            1.5,
+            regionStartX,
+            regionEndX,
+            upToIndex,
+            latestIndex
+        );
+
+        if (this.showSecondaryPitch && this.secondaryPitchHistory.length) {
+            this.redrawTraceInRegion(
+                this.secondaryPitchHistory,
+                this.secondaryPitchColor,
+                1.2,
+                regionStartX,
+                regionEndX,
+                upToIndex,
+                latestIndex
+            );
+        }
+
+        this.lastPrimaryGlowY = null;
+        this.lastSecondaryGlowY = null;
+    }
+
+    // Scrolling logic
+    shouldScroll() {
+        // Check if we need to scroll (trigger a bit before the right edge)
+        const width = this.canvas.width;
+        const maxAllowedBuffer = Math.max(0, width - this.pixelsPerSample - 1);
+        const bufferPx = Math.min(this.scrollBufferPx, maxAllowedBuffer);
+        const scrollTriggerX = Math.max(0, width - this.pixelsPerSample - bufferPx);
+        return this.currentX >= scrollTriggerX ? scrollTriggerX : null;
+    }
+
+    clearAndRepaintStrip(stripX, stripWidth) {
+        // Clear and repaint a vertical strip with background and voice range bands
+        const height = this.canvas.height;
+        this.ctx.save();
+        this.ctx.fillStyle = this.backgroundColor;
+        this.ctx.fillRect(stripX, 0, stripWidth, height);
+        this.drawVoiceRangeBands(stripX, stripWidth);
+        this.ctx.restore();
+    }
+
+    performScroll(scrollTriggerX) {
+        // Scroll the canvas content left and clear the newly revealed strip
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const tempCtx = this.ensureOffscreenCanvas(width, height);
+
+        if (tempCtx) {
+            // Preferred path: use cached offscreen canvas for efficient scrolling
+            tempCtx.drawImage(this.canvas, 0, 0);
+
+            // Shift the existing content left by pixelsPerSample
+            this.ctx.drawImage(this.offscreenCanvas, -this.pixelsPerSample, 0);
+
+            // Clear and repaint only the newly revealed rightmost strip
+            this.clearAndRepaintStrip(width - this.pixelsPerSample, this.pixelsPerSample);
+        } else {
+            // Fallback path: use getImageData/putImageData
+            const scrollWidth = Math.max(0, width - this.pixelsPerSample);
+            if (scrollWidth > 0) {
+                const imageData = this.ctx.getImageData(this.pixelsPerSample, 0, scrollWidth, height);
+                this.ctx.putImageData(imageData, 0, 0);
+
+                const rightStripX = width - this.pixelsPerSample;
+                if (rightStripX >= 0) {
+                    this.clearAndRepaintStrip(rightStripX, this.pixelsPerSample);
+                }
+            } else {
+                // If there's nothing to scroll, just repaint the frame
+                this.paintFrame();
+            }
+        }
+
+        // Keep drawing near the right side (with buffer) while the canvas scrolls left
+        this.currentX = scrollTriggerX;
+    }
+
+    /**
+     * Main rendering loop - called on every animation frame during recording
+     * 
+     * Flow:
+     * 1. Read audio data from AnalyserNode
+     * 2. Calculate signal RMS (loudness)
+     * 3. Detect pitch using injected detector function
+     * 4. Apply stabilization pipeline
+     * 5. Update tracking status
+     * 6. Render pitch trace on canvas
+     * 
+     * The canvas persists between frames (no clearing), creating a scrolling visualization
+     */
+    render() {
+        // Don't call paintFrame() here - we only repaint during scrolling or explicit clear
+        // This allows the pitch trace to persist and scroll properly
+        if (!this.analyserNode) return;
+        if (!this.floatData || this.floatData.length !== this.analyserNode.fftSize) {
+            this.floatData = new Float32Array(this.analyserNode.fftSize);
+        }
+
+        const detector = this.pitchDetectorFn || (typeof detectPitch === 'function' ? detectPitch : null);
+        if (this.floatData && detector) {
+            this.analyserNode.getFloatTimeDomainData(this.floatData);
+            const rms = this.computeSignalRms(this.floatData);
+            this.latestSignalRms = rms;
+
+            if (this.discardNextAcquiredSample) {
+                this.discardNextAcquiredSample = false;
+                this.pushPitchSample(null);
+                this.updateTrackingStatus({ hasPrimary: false, primaryStrength: 0, rms });
+
+                if (this.pendingContextRecoveryReset && this.onContextRecovery) {
+                    this.pendingContextRecoveryReset = false;
+                    this.onContextRecovery({ whileIdle: false });
+                }
+
+                this.renderPitchTrace();
+                return;
+            }
+
+            const pitchData = detector(
+                this.floatData, 
+                this.analyserNode.context.sampleRate, 
+                this.showSecondaryPitch,
+                this.pitchDetectionOptions
+            );
+            this.pushPitchSample(pitchData);
+            const hasPrimary = pitchData && typeof pitchData === 'object'
+                ? Number.isFinite(pitchData.primary)
+                : Number.isFinite(pitchData);
+            const primaryStrength = pitchData && typeof pitchData === 'object'
+                ? (pitchData.primaryStrength || 0)
+                : (hasPrimary ? 1 : 0);
+            this.updateTrackingStatus({ hasPrimary, primaryStrength, rms });
+        } else {
+            this.pushPitchSample(null);
+            this.updateTrackingStatus({ hasPrimary: false, primaryStrength: 0, rms: 0 });
+        }
+
+        this.renderPitchTrace();
+    }
+
+
+    // Sample rendering
+    drawNewPitchSample(sample, prevSample, latestIndex, color, lineWidth, glowColor) {
+        // Draw a new pitch sample and connect it to the previous one if available
+        if (sample === null) return null;
+
+        const y = this.hzToY(sample);
+        const x = this.currentX;
+
+        // If we have a previous sample, draw a line from it to the new one
+        if (latestIndex > 0 && prevSample !== null) {
+            const prevY = this.hzToY(prevSample);
+            const prevX = x - this.pixelsPerSample;
+            this.drawPitchLine(prevX, prevY, x, y, color, lineWidth);
+        } else {
+            // No previous sample or first sample, just draw a point
+            this.drawPitchPoint(x, y, color);
+        }
+
+        // Draw glow effect at the tip of the pitch trace
+        this.drawSparkGlow(x, y, glowColor);
+        return y; // Return Y position for glow tracking
+    }
+
+    renderPitchTrace() {
+        if (!this.ensureContext()) return;
+        if (!this.pitchHistory.length) return;
+
+        this.totalSamplesRendered += 1;
+
+        // Check if we need to scroll and perform scrolling if necessary
+        const scrollTriggerX = this.shouldScroll();
+        if (scrollTriggerX !== null) {
+            this.performScroll(scrollTriggerX);
+        }
+
+        // Get the most recent samples
+        const latestIndex = this.pitchHistory.length - 1;
+        const primarySample = this.pitchHistory[latestIndex];
+        const secondarySample = this.secondaryPitchHistory[latestIndex];
+        const prevPrimarySample = latestIndex > 0 ? this.pitchHistory[latestIndex - 1] : null;
+        const prevSecondarySample = latestIndex > 0 ? this.secondaryPitchHistory[latestIndex - 1] : null;
+
+        // Keep only the newest tip glow: clear the previous glow strip and redraw
+        // only the line segments in that region
+        const previousTipX = this.currentX - this.pixelsPerSample;
+        this.clearPreviousTipGlow(previousTipX, latestIndex);
+
+        // Draw a vertical timeline marker at regular sample intervals
+        if (this.totalSamplesRendered % this.timelineIntervalSamples === 0) {
+            this.drawTimelineLineAt(this.currentX);
+        }
+
+        // Draw the new primary pitch sample
+        this.lastPrimaryGlowY = this.drawNewPitchSample(
+            primarySample,
+            prevPrimarySample,
+            latestIndex,
+            this.pitchColor,
+            1.5,
+            this.sparkColor
+        );
+
+        // Draw the new secondary pitch sample if enabled
+        if (this.showSecondaryPitch) {
+            this.lastSecondaryGlowY = this.drawNewPitchSample(
+                secondarySample,
+                prevSecondarySample,
+                latestIndex,
+                this.secondaryPitchColor,
+                1.2,
+                this.secondarySparkColor
+            );
+        } else {
+            this.lastSecondaryGlowY = null;
+        }
+
+        // Advance the X position for the next sample
+        this.currentX += this.pixelsPerSample;
+    }
+}/**
+ * Voice Recorder App - Multi-clip recording with pitch visualization
+ * 
+ * @class VoiceRecorderApp
+ * 
+ * Architecture:
+ * - Microphone → AudioContext/Analyser → AudioVisualizer → Canvas
+ * - Microphone → MediaRecorder → Audio Blob (MP4)
+ * - Canvas.captureStream() + Audio → MediaRecorder → Video Blob (MP4/WebM)
+ * 
+ * DOM Element Dependencies:
+ * This class requires specific HTML element IDs defined in voice-recorder.md.
+ * See docs/voice-recorder-dom-elements.md for the complete reference.
+ * A GitHub Actions workflow validates DOM elements on every PR.
+ */
+class VoiceRecorderApp {
+    // === Configuration ===
+    static pitchDetectorPreferenceKey = 'voiceRecorder.usePitchyDetector';
+    static pitchyModuleUrl = '/media/voice-recorder/pitchy/pitchy-4.1.0.esm.js';
+
+    // Random filename generation (two-word food names)
+    static foods = [
+        'apple', 'apricot', 'avocado', 'banana', 'basil', 'bean', 'berry', 'biscuit', 'bread', 'broccoli',
+        'butter', 'cabbage', 'cake', 'carrot', 'cashew', 'celery', 'cheese', 'cherry', 'chicken', 'chili',
+        'chocolate', 'cinnamon', 'coconut', 'coffee', 'cookie', 'corn', 'cracker', 'cream', 'cucumber', 'cupcake',
+        'date', 'donut', 'dumpling', 'egg', 'fig', 'fries', 'garlic', 'ginger', 'grape', 'honey',
+        'jam', 'kale', 'kiwi', 'lemon', 'lettuce', 'lime', 'mango', 'maple', 'melon', 'milk',
+        'mint', 'muffin', 'mushroom', 'noodle', 'nutmeg', 'oat', 'olive', 'onion', 'orange', 'papaya',
+        'pasta', 'peach', 'peanut', 'pear', 'pepper', 'pickle', 'pie', 'pineapple', 'pistachio', 'pizza',
+        'plum', 'popcorn', 'potato', 'pretzel', 'pumpkin', 'radish', 'raisin', 'rice', 'roll', 'salad',
+        'salsa', 'sauce', 'soup', 'spinach', 'sprout', 'squash', 'steak', 'strawberry', 'sugar', 'taco',
+        'tea', 'toast', 'tofu', 'tomato', 'truffle', 'tuna', 'vanilla', 'waffle', 'walnut', 'yogurt'
+    ];
+
+    // MIME type preferences for recording
+    static debugMimeTypes = [
+        'audio/mp4',
+        'audio/webm;codecs=opus',
+        'audio/webm'
+    ];
+
+    static preferredVideoTypes = [
+        'video/mp4',
+        'video/webm'
+    ];
+
+    constructor() {
+        // === DOM Elements (required for initialization) ===
+        this.recordButton = document.getElementById('recordButton');
+        this.testSignalButton = document.getElementById('testSignalButton');
+        this.debugMsg = document.getElementById('debugMsg');
+        this.recordingCanvas = document.getElementById('recordingCanvas');
+        this.playbackVideo = document.getElementById('playbackVideo');
+        this.clipsList = document.getElementById('clipsList');
+        this.signalIndicator = document.getElementById('signalIndicator');
+        this.visualizerStats = document.getElementById('visualizerStats');
+
+        this.recordingCtx = this.recordingCanvas?.getContext('2d') || null;
+
+        // === Recording State ===
+        this.isRecording = false;
+        this.mediaRecorder = null;          // Audio MediaRecorder
+        this.mediaStream = null;            // getUserMedia stream
+        this.audioChunks = [];              // Recorded audio data
+
+        // === Web Audio API Components ===
+        this.audioContext = null;           // AudioContext for analysis
+        this.analyser = null;               // AnalyserNode for waveform data
+        this.visualizer = null;             // AudioVisualizer instance
+        this.animationId = null;            // requestAnimationFrame ID
+
+        // === Video Recording ===
+        this.videoMediaRecorder = null;     // Video MediaRecorder (canvas + audio)
+        this.videoChunks = [];              // Recorded video data
+        this.playbackAnimationId = null;    // Playback animation frame ID
+
+        // === Test Signal (220Hz sine wave) ===
+        this.testOscillator = null;
+        this.testGain = null;
+        this.isTestSignalActive = false;
+
+        // === Clip Management ===
+        this.clips = [];                    // Array of {id, name, audioBlob, videoBlob, ...}
+        this.selectedClipId = null;         // Currently selected clip
+        this.currentRecordingClipId = null; // Clip being recorded
+        this.recordingStartTime = null;     // Recording start timestamp
+        this.playingClipId = null;          // Currently playing clip
+        this.discardRecordingOnStop = false;// Flag to discard on stop (for cancel)
+
+        // === Pitch Detector (Pitchy integration) ===
+        this.usePitchyDetector = this.getStoredPitchyPreference();
+        this.pitchyModule = null;
+        this.pitchyDetectorInstance = null;
+        this.pitchyDetectorInputLength = null;
+        this.pitchyLoadingPromise = null;
+        this.pitchyLoadFailed = false;
+
+        // === Performance Optimization ===
+        // Cache signal indicator state to avoid unnecessary DOM updates
+        this._lastSignalState = null;
+        this._lastSignalLabel = null;
+        this._lastVisualizerStats = '';
+        this._lastVisualizerStatsTimestamp = 0;
+
+        // === Initialization ===
+        // Early exit if required DOM elements are missing
+        if (!this.recordButton || !this.testSignalButton || !this.debugMsg 
+            || !this.recordingCanvas || !this.playbackVideo || !this.recordingCtx || !this.clipsList) {
+            return;
+        }
+
+        this.recordButton.onclick = () => this.onRecordClick();
+        this.testSignalButton.onclick = () => this.toggleTestSignal();
+
+        this.playbackVideo.onended = () => {
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+            this.renderClipsList();
+            this.setStatus('Playback finished.');
+        };
+
+        this.playbackVideo.onpause = () => {
+            this.stopPlaybackRender();
+        };
+
+        this.visualizer = new AudioVisualizer(this.recordingCanvas, null);
+        this.visualizer.setContextRecoveryHandler((context) => this.handleVisualizerContextRecovery(context));
+        this.visualizer.setPitchDetector((buffer, sampleRate, detectSecondary, options) =>
+            this.detectPitchWithSelectedEngine(buffer, sampleRate, detectSecondary, options)
+        );
+        this.visualizer.clear();
+        this.setupConfigurationSliders();
+        this.setupPitchDetectorToggle();
+        this.showBrowserCapabilities();
+        this.updateSignalIndicator({ state: 'idle', label: 'Signal: idle' });
+        this.renderClipsList();
+
+        if (this.usePitchyDetector) {
+            this.ensurePitchyLoaded();
+        }
+    }
+
+    getStoredPitchyPreference() {
+        try {
+            if (typeof localStorage === 'undefined') return true;
+            const stored = localStorage.getItem(VoiceRecorderApp.pitchDetectorPreferenceKey);
+            return stored === null || stored === '1';
+        } catch (error) {
+            return true;
+        }
+    }
+
+    setStoredPitchyPreference(enabled) {
+        try {
+            if (typeof localStorage === 'undefined') return;
+            localStorage.setItem(VoiceRecorderApp.pitchDetectorPreferenceKey, enabled ? '1' : '0');
+        } catch (error) {
+            // Ignore storage failures (private mode or disabled storage)
+        }
+    }
+
+    setupPitchDetectorToggle() {
+        const usePitchyToggle = document.getElementById('usePitchyToggle');
+        if (!usePitchyToggle) {
+            return;
+        }
+
+        usePitchyToggle.checked = this.usePitchyDetector;
+        usePitchyToggle.onchange = async () => {
+            this.usePitchyDetector = Boolean(usePitchyToggle.checked);
+            this.setStoredPitchyPreference(this.usePitchyDetector);
+
+            if (this.usePitchyDetector) {
+                await this.ensurePitchyLoaded();
+                this.setStatus('Pitch detector updated.', 'Mode: Pitchy (optional) with autocorrelation fallback');
+            } else {
+                this.setStatus('Pitch detector updated.', 'Mode: Autocorrelation (default)');
+            }
+        };
+    }
+
+    async ensurePitchyLoaded() {
+        if (this.pitchyModule || this.pitchyLoadFailed) {
+            return;
+        }
+
+        if (!this.pitchyLoadingPromise) {
+            this.pitchyLoadingPromise = import(VoiceRecorderApp.pitchyModuleUrl)
+                .then((module) => {
+                    this.pitchyModule = module;
+                    this.pitchyLoadFailed = false;
+                    return module;
+                })
+                .catch((error) => {
+                    this.pitchyLoadFailed = true;
+                    this.usePitchyDetector = false;
+                    this.setStoredPitchyPreference(false);
+
+                    const toggle = document.getElementById('usePitchyToggle');
+                    if (toggle) {
+                        toggle.checked = false;
+                    }
+
+                    this.setStatus(
+                        'Pitchy unavailable. Falling back to autocorrelation.',
+                        `Error: ${error && error.message ? error.message : 'Unknown import failure'}`
+                    );
+                    throw error;
+                })
+                .finally(() => {
+                    this.pitchyLoadingPromise = null;
+                });
+        }
+
+        return this.pitchyLoadingPromise;
+    }
+
+    getAutocorrelationDetector() {
+        if (typeof detectPitchAutocorrelation === 'function') {
+            return detectPitchAutocorrelation;
+        }
+        if (typeof detectPitch === 'function') {
+            return detectPitch;
+        }
+        return null;
+    }
+
+    detectPitchWithPitchy(buffer, sampleRate, options = {}) {
+        if (!this.pitchyModule || !this.pitchyModule.PitchDetector || !buffer || !sampleRate) {
+            return null;
+        }
+
+        if (!this.pitchyDetectorInstance || this.pitchyDetectorInputLength !== buffer.length) {
+            this.pitchyDetectorInstance = this.pitchyModule.PitchDetector.forFloat32Array(buffer.length);
+            this.pitchyDetectorInputLength = buffer.length;
+        }
+
+        const primaryThreshold = options.primaryThreshold || 0.2;
+        const minHz = options.minHz || 80;
+        const maxHz = options.maxHz || 400;
+
+        const [pitch, clarity] = this.pitchyDetectorInstance.findPitch(buffer, sampleRate);
+
+        if (!Number.isFinite(pitch) || pitch <= 0 || pitch < minHz || pitch > maxHz) {
+            return null;
+        }
+
+        if (!Number.isFinite(clarity) || clarity < primaryThreshold) {
+            return null;
+        }
+
+        return {
+            primary: pitch,
+            secondary: null,
+            primaryStrength: clarity,
+            secondaryStrength: 0
+        };
+    }
+
+    /**
+     * Detect pitch using the currently selected engine (Pitchy or autocorrelation)
+     * 
+     * Falls back to autocorrelation if:
+     * - Pitchy is not enabled by user
+     * - Pitchy module is not loaded yet
+     * - Pitchy detection fails
+     * 
+     * @param {Float32Array} buffer - Audio samples
+     * @param {number} sampleRate - Sample rate in Hz
+     * @param {boolean} detectSecondary - Whether to detect secondary pitch
+     * @param {Object} options - Detection options
+     * @returns {Object|null} Pitch data or null
+     */
+    detectPitchWithSelectedEngine(buffer, sampleRate, detectSecondary = false, options = {}) {
+        const fallbackDetector = this.getAutocorrelationDetector();
+        if (!fallbackDetector) {
+            return null;
+        }
+
+        if (!this.usePitchyDetector) {
+            return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+        }
+
+        if (!this.pitchyModule) {
+            this.ensurePitchyLoaded().catch(() => {
+                // Status is already reported in ensurePitchyLoaded
+            });
+            return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+        }
+
+        try {
+            const pitchyPrimary = this.detectPitchWithPitchy(buffer, sampleRate, options);
+            if (!pitchyPrimary) {
+                return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+            }
+
+            if (!detectSecondary) {
+                return pitchyPrimary;
+            }
+
+            const fallbackWithSecondary = fallbackDetector(buffer, sampleRate, true, options);
+            const secondaryValue =
+                fallbackWithSecondary && typeof fallbackWithSecondary === 'object'
+                    ? fallbackWithSecondary.secondary
+                    : null;
+            const secondaryStrength =
+                fallbackWithSecondary && typeof fallbackWithSecondary === 'object'
+                    ? (fallbackWithSecondary.secondaryStrength || 0)
+                    : 0;
+
+            return {
+                primary: pitchyPrimary.primary,
+                secondary: Number.isFinite(secondaryValue) ? secondaryValue : null,
+                primaryStrength: pitchyPrimary.primaryStrength,
+                secondaryStrength
+            };
+        } catch (error) {
+            this.pitchyLoadFailed = true;
+            this.usePitchyDetector = false;
+            this.setStoredPitchyPreference(false);
+
+            const toggle = document.getElementById('usePitchyToggle');
+            if (toggle) {
+                toggle.checked = false;
+            }
+
+            this.setStatus(
+                'Pitchy detection failed. Falling back to autocorrelation.',
+                `Error: ${error && error.message ? error.message : 'Unknown detection failure'}`
+            );
+            return fallbackDetector(buffer, sampleRate, detectSecondary, options);
+        }
+    }
+
+    getMostRecentClip() {
+        if (!this.clips.length) return null;
+
+        return this.clips.reduce((latest, clip) => {
+            if (!latest) return clip;
+            return clip.timestamp > latest.timestamp ? clip : latest;
+        }, null);
+    }
+
+    ensureSelectedClipForRestore() {
+        if (!this.clips.length) return null;
+
+        const selectedClip = this.clips.find((clip) => clip.id === this.selectedClipId);
+        if (selectedClip) {
+            return selectedClip;
+        }
+
+        const mostRecentClip = this.getMostRecentClip();
+        if (mostRecentClip) {
+            this.selectedClipId = mostRecentClip.id;
+            this.renderClipsList();
+        }
+
+        return mostRecentClip;
+    }
+
+    resetPlaybackToStartIfAvailable() {
+        if (!this.playbackVideo) return false;
+
+        const selectedClip = this.ensureSelectedClipForRestore();
+        if (selectedClip && selectedClip.videoUrl) {
+            const currentSource = this.playbackVideo.currentSrc || this.playbackVideo.src;
+            if (currentSource !== selectedClip.videoUrl) {
+                this.playbackVideo.src = selectedClip.videoUrl;
+                this.playbackVideo.load();
+            }
+        }
+
+        const currentSource = this.playbackVideo.currentSrc || this.playbackVideo.src;
+        if (!currentSource) {
+            return false;
+        }
+
+        this.playbackVideo.pause();
+        this.stopPlaybackRender();
+
+        try {
+            this.playbackVideo.currentTime = 0;
+        } catch (error) {
+            // If seeking fails before metadata is ready, reload and keep paused at start
+            this.playbackVideo.load();
+        }
+
+        if (this.playingClipId !== null) {
+            this.playingClipId = null;
+            this.renderClipsList();
+        }
+
+        return true;
+    }
+
+    handleVisualizerContextRecovery(context = {}) {
+        const refreshedCtx = this.recordingCanvas ? this.recordingCanvas.getContext('2d') : null;
+        if (refreshedCtx) {
+            this.recordingCtx = refreshedCtx;
+        }
+
+        if (this.isRecording || this.isTestSignalActive) {
+            if (this.analyser) {
+                this.visualizer.setAnalyser(this.analyser);
+            }
+            this.startVisualizer();
+            const details = this.isRecording
+                ? 'Visualization resumed after returning to the page; recording continues.'
+                : 'Visualization resumed for the active test signal.';
+            this.setStatus('Canvas context recovered.', details);
+            return;
+        }
+
+        this.stopVisualizer();
+        this.visualizer.setAnalyser(null);
+        this.visualizer.clear();
+
+        const playbackReset = this.resetPlaybackToStartIfAvailable();
+        const restoredWhileIdle = Boolean(context.whileIdle);
+        const details = restoredWhileIdle
+            ? (playbackReset
+                ? 'Recovered while idle. Playback reset to the beginning. Press record to start a new clip.'
+                : 'Recovered while idle. No saved clip video to reset yet. Press record to start a new clip.')
+            : 'Current sample discarded. Press record to start a new clip.';
+
+        this.setStatus('Canvas context recovered. Recorder reset.', details);
+    }
+
+    setupConfigurationSliders() {
+        const minHzSlider = document.getElementById('minHzSlider');
+        const maxHzSlider = document.getElementById('maxHzSlider');
+        const primaryThresholdSlider = document.getElementById('primaryThresholdSlider');
+        const secondaryThresholdSlider = document.getElementById('secondaryThresholdSlider');
+        const smoothingSlider = document.getElementById('smoothingSlider');
+
+        const minHzValue = document.getElementById('minHzValue');
+        const maxHzValue = document.getElementById('maxHzValue');
+        const primaryThresholdValue = document.getElementById('primaryThresholdValue');
+        const secondaryThresholdValue = document.getElementById('secondaryThresholdValue');
+        const smoothingValue = document.getElementById('smoothingValue');
+
+        if (!minHzSlider || !maxHzSlider || !primaryThresholdSlider || !smoothingSlider ||
+            !minHzValue || !maxHzValue || !primaryThresholdValue || !smoothingValue) {
+            return;
+        }
+
+        minHzSlider.oninput = () => {
+            const minHz = parseInt(minHzSlider.value, 10);
+            const maxHz = parseInt(maxHzSlider.value, 10);
+            if (minHz >= maxHz) {
+                minHzSlider.value = maxHz - 10;
+                minHzValue.textContent = minHzSlider.value;
+                return;
+            }
+            minHzValue.textContent = minHz;
+            this.visualizer.updatePitchRange(minHz, maxHz);
+        };
+
+        maxHzSlider.oninput = () => {
+            const minHz = parseInt(minHzSlider.value, 10);
+            const maxHz = parseInt(maxHzSlider.value, 10);
+            if (maxHz <= minHz) {
+                maxHzSlider.value = minHz + 10;
+                maxHzValue.textContent = maxHzSlider.value;
+                return;
+            }
+            maxHzValue.textContent = maxHz;
+            this.visualizer.updatePitchRange(minHz, maxHz);
+        };
+
+        primaryThresholdSlider.oninput = () => {
+            const threshold = parseFloat(primaryThresholdSlider.value);
+            primaryThresholdValue.textContent = threshold.toFixed(2);
+            this.visualizer.updatePrimaryThreshold(threshold);
+        };
+
+        if (secondaryThresholdSlider && secondaryThresholdValue) {
+            secondaryThresholdSlider.oninput = () => {
+                const threshold = parseFloat(secondaryThresholdSlider.value);
+                secondaryThresholdValue.textContent = threshold.toFixed(2);
+                this.visualizer.updateSecondaryThreshold(threshold);
+            };
+        }
+
+        smoothingSlider.oninput = () => {
+            const smoothing = parseInt(smoothingSlider.value, 10);
+            smoothingValue.textContent = smoothing;
+            this.visualizer.updateSmoothing(smoothing / 100);
+        };
+    }
+
+    pickSupportedType(types) {
+        for (const type of types) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(type)) {
+                return type;
+            }
+        }
+        return '';
+    }
+
+    setStatus(message, details = null) {
+        const now = new Date();
+        const timestamp = `[${now.toLocaleTimeString('en-US', { hour12: false })}] `;
+        let output = timestamp + message;
+        if (details) {
+            output += `\n${details}`;
+        }
+        this.debugMsg.textContent = output;
+    }
+
+    setButtonIcon(button, iconClass) {
+        button.innerHTML = `<span class="icon ${iconClass}"></span>`;
+    }
+
+    generateRandomFilename() {
+        const { foods } = VoiceRecorderApp;
+        const food1 = foods[Math.floor(Math.random() * foods.length)];
+        const food2 = foods[Math.floor(Math.random() * foods.length)];
+        const food3 = foods[Math.floor(Math.random() * foods.length)];
+        return `${food1}-${food2}-${food3}`;
+    }
+
+    downloadBlob(blob, filename, existingUrl = null) {
+        const url = existingUrl || URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        if (!existingUrl) {
+            window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+    }
+
+    downloadWithStatus(blob, filename, existingUrl = null) {
+        const type = blob.type || 'application/octet-stream';
+        this.downloadBlob(blob, filename, existingUrl);
+        this.setStatus('Download started.', `Filename: ${filename}\nType: ${type}`);
+    }
+
+    async shareOrDownload({ blob, filename, existingUrl, successMessage }) {
+        const type = blob.type || 'application/octet-stream';
+
+        if (navigator.share) {
+            try {
+                if (!window.File) {
+                    throw new Error('File API not available');
+                }
+
+                const file = new File([blob], filename, { type });
+                const shareData = { files: [file] };
+
+                if (navigator.canShare && !navigator.canShare(shareData)) {
+                    this.downloadWithStatus(blob, filename, existingUrl);
+                    return;
+                }
+
+                await navigator.share(shareData);
+                this.setStatus(successMessage, `Filename: ${filename}`);
+                return;
+            } catch (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+                // For non-abort errors, show error and fall through to download
+                this.setStatus('Share failed, downloading instead.', `Error: ${error.message}`);
+            }
+        }
+
+        this.downloadWithStatus(blob, filename, existingUrl);
+    }
+
+    showBrowserCapabilities() {
+        const lines = [];
+        lines.push('=== BROWSER CAPABILITIES ===');
+
+        const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+        lines.push(`getUserMedia: ${hasMediaDevices ? '✓' : '✗'}`);
+
+        const hasMediaRecorder = !!window.MediaRecorder;
+        lines.push(`MediaRecorder: ${hasMediaRecorder ? '✓' : '✗'}`);
+
+        const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
+        lines.push(`AudioContext: ${hasAudioContext ? '✓' : '✗'}`);
+
+        if (hasMediaRecorder && MediaRecorder.isTypeSupported) {
+            lines.push('\nSupported MIME types:');
+            for (const type of VoiceRecorderApp.debugMimeTypes) {
+                const supported = MediaRecorder.isTypeSupported(type);
+                lines.push(`  ${type}: ${supported ? '✓' : '✗'}`);
+            }
+        }
+
+        lines.push(`\nUser Agent: ${navigator.userAgent.substring(0, 80)}...`);
+        this.setStatus('Browser capabilities checked', lines.join('\n'));
+    }
+
+    /**
+     * Toggle 220Hz test signal on/off
+     * Used for testing pitch detection accuracy
+     */
+    toggleTestSignal() {
+        if (this.isTestSignalActive) {
+            this.stopTestSignal();
+            return;
+        }
+        this.startTestSignal();
+    }
+
+    startTestSignal() {
+        if (this.isRecording) return;
+
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 2048;
+
+        this.testOscillator = this.audioContext.createOscillator();
+        this.testOscillator.type = 'sine';
+        this.testOscillator.frequency.value = 220;
+
+        const gain = this.audioContext.createGain();
+        gain.gain.value = 0.3;
+        this.testOscillator.connect(gain);
+        gain.connect(this.analyser);
+        gain.connect(this.audioContext.destination);
+        this.testGain = gain;
+
+        this.testOscillator.start();
+        this.isTestSignalActive = true;
+
+        this.visualizer.setAnalyser(this.analyser);
+        this.startVisualizer();
+
+        this.recordButton.disabled = true;
+        this.testSignalButton.classList.add('active');
+        this.setStatus('Test signal active.', `Frequency: ${this.testOscillator.frequency.value} Hz\nWaveform: sine\nSample rate: ${this.audioContext.sampleRate} Hz`);
+    }
+
+    stopTestSignal() {
+        if (this.testOscillator) {
+            this.testOscillator.stop();
+            this.testOscillator.disconnect();
+            this.testOscillator = null;
+        }
+        if (this.testGain) {
+            this.testGain.disconnect();
+            this.testGain = null;
+        }
+        this.isTestSignalActive = false;
+        this.stopVisualizer();
+        this.visualizer.setAnalyser(null);
+        this.recordButton.disabled = false;
+        this.testSignalButton.classList.remove('active');
+        this.setStatus('Test signal stopped.');
+    }
+
+    stopVisualizer() {
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        this.updateSignalIndicator({ state: 'idle', label: 'Signal: idle' });
+        // Don't clear the visualizer - keep the last frame visible
+    }
+
+    updateSignalIndicator(status = null) {
+        const resolvedStatus = status || (this.visualizer && typeof this.visualizer.getTrackingStatus === 'function'
+            ? this.visualizer.getTrackingStatus()
+            : null);
+
+        this.updateVisualizerStats(resolvedStatus);
+
+        if (!this.signalIndicator) {
+            return;
+        }
+
+        const state = resolvedStatus && resolvedStatus.state ? resolvedStatus.state : 'idle';
+        const label = resolvedStatus && resolvedStatus.label ? resolvedStatus.label : 'Signal: idle';
+
+        // Avoid unnecessary DOM updates when state hasn't changed
+        if (this._lastSignalState === state && this._lastSignalLabel === label) {
+            return;
+        }
+
+        this._lastSignalState = state;
+        this._lastSignalLabel = label;
+
+        this.signalIndicator.className = `signal-indicator signal-${state}`;
+        this.signalIndicator.textContent = label;
+    }
+
+    updateVisualizerStats(status = null) {
+        if (!this.visualizerStats) {
+            return;
+        }
+
+        const resolvedStatus = status || (this.visualizer && typeof this.visualizer.getTrackingStatus === 'function'
+            ? this.visualizer.getTrackingStatus()
+            : null);
+
+        let statsText = 'Stats unavailable';
+        if (resolvedStatus) {
+            const label = resolvedStatus.label || 'Signal';
+            const pitchStats = this.visualizer && typeof this.visualizer.getPitchStatistics === 'function'
+                ? this.visualizer.getPitchStatistics()
+                : null;
+            const avgPitch = pitchStats && Number.isFinite(pitchStats.average) ? `${pitchStats.average.toFixed(1)} Hz` : '—';
+            const strength = Number.isFinite(resolvedStatus.strength) ? `${Math.round(resolvedStatus.strength * 100)}%` : '—';
+            const rms = Number.isFinite(resolvedStatus.rms) ? resolvedStatus.rms.toFixed(3) : '—';
+            statsText = `${label}\nAvg Pitch: ${avgPitch}\nStrength: ${strength}\nRMS: ${rms}`;
+        }
+
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        const withinThrottle = this._lastVisualizerStatsTimestamp
+            && (now - this._lastVisualizerStatsTimestamp < 120);
+        if (withinThrottle && statsText === this._lastVisualizerStats) {
+            return;
+        }
+
+        if (statsText === this._lastVisualizerStats) {
+            return;
+        }
+
+        this._lastVisualizerStats = statsText;
+        this._lastVisualizerStatsTimestamp = now;
+        this.visualizerStats.textContent = statsText;
+    }
+
+    startVisualizer() {
+        if (!this.visualizer) return;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        const loop = () => {
+            this.visualizer.render();
+            const trackingStatus = typeof this.visualizer.getTrackingStatus === 'function'
+                ? this.visualizer.getTrackingStatus()
+                : null;
+            this.updateSignalIndicator(trackingStatus);
+            this.animationId = requestAnimationFrame(loop);
+        };
+        this.animationId = requestAnimationFrame(loop);
+    }
+
+    stopPlaybackRender() {
+        if (this.playbackAnimationId) {
+            cancelAnimationFrame(this.playbackAnimationId);
+            this.playbackAnimationId = null;
+        }
+        // Keep the last rendered frame visible when playback/recording stops.
+    }
+
+    startPlaybackRender() {
+        const drawFrame = () => {
+            if (this.playbackVideo.paused || this.playbackVideo.ended) {
+                return;
+            }
+            this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.recordingCtx.drawImage(this.playbackVideo, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.playbackAnimationId = requestAnimationFrame(drawFrame);
+        };
+        this.playbackAnimationId = requestAnimationFrame(drawFrame);
+    }
+
+    stopStream() {
+        if (!this.mediaStream) return;
+        this.mediaStream.getTracks().forEach((track) => track.stop());
+        this.mediaStream = null;
+    }
+
+    /**
+     * Main recording button click handler
+     * Starts recording if idle, stops recording if active
+     */
+    async onRecordClick() {
+        if (this.isRecording) {
+            this.stopRecording();
+            return;
+        }
+        await this.startRecording();
+    }
+
+    /**
+     * Start a new recording
+     * 
+     * Flow:
+     * 1. Request microphone access via getUserMedia
+     * 2. Create AudioContext and AnalyserNode for visualization
+     * 3. Start audio MediaRecorder (audio/mp4)
+     * 4. Start video MediaRecorder (canvas stream + audio)
+     * 5. Launch visualization render loop
+     * 
+     * @returns {Promise<void>}
+     */
+    async startRecording() {
+        if (this.playingClipId !== null) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+            this.renderClipsList();
+        }
+
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) {
+            this.setStatus(
+                'Recording not supported in this browser.',
+                `Missing: ${!navigator.mediaDevices ? 'MediaDevices' : !window.MediaRecorder ? 'MediaRecorder' : 'getUserMedia'}`
+            );
+            return;
+        }
+
+        try {
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    channelCount: 1,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                }
+            });
+        } catch (error) {
+            // Fallback for browsers/devices that reject explicit constraints.
+            try {
+                this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (fallbackError) {
+                const details = `Error: ${fallbackError.name}\nMessage: ${fallbackError.message}\n\nTip: Check browser permissions or use HTTPS`;
+                this.setStatus('Microphone permission denied.', details);
+                return;
+            }
+        }
+
+        const mimeType = this.pickSupportedType(['audio/mp4']);
+        if (!mimeType) {
+            this.setStatus(
+                'Unable to start recorder.',
+                'Required: audio/mp4 (.mp4), but it is not supported in this browser.'
+            );
+            this.stopStream();
+            return;
+        }
+
+        try {
+            this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType });
+        } catch (error) {
+            const details = `Error: ${error.name}\nMessage: ${error.message}\nAttempted MIME: ${mimeType}`;
+            this.setStatus('Unable to start recorder.', details);
+            this.stopStream();
+            return;
+        }
+
+        this.audioChunks = [];
+        this.discardRecordingOnStop = false;
+        let totalBytes = 0;
+
+        this.mediaRecorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                this.audioChunks.push(event.data);
+                totalBytes += event.data.size;
+            }
+        };
+
+        this.mediaRecorder.onerror = (event) => {
+            this.setStatus('MediaRecorder error occurred', `Error: ${event.error}`);
+        };
+
+        this.mediaRecorder.onstop = () => {
+            const blobType = mimeType || (this.audioChunks[0] && this.audioChunks[0].type) || 'audio/mp4';
+            const audioBlob = new Blob(this.audioChunks, { type: blobType });
+            const duration = this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0;
+            const details = `Chunks: ${this.audioChunks.length}\nTotal size: ${(totalBytes / 1024).toFixed(2)} KB\nBlob type: ${blobType}`;
+
+            if (this.discardRecordingOnStop) {
+                this.setStatus('Recording reset after canvas recovery.', `${details}\nAction: Current recording discarded. Start a new recording.`);
+            } else {
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const pitchStats = this.visualizer.getPitchStatistics();
+                this.addClip(audioBlob, audioUrl, duration, pitchStats);
+                this.setStatus('Recording ready.', details);
+            }
+
+            this.discardRecordingOnStop = false;
+            this.stopVisualizer();
+            this.stopStream();
+            this.testSignalButton.disabled = false;
+        };
+
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 2048;
+        const source = this.audioContext.createMediaStreamSource(this.mediaStream);
+        source.connect(this.analyser);
+        this.visualizer.setAnalyser(this.analyser);
+
+        this.mediaRecorder.start();
+        this.isRecording = true;
+        this.recordingStartTime = Date.now();
+        this.setButtonIcon(this.recordButton, 'icon-square');
+        this.testSignalButton.disabled = true;
+
+        const details = `MIME type: ${mimeType}\nSample rate: ${this.audioContext.sampleRate} Hz\nFFT size: ${this.analyser.fftSize}\nState: ${this.mediaRecorder.state}`;
+        this.setStatus('Recording started.', details);
+        this.startVisualizer();
+        // Prime the canvas immediately so captureStream doesn't start on an empty frame.
+        this.visualizer.render();
+        this.updateSignalIndicator();
+
+        this.startVideoRecording();
+    }
+
+    startVideoRecording() {
+        try {
+            const canvasStream = this.recordingCanvas.captureStream(60);
+            const videoTrack = canvasStream.getVideoTracks()[0];
+            // Clone the audio track so audio/video recorders do not contend on one track.
+            const audioTrack = this.mediaStream.getAudioTracks()[0].clone();
+            const combinedStream = new MediaStream([videoTrack, audioTrack]);
+
+            const videoMimeType = this.pickSupportedType(VoiceRecorderApp.preferredVideoTypes);
+            const videoOptions = videoMimeType ? { mimeType: videoMimeType } : undefined;
+
+            this.videoMediaRecorder = new MediaRecorder(combinedStream, videoOptions);
+            this.videoChunks = [];
+            let totalVideoBytes = 0;
+
+            this.videoMediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    this.videoChunks.push(event.data);
+                    totalVideoBytes += event.data.size;
+                }
+            };
+
+            this.videoMediaRecorder.onerror = (event) => {
+                this.setStatus('Video MediaRecorder error occurred', `Error: ${event.error}`);
+            };
+
+            this.videoMediaRecorder.onstop = () => {
+                const blobType = videoMimeType || (this.videoChunks[0] && this.videoChunks[0].type) || 'video/webm';
+                const videoBlob = new Blob(this.videoChunks, { type: blobType });
+                let videoUrl = null;
+
+                if (!this.discardRecordingOnStop) {
+                    videoUrl = URL.createObjectURL(videoBlob);
+                }
+
+                if (this.currentRecordingClipId !== null) {
+                    const clip = this.clips.find((c) => c.id === this.currentRecordingClipId);
+                    if (clip && videoUrl) {
+                        clip.videoBlob = videoBlob;
+                        clip.videoUrl = videoUrl;
+                        if (this.selectedClipId === clip.id) {
+                            this.playbackVideo.src = videoUrl;
+                            this.playbackVideo.load();
+                        }
+                        this.renderClipsList();
+                    }
+                }
+
+                if (!this.discardRecordingOnStop) {
+                    const videoDetails = `Video chunks: ${this.videoChunks.length}\nVideo size: ${(totalVideoBytes / 1024).toFixed(2)} KB\nVideo type: ${blobType}`;
+                    this.setStatus('Video ready.', videoDetails);
+                }
+
+                if (!this.discardRecordingOnStop) {
+                    this.currentRecordingClipId = null;
+                }
+
+                combinedStream.getTracks().forEach((track) => track.stop());
+            };
+
+            this.videoMediaRecorder.start();
+        } catch (error) {
+            this.setStatus('Video recording failed', `Error: ${error.message}\nCanvas recording may not be supported.`);
+        }
+    }
+
+    /**
+     * Stop the current recording
+     * 
+     * @param {Object} options - Stop options
+     * @param {boolean} options.discard - If true, discard the recording instead of saving
+     * @param {boolean} options.dueToContextRecovery - If true, stop is due to canvas context recovery
+     */
+    stopRecording({ discard = false, dueToContextRecovery = false } = {}) {
+        if (!this.mediaRecorder || this.mediaRecorder.state !== 'recording') {
+            return;
+        }
+
+        this.discardRecordingOnStop = discard;
+
+        this.mediaRecorder.stop();
+        if (this.videoMediaRecorder && this.videoMediaRecorder.state === 'recording') {
+            this.videoMediaRecorder.stop();
+        }
+
+        this.isRecording = false;
+        this.setButtonIcon(this.recordButton, 'icon-circle');
+
+        if (dueToContextRecovery) {
+            this.setStatus('Canvas context recovered. Resetting recorder...', 'Current sample discarded; this recording will be dropped.');
+            return;
+        }
+
+        this.setStatus('Processing recording...');
+    }
+
+    toggleClipPlayback(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoUrl) {
+            this.setStatus('No video available for this clip.');
+            return;
+        }
+
+        if (this.playingClipId === id && !this.playbackVideo.paused) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+            this.setStatus('Playback stopped.');
+            this.renderClipsList();
+            return;
+        }
+
+        if (this.playingClipId !== null && this.playingClipId !== id) {
+            this.playbackVideo.pause();
+            this.playbackVideo.currentTime = 0;
+            this.stopPlaybackRender();
+        }
+
+        this.playbackVideo.src = clip.videoUrl;
+        this.playbackVideo.load();
+        this.playbackVideo.currentTime = 0;
+
+        const playPromise = this.playbackVideo.play();
+        if (playPromise && playPromise.catch) {
+            playPromise.catch((error) => {
+                this.playingClipId = null;
+                this.setStatus('Playback failed.', `Error: ${error.message}`);
+                this.renderClipsList();
+            });
+        }
+
+        this.playingClipId = id;
+        this.selectedClipId = id;
+        this.setStatus('Playback started.');
+        this.stopPlaybackRender();
+        this.startPlaybackRender();
+        this.renderClipsList();
+    }
+
+    async shareClipVideo(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoBlob) {
+            this.setStatus('No video recording available to save.');
+            return;
+        }
+
+        const videoExt = (clip.videoBlob.type.split(/\/|;/)[1] || '').trim();
+        const filename = clip.name + (videoExt ? `.${videoExt}` : '');
+        await this.shareOrDownload({
+            blob: clip.videoBlob,
+            filename,
+            existingUrl: clip.videoUrl,
+            successMessage: 'Video share completed.'
+        });
+    }
+
+    async shareClipAudio(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.audioBlob) {
+            this.setStatus('No audio recording available to save.');
+            return;
+        }
+
+        // Extract extension from MIME type, but use .m4a for audio/mp4 to avoid Photos app on iOS
+        let audioExt = (clip.audioBlob.type.split(/\/|;/)[1] || '').trim();
+        if (audioExt === 'mp4') {
+            audioExt = 'm4a';
+        }
+        const filename = clip.name + (audioExt ? `.${audioExt}` : '');
+        await this.shareOrDownload({
+            blob: clip.audioBlob,
+            filename,
+            existingUrl: clip.audioUrl,
+            successMessage: 'Audio share completed.'
+        });
+    }
+
+    addClip(audioBlob, audioUrl, duration, pitchStats = null) {
+        const id = Date.now() + Math.floor(Math.random() * 1000);
+        const name = this.generateRandomFilename();
+        const timestamp = new Date();
+
+        const clip = {
+            id,
+            name,
+            timestamp,
+            duration,
+            audioBlob,
+            audioUrl,
+            videoBlob: null,
+            videoUrl: null,
+            pitchStats
+        };
+
+        this.clips.push(clip);
+        this.selectedClipId = id;
+        this.currentRecordingClipId = id;
+        this.renderClipsList();
+    }
+
+    deleteClip(id) {
+        const clipIndex = this.clips.findIndex((c) => c.id === id);
+        if (clipIndex === -1) return;
+
+        const clip = this.clips[clipIndex];
+        if (clip.audioUrl) {
+            URL.revokeObjectURL(clip.audioUrl);
+        }
+        if (clip.videoUrl) {
+            URL.revokeObjectURL(clip.videoUrl);
+        }
+
+        this.clips.splice(clipIndex, 1);
+
+        if (this.selectedClipId === id) {
+            if (this.clips.length > 0) {
+                const newIndex = Math.min(clipIndex, this.clips.length - 1);
+                this.selectedClipId = this.clips[newIndex].id;
+            } else {
+                this.selectedClipId = null;
+            }
+        }
+
+        if (this.playingClipId === id) {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+        }
+
+        this.renderClipsList();
+    }
+
+    selectClip(id) {
+        this.selectedClipId = id;
+        this.renderClipsList();
+        this.seekSelectedClipToEnd(id);
+    }
+
+    seekSelectedClipToEnd(id) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (!clip || !clip.videoUrl) {
+            return;
+        }
+
+        if (this.playingClipId !== null) {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+            this.playingClipId = null;
+            this.renderClipsList();
+        } else {
+            this.playbackVideo.pause();
+            this.stopPlaybackRender();
+        }
+
+        const drawCurrentFrame = () => {
+            this.recordingCtx.clearRect(0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+            this.recordingCtx.drawImage(this.playbackVideo, 0, 0, this.recordingCanvas.width, this.recordingCanvas.height);
+        };
+
+        const seekAndDrawEnd = () => {
+            const duration = this.playbackVideo.duration;
+            if (!Number.isFinite(duration) || duration <= 0) {
+                return;
+            }
+
+            const endTime = Math.max(0, duration - 0.001);
+            this.playbackVideo.addEventListener('seeked', drawCurrentFrame, { once: true });
+            this.playbackVideo.currentTime = endTime;
+        };
+
+        const currentSource = this.playbackVideo.currentSrc || this.playbackVideo.src;
+        if (currentSource !== clip.videoUrl) {
+            this.playbackVideo.src = clip.videoUrl;
+            this.playbackVideo.load();
+            this.playbackVideo.addEventListener('loadedmetadata', seekAndDrawEnd, { once: true });
+            return;
+        }
+
+        if (this.playbackVideo.readyState >= 1) {
+            seekAndDrawEnd();
+        } else {
+            this.playbackVideo.addEventListener('loadedmetadata', seekAndDrawEnd, { once: true });
+        }
+    }
+
+    renameClip(id, newName) {
+        const clip = this.clips.find((c) => c.id === id);
+        if (clip) {
+            clip.name = newName;
+            this.renderClipsList();
+        }
+    }
+
+    formatDuration(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    formatTimestamp(date) {
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+
+        if (isToday) {
+            return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+
+        if (isYesterday) {
+            return 'Yesterday';
+        }
+
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    renderClipsList() {
+        if (!this.clipsList) return;
+
+        if (this.clips.length === 0) {
+            this.clipsList.innerHTML = '<div class="clips-empty">No recordings yet</div>';
+            return;
+        }
+
+        const clipsHtml = this.clips.slice().reverse().map((clip) => {
+            const isSelected = clip.id === this.selectedClipId;
+            const isPlaying = clip.id === this.playingClipId;
+            const hasVideo = !!clip.videoUrl;
+            const hasAudio = !!clip.audioUrl;
+
+            let pitchInfo = '';
+            if (clip.pitchStats && typeof clip.pitchStats === 'object') {
+                const { min, max, average, sampleCount, filteredCount } = clip.pitchStats;
+                if (Number.isFinite(min) && Number.isFinite(max) && Number.isFinite(average)) {
+                    let filterNote = '';
+                    if (filteredCount && sampleCount && filteredCount < sampleCount) {
+                        const removedCount = sampleCount - filteredCount;
+                        filterNote = ` (${removedCount} outlier${removedCount > 1 ? 's' : ''} filtered)`;
+                    }
+                    pitchInfo = `<div class="clip-pitch-stats">Pitch: ${min.toFixed(1)} - ${max.toFixed(1)} Hz (avg: ${average.toFixed(1)} Hz)${filterNote}</div>`;
+                }
+            }
+
+            return `
+                <div class="clip-item ${isSelected ? 'selected' : ''}" data-clip-id="${clip.id}">
+                    <div class="clip-info">
+                        <div class="clip-name" data-clip-id="${clip.id}">${clip.name}</div>
+                        <div class="clip-meta">
+                            <span class="clip-timestamp">${this.formatTimestamp(clip.timestamp)}</span>
+                            <span class="clip-duration">${this.formatDuration(clip.duration)}</span>
+                        </div>
+                        ${pitchInfo}
+                    </div>
+                    <div class="clip-actions">
+                        <button class="clip-play" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="${isPlaying ? 'Stop' : 'Play'}">
+                            <span class="icon ${isPlaying ? 'icon-square-small' : 'icon-triangle-small'}"></span>
+                        </button>
+                        <button class="clip-share-video" data-clip-id="${clip.id}" ${!hasVideo ? 'disabled' : ''} title="Share Video">
+                            🎬
+                        </button>
+                        <button class="clip-share-audio" data-clip-id="${clip.id}" ${!hasAudio ? 'disabled' : ''} title="Share Audio">
+                            🎵
+                        </button>
+                        <button class="clip-delete" data-clip-id="${clip.id}" title="Delete">✕</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        this.clipsList.innerHTML = clipsHtml;
+
+        this.clipsList.querySelectorAll('.clip-item').forEach((item) => {
+            item.addEventListener('click', (event) => {
+                if (!event.target.closest('.clip-actions')) {
+                    const id = parseInt(item.dataset.clipId, 10);
+                    this.selectClip(id);
+                }
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-play').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.toggleClipPlayback(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-share-video').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipVideo(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-share-audio').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.shareClipAudio(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-delete').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                const id = parseInt(button.dataset.clipId, 10);
+                this.deleteClip(id);
+            });
+        });
+
+        this.clipsList.querySelectorAll('.clip-name').forEach((nameEl) => {
+            nameEl.addEventListener('dblclick', (event) => {
+                event.stopPropagation();
+                const id = parseInt(nameEl.dataset.clipId, 10);
+                const clip = this.clips.find((c) => c.id === id);
+                if (clip) {
+                    const newName = prompt('Rename recording:', clip.name);
+                    if (newName && newName.trim()) {
+                        this.renameClip(id, newName.trim());
+                    }
+                }
+            });
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.voiceRecorderApp = new VoiceRecorderApp();
+});</script>
+
 <section class="voice-recorder">
     <div class="recorder-canvas-container">
         <canvas id="recordingCanvas" width="400" height="300"></canvas>
@@ -123,7 +3287,6 @@
         <pre id="debugMsg">Ready</pre>
     </details>
 </section>
-<p>{% endblock %}</p>
     </div>
 </article>
     </main>

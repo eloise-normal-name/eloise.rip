@@ -56,15 +56,828 @@
     </header>
 
     <div class="page-content">
-        <p>{% block extra_head %}</p>
-<style>
-{% include 'pages/hearing-age/hearing-age.css' %}
-</style>
+        <style>
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Pinyon+Script&display=swap');
+
+.hearing-age {
+    display: flex;
+    margin: 0 auto;
+    max-width: 720px;
+    padding: 1rem;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Kalam', cursive;
+}
+
+.analog-gauge {
+    width: min(100%, 420px);
+    margin-bottom: 1rem;
+    /* curved glass feel with light blue tint */
+    background-image: radial-gradient(120% 60% at 50% 5%, rgba(255, 255, 255, 0.45), transparent 30%),
+        linear-gradient(180deg, rgba(225, 240, 255, 0.65), rgba(200, 225, 245, 0.28));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 24px;
+    border: 1px solid rgba(210, 230, 245, 0.7);
+    box-shadow: 0 10px 30px rgba(20, 30, 40, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    padding: 1.5rem 0 1.2rem;
+}
+
+.hearing-age--share-export .analog-gauge {
+    /* foreignObject rasterization can misrender backdrop effects as white arcs */
+    background-image: linear-gradient(180deg, rgba(225, 240, 255, 0.65), rgba(200, 225, 245, 0.28));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.analog-gauge__dial {
+    width: min(100%, 280px);
+    aspect-ratio: 2/1;
+    margin: 0 auto;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    border: 6px solid #2d3748;
+    border-bottom: 0;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 40%), linear-gradient(90deg, #374151, #1f2937);
+    box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 -2px 6px #fff;
+}
+
+.analog-gauge__ticks {
+    position: absolute;
+    inset: 0;
+    background: repeating-conic-gradient(from 270deg at 50% 100%, rgba(255, 255, 255, 0.5) 0 1.5deg, transparent 1.5deg 6deg);
+    -webkit-mask: radial-gradient(circle at 50% 100%, transparent 65%, #000 66%);
+    mask: radial-gradient(circle at 50% 100%, transparent 65%, #000 66%);
+}
+
+.analog-gauge__needle {
+    position: absolute;
+    bottom: 0;
+    left: calc(50% - 3px);
+    width: 6px;
+    height: 116px;
+    border-radius: 6px;
+    transform-origin: 50% 100%;
+    transform: rotate(-90deg);
+    background: linear-gradient(180deg, #ff758c, #ff7eb3);
+    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.15), inset 1px 1px 2px rgba(255, 255, 255, 0.6);
+    transition: transform 0.08s linear;
+    z-index: 2;
+    /* needle sits under hub so pivot looks anchored */
+}
+
+.analog-gauge__hub {
+    position: absolute;
+    bottom: -12px;
+    left: calc(50% - 14px);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a5568, #2d3748);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), inset 2px 2px 4px rgba(255, 255, 255, 0.2), inset -2px -2px 4px rgba(0, 0, 0, 0.2);
+    z-index: 4;
+    /* render above needle to hide base and create one pivot point */
+}
+
+.analog-gauge__hub::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.gauge-label {
+    position: absolute;
+    color: #e6eef8;
+    font-size: 1rem;
+    font-weight: 700;
+    pointer-events: none;
+    font-family: 'Pinyon Script', 'Kalam', cursive;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+    letter-spacing: 0.03em;
+}
+
+.gauge-label--1 {
+    left: 22px;
+    bottom: 18px;
+    /* move away from ticks */
+}
+
+.gauge-label--2 {
+    left: 28%;
+    top: 22%;
+    /* moved inward to avoid tick overlap */
+    transform: translateX(-50%);
+}
+
+.gauge-label--3 {
+    left: 72%;
+    top: 22%;
+    transform: translateX(-50%);
+}
+
+.gauge-label--4 {
+    right: 22px;
+    bottom: 18px;
+}
+
+/* Elegant icons for the Start/Stop button using inline SVG data-URIs */
+.tone-btn--primary::before,
+.tone-btn--alert::before,
+.tone-btn--share::before,
+.tone-btn::before {
+    content: "";
+    display: inline-block;
+    width: 1.4em;
+    /* increased icon size */
+    height: 1.4em;
+    /* increased icon size */
+    margin-right: 0.6rem;
+    vertical-align: middle;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.25));
+}
+
+/* default: green circular play */
+.tone-btn--primary::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='12' cy='12' r='10' fill='%232b8a3e'/><path d='M10 8 L16 12 L10 16 Z' fill='%23ffffff'/></svg>");
+}
+
+/* When button has alert state (stop) show a red rounded-square stop - scale up so inner square reads larger */
+.tone-btn--alert::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect x='5.5' y='5.5' width='13' height='13' rx='3' ry='3' fill='%23c92a2a'/><rect x='7.2' y='7.2' width='9.6' height='9.6' rx='1' ry='1' fill='%23ffffff'/></svg>");
+}
+
+.tone-btn--share::before {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><circle cx='18' cy='5' r='2.3' fill='%23495057'/><circle cx='6' cy='12' r='2.3' fill='%23495057'/><circle cx='18' cy='19' r='2.3' fill='%23495057'/><path d='M8.1 11l7.8-4.5M8.1 13l7.8 4.5' stroke='%23495057' stroke-width='2' stroke-linecap='round'/></svg>");
+}
+
+.age-text {
+    font-size: 1.4rem;
+    color: #4a4a4a;
+    margin-bottom: 1.2rem;
+    text-align: center;
+}
+
+.age-text strong {
+    font-size: 1.8rem;
+    color: #ff6b9d;
+    margin-left: 0.5rem;
+    font-family: "Consolas", "SFMono-Regular", "Menlo", "Monaco", "Liberation Mono", "Courier New", monospace;
+}
+
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.1rem;
+}
+
+.tone-btn {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: #1d1b3f;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: 0.6em 1.2em;
+    box-shadow: none;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    outline: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    user-select: none;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 0.08em;
+}
+
+select.tone-btn {
+    appearance: none;
+    -webkit-appearance: none;
+    background: #fff url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") no-repeat right 1rem center / 1em;
+    padding-right: 2.5rem;
+}
+
+.tone-btn:hover:not(:disabled) {
+    box-shadow: none;
+}
+
+.tone-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+.tone-btn--primary {
+    background: transparent;
+    color: #1d1b3f;
+    box-shadow: none;
+}
+
+.tone-btn--alert {
+    background: transparent;
+    color: #1d1b3f;
+}
+
+@media (max-width: 640px) {
+    .analog-gauge {
+        margin-bottom: 0.85rem;
+    }
+
+    .controls {
+        grid-template-columns: 1fr;
+    }
+}</style>
 <script>
-{% include 'pages/hearing-age/hearing-age.js' %}
-</script>
-<p>{% endblock %}</p>
-<p>{% block content %}</p>
+/**
+ * HearingAgeGuesser sweeps a sine tone upward until the listener reports it is gone,
+ * then approximates a hearing age from the last audible frequency. Built to mirror
+ * the voice recorder's in-page initialization pattern.
+ */
+class HearingAgeGuesser {
+    constructor() {
+        // Sweep configuration
+        this.startFrequency = 440;
+        this.maxFrequency = 18000;
+        this.stepHz = 250;
+        this.tickMs = 375;
+        this.outputGain = 0.08;
+
+        // State
+        this.audioContext = null;
+        this.oscillator = null;
+        this.gainNode = null;
+        this.sweepTimer = null;
+        this.lastSweepTimestamp = null;
+        this.currentFrequency = this.startFrequency;
+        this.lastAudibleFrequency = null;
+        this.isRunning = false;
+        this.hasResult = false;
+        this.needsResetBeforeStart = false;
+        this.isSharing = false;
+
+        this.bindEvents();
+        this.updateReadout();
+        this.updateShareButtonState();
+    }
+
+
+    getElement(id) {
+        return document.getElementById(id);
+    }
+
+    bindEvents() {
+        this.getElement('startSweep').addEventListener('click', async () => {
+            if (this.isRunning) {
+                this.finishWithGuess();
+                return;
+            }
+            if (this.needsResetBeforeStart) {
+                this.reset();
+            }
+            await this.startSweep();
+        });
+        this.getElement('shareResult').addEventListener('click', async () => {
+            await this.shareResult();
+        });
+        // Allow changing waveform type while playing
+        const waveSelect = this.getElement('waveType');
+        if (waveSelect) {
+            waveSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (this.oscillator) {
+                    try {
+                        this.oscillator.type = val;
+                    } catch (err) {
+                        // some browsers may restrict changing type mid-playback; ignore safely
+                    }
+                }
+            });
+        }
+    }
+
+    updateReadout() {
+        const progress = (this.currentFrequency - this.startFrequency) / (this.maxFrequency - this.startFrequency);
+        const normalized = Math.max(0, Math.min(1, progress));
+        this.getElement('gaugeNeedle').style.transform = `rotate(${(normalized * 180) - 90}deg)`;
+
+        if (this.isRunning) {
+            const randomAge = Math.floor(Math.random() * (70 - 18 + 1)) + 18;
+            this.getElement('ageGuess').textContent = `${randomAge} yrs`;
+        }
+    }
+
+    updateShareButtonState() {
+        const shareButton = this.getElement('shareResult');
+        if (!shareButton) {
+            return;
+        }
+        const canShareResult = this.hasResult && !this.isRunning && !this.isSharing;
+        shareButton.disabled = !canShareResult;
+    }
+
+    setStartButtonRunning(isRunning) {
+        const startButton = this.getElement('startSweep');
+        if (!startButton) {
+            return;
+        }
+        startButton.textContent = isRunning ? 'Stop' : 'Start';
+        startButton.classList.toggle('tone-btn--alert', isRunning);
+        startButton.classList.toggle('tone-btn--primary', !isRunning);
+    }
+
+    ensureAudioContext() {
+        if (this.audioContext) {
+            return;
+        }
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+            this.getElement('ageGuess').textContent = 'N/A';
+            this.getElement('startSweep').disabled = true;
+            return;
+        }
+        this.audioContext = new AudioContextClass();
+    }
+
+    async startSweep() {
+        this.ensureAudioContext();
+        if (!this.audioContext) {
+            return;
+        }
+
+        if (this.hasResult) {
+            this.currentFrequency = this.startFrequency;
+            this.lastAudibleFrequency = null;
+            this.hasResult = false;
+        }
+
+        if (this.audioContext.state === 'suspended') {
+            try {
+                await this.audioContext.resume();
+            } catch (err) {
+                this.getElement('ageGuess').textContent = 'N/A';
+                return;
+            }
+        }
+
+        if (this.audioContext.state !== 'running') {
+            this.getElement('ageGuess').textContent = 'N/A';
+            return;
+        }
+
+        this.stopTone();
+        this.isRunning = true;
+        this.hasResult = false;
+        this.needsResetBeforeStart = false;
+        this.updateShareButtonState();
+        this.setStartButtonRunning(true);
+
+        this.oscillator = this.audioContext.createOscillator();
+        this.oscillator.type = this.getElement('waveType').value || 'sine';
+        this.gainNode = this.audioContext.createGain();
+        this.gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+        this.gainNode.gain.linearRampToValueAtTime(this.outputGain, this.audioContext.currentTime + 0.06);
+        this.oscillator.frequency.value = this.currentFrequency;
+
+        // Keep node connections explicit for Safari compatibility.
+        // Some engines do not return the destination node from connect(),
+        // which breaks chained calls and leaves the oscillator silent.
+        this.oscillator.connect(this.gainNode);
+        this.gainNode.connect(this.audioContext.destination);
+        this.oscillator.start();
+
+        this.lastAudibleFrequency = this.currentFrequency;
+        this.updateReadout();
+
+        this.lastSweepTimestamp = null;
+        this.sweepTimer = window.requestAnimationFrame((timestamp) => this.advanceFrequency(timestamp));
+    }
+
+    stopTone() {
+        if (this.sweepTimer) {
+            window.cancelAnimationFrame(this.sweepTimer);
+            this.sweepTimer = null;
+        }
+        this.lastSweepTimestamp = null;
+        if (this.oscillator) {
+            try {
+                this.oscillator.stop();
+            } catch (err) {
+                /* oscillator may already be stopped */
+            }
+            this.oscillator.disconnect();
+            this.oscillator = null;
+        }
+        if (this.gainNode) {
+            this.gainNode.disconnect();
+            this.gainNode = null;
+        }
+    }
+
+    advanceFrequency(timestamp) {
+        if (!this.isRunning || !this.oscillator) {
+            return;
+        }
+
+        if (this.lastSweepTimestamp == null) {
+            this.lastSweepTimestamp = timestamp;
+            this.sweepTimer = window.requestAnimationFrame((nextTimestamp) => this.advanceFrequency(nextTimestamp));
+            return;
+        }
+
+        const deltaSeconds = Math.max(0, (timestamp - this.lastSweepTimestamp) / 1000);
+        this.lastSweepTimestamp = timestamp;
+
+        if (this.currentFrequency >= this.maxFrequency) {
+            this.finishWithGuess(true);
+            return;
+        }
+
+        this.lastAudibleFrequency = this.currentFrequency;
+        const rateHzPerSecond = this.getStepHz(this.currentFrequency) / (this.tickMs / 1000);
+        const nextFrequency = Math.min(this.maxFrequency, this.currentFrequency + (rateHzPerSecond * deltaSeconds));
+        this.currentFrequency = nextFrequency;
+
+        this.oscillator.frequency.setValueAtTime(nextFrequency, this.audioContext.currentTime);
+        this.updateReadout();
+        this.sweepTimer = window.requestAnimationFrame((nextTimestamp) => this.advanceFrequency(nextTimestamp));
+    }
+
+    getStepHz(freq) {
+        if (freq >= 17000) {
+            return 50;
+        }
+        if (freq >= 14000) {
+            return 125;
+        }
+        return this.stepHz;
+    }
+
+    finishWithGuess(hitCeiling = false) {
+        this.stopTone();
+        this.isRunning = false;
+        this.hasResult = true;
+        this.needsResetBeforeStart = true;
+
+        const guessedFrequency = hitCeiling
+            ? this.currentFrequency
+            : (this.lastAudibleFrequency || this.currentFrequency);
+
+        const estimatedAge = this.estimateAgeFromFrequency(guessedFrequency);
+        this.getElement('ageGuess').textContent = `${estimatedAge} yrs`;
+
+        this.setStartButtonRunning(false);
+        this.updateShareButtonState();
+        this.updateReadout();
+    }
+
+    reset() {
+        this.stopTone();
+        this.isRunning = false;
+        this.hasResult = false;
+        this.needsResetBeforeStart = false;
+        this.currentFrequency = this.startFrequency;
+        this.lastAudibleFrequency = null;
+        this.setStartButtonRunning(false);
+        this.getElement('ageGuess').textContent = '—';
+        this.updateShareButtonState();
+        this.updateReadout();
+    }
+
+    getShareTargetElement() {
+        return document.querySelector('.hearing-age');
+    }
+
+    prepareShareClone(element) {
+        const clone = document.createElement('section');
+        clone.className = 'hearing-age hearing-age--share-export';
+
+        const gauge = element.querySelector('.analog-gauge');
+        if (gauge) {
+            clone.appendChild(gauge.cloneNode(true));
+        }
+
+        const ageText = element.querySelector('.age-text');
+        if (ageText) {
+            const ageClone = ageText.cloneNode(true);
+            ageClone.style.marginBottom = '0';
+            clone.appendChild(ageClone);
+        }
+
+        clone.style.margin = '0';
+        clone.style.maxWidth = 'none';
+        clone.style.paddingBottom = '0';
+        return clone;
+    }
+
+    measureClone(node) {
+        const host = document.createElement('div');
+        host.style.position = 'fixed';
+        host.style.left = '-100000px';
+        host.style.top = '0';
+        host.style.visibility = 'hidden';
+        host.style.pointerEvents = 'none';
+        host.appendChild(node);
+        document.body.appendChild(host);
+
+        try {
+            const rect = node.getBoundingClientRect();
+            return {
+                width: Math.max(1, Math.ceil(rect.width)),
+                height: Math.max(1, Math.ceil(rect.height))
+            };
+        } finally {
+            document.body.removeChild(host);
+        }
+    }
+
+    inlineComputedStyles(sourceRoot, targetRoot) {
+        const sourceNodes = [sourceRoot, ...sourceRoot.querySelectorAll('*')];
+        const targetNodes = [targetRoot, ...targetRoot.querySelectorAll('*')];
+        const count = Math.min(sourceNodes.length, targetNodes.length);
+
+        for (let i = 0; i < count; i += 1) {
+            const sourceNode = sourceNodes[i];
+            const targetNode = targetNodes[i];
+            const computed = window.getComputedStyle(sourceNode);
+            for (let p = 0; p < computed.length; p += 1) {
+                const prop = computed[p];
+                const value = computed.getPropertyValue(prop);
+                const priority = computed.getPropertyPriority(prop);
+                targetNode.style.setProperty(prop, value, priority);
+            }
+        }
+    }
+
+    getShareBackgroundColor() {
+        const pageBg = window.getComputedStyle(document.body).backgroundColor;
+        if (pageBg && pageBg !== 'rgba(0, 0, 0, 0)' && pageBg !== 'transparent') {
+            return pageBg;
+        }
+        return '#ffffff';
+    }
+
+    async renderShareImage() {
+        const target = this.getShareTargetElement();
+        if (!target) {
+            return null;
+        }
+
+        try {
+            const clonedTarget = this.prepareShareClone(target);
+            this.inlineComputedStyles(target, clonedTarget);
+            const sourceGauge = target.querySelector('.analog-gauge');
+            const clonedGauge = clonedTarget.querySelector('.analog-gauge');
+            if (sourceGauge && clonedGauge) {
+                this.inlineComputedStyles(sourceGauge, clonedGauge);
+            }
+            const sourceAgeText = target.querySelector('.age-text');
+            const clonedAgeText = clonedTarget.querySelector('.age-text');
+            if (sourceAgeText && clonedAgeText) {
+                this.inlineComputedStyles(sourceAgeText, clonedAgeText);
+            }
+            // Do not carry over the live container height (which includes controls).
+            // Let the share clone size itself to gauge + age text only.
+            clonedTarget.style.height = 'auto';
+            clonedTarget.style.minHeight = '0';
+            // Do not carry over the live container width constraints.
+            // Let the share clone size itself to its own content width.
+            clonedTarget.style.width = 'auto';
+            clonedTarget.style.minWidth = '0';
+            clonedTarget.style.display = 'inline-flex';
+            const { width, height } = this.measureClone(clonedTarget);
+            const serializedTarget = new XMLSerializer().serializeToString(clonedTarget);
+            const backgroundColor = this.getShareBackgroundColor();
+            const svgMarkup = `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+  <rect width="100%" height="100%" fill="${backgroundColor}" />
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:${backgroundColor};">
+      ${serializedTarget}
+    </div>
+  </foreignObject>
+</svg>`.trim();
+
+            const image = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Unable to render DOM snapshot.'));
+                img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgMarkup)}`;
+            });
+
+            const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(width * pixelRatio));
+            canvas.height = Math.max(1, Math.round(height * pixelRatio));
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                return null;
+            }
+
+            ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            ctx.drawImage(image, 0, 0, width, height);
+            return canvas;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    async ensureShareFonts() {
+        if (!document.fonts || !document.fonts.load) {
+            return;
+        }
+        try {
+            await Promise.all([
+                document.fonts.load('700 42px Kalam'),
+                document.fonts.load('700 27px "Pinyon Script"'),
+                document.fonts.load('700 54px Consolas')
+            ]);
+        } catch (err) {
+            // Font loading failures should not block sharing.
+        }
+    }
+
+    canvasToBlob(canvas) {
+        return new Promise((resolve) => {
+            if (!canvas || typeof canvas.toBlob !== 'function') {
+                resolve(null);
+                return;
+            }
+            try {
+                canvas.toBlob((blob) => resolve(blob), 'image/png');
+            } catch (err) {
+                resolve(null);
+            }
+        });
+    }
+
+    canvasToDataUrl(canvas) {
+        if (!canvas || typeof canvas.toDataURL !== 'function') {
+            return null;
+        }
+        try {
+            return canvas.toDataURL('image/png');
+        } catch (err) {
+            return null;
+        }
+    }
+
+    dataUrlToBlob(dataUrl) {
+        if (!dataUrl || !dataUrl.startsWith('data:')) {
+            return null;
+        }
+        const parts = dataUrl.split(',');
+        if (parts.length < 2) {
+            return null;
+        }
+        const header = parts[0];
+        const mimeMatch = header.match(/data:([^;]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+        try {
+            const binaryString = atob(parts[1]);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i += 1) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return new Blob([bytes], { type: mimeType });
+        } catch (err) {
+            return null;
+        }
+    }
+
+    downloadDataUrl(dataUrl, fileName) {
+        const anchor = document.createElement('a');
+        anchor.href = dataUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+    }
+
+    downloadBlob(blob, fileName) {
+        const downloadUrl = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = downloadUrl;
+        anchor.download = fileName;
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(downloadUrl);
+    }
+
+    async shareResult() {
+        if (!this.hasResult || this.isRunning || this.isSharing) {
+            return;
+        }
+        const shareButton = this.getElement('shareResult');
+        await this.ensureShareFonts();
+        const canvas = await this.renderShareImage();
+        if (!canvas) {
+            return;
+        }
+
+        this.isSharing = true;
+        shareButton.textContent = 'Sharing...';
+        this.updateShareButtonState();
+
+        try {
+            const fileName = `hearing-age-${Date.now()}.png`;
+            let blob = await this.canvasToBlob(canvas);
+            if (!blob) {
+                const dataUrl = this.canvasToDataUrl(canvas);
+                blob = this.dataUrlToBlob(dataUrl);
+                if (!blob && dataUrl) {
+                    this.downloadDataUrl(dataUrl, fileName);
+                    return;
+                }
+            }
+            if (!blob) {
+                throw new Error('Unable to create image.');
+            }
+            const file = new File([blob], fileName, { type: 'image/png' });
+            const shareText = `My estimated hearing age is ${this.getElement('ageGuess').textContent}.`;
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    title: 'Hearing Age Guesser',
+                    text: shareText,
+                    files: [file]
+                });
+            } else {
+                this.downloadBlob(blob, fileName);
+            }
+        } catch (err) {
+            // The user may cancel share intent; silently ignore.
+        } finally {
+            this.isSharing = false;
+            shareButton.textContent = 'Share';
+            this.updateShareButtonState();
+        }
+    }
+
+    estimateAgeFromFrequency(freq) {
+        /**
+         * Hearing age approximations based on general presbycusis (age-related hearing loss) trends.
+         * Sources: 
+         * - ISO 7029: Acoustics — Statistical distribution of hearing thresholds as a function of age.
+         * - General audiology consensus for high-frequency roll-off.
+         * Note: Individual hearing varies greatly due to environmental exposure and genetics.
+         */
+        const referencePoints = [
+            { freq: 20000, age: 18 },
+            { freq: 19000, age: 20 },
+            { freq: 18000, age: 24 },
+            { freq: 17000, age: 28 },
+            { freq: 16000, age: 30 },
+            { freq: 15000, age: 35 },
+            { freq: 14000, age: 40 },
+            { freq: 13000, age: 45 },
+            { freq: 12000, age: 50 },
+            { freq: 11000, age: 55 },
+            { freq: 10000, age: 60 },
+            { freq: 8000, age: 70 }
+        ];
+
+        if (freq >= referencePoints[0].freq) {
+            return referencePoints[0].age;
+        }
+        const last = referencePoints[referencePoints.length - 1];
+        if (freq <= last.freq) {
+            return last.age;
+        }
+
+        for (let i = 0; i < referencePoints.length - 1; i += 1) {
+            const upper = referencePoints[i];
+            const lower = referencePoints[i + 1];
+            if (freq <= upper.freq && freq >= lower.freq) {
+                const ratio = (upper.freq - freq) / (upper.freq - lower.freq);
+                const age = Math.round(upper.age + (lower.age - upper.age) * ratio);
+                return age;
+            }
+        }
+
+        return 40;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.__hearingAgeInstance = new HearingAgeGuesser();
+});</script>
+
 <section class="hearing-age">
         <div class="analog-gauge" aria-hidden="true">
             <div class="analog-gauge__dial">
@@ -94,7 +907,6 @@
         </div>
 
 </section>
-<p>{% endblock %}</p>
     </div>
 </article>
     </main>

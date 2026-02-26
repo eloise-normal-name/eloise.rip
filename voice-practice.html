@@ -56,11 +56,7 @@
     </header>
 
     <div class="page-content">
-        <p _="%" set voice_percent>{% set voice_dir = Path('content/media/voice') %}
-{% set voice_files = voice_dir.glob('*.m4a') | sort | list if voice_dir.exists() else [] %}
-{% set voice_done = voice_files | length %}
-{% set voice_total = 720 %}</p>
-<p><a href="https://www.threads.com/@eloise_normal_name/post/Cyd1v7sxkt2?xmt=AQF02aaArZSSLu8ZJnlUFBkQVm7vC5rJyQKlWayDHYDHAA">🔗 Old Threads Practice</a> Threads lost voice its recording technology.</p>
+        <p><a href="https://www.threads.com/@eloise_normal_name/post/Cyd1v7sxkt2?xmt=AQF02aaArZSSLu8ZJnlUFBkQVm7vC5rJyQKlWayDHYDHAA">🔗 Old Threads Practice</a> Threads lost voice its recording technology.</p>
 <style>
   .voice-progress {
     max-width: 640px;
@@ -73,7 +69,7 @@
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.12);
   }
   .voice-progress .progress-fill {
-    width: {{ voice_percent }}%;
+    width: 2.78%;
     height: 14px;
     border-radius: 999px;
     background: linear-gradient(90deg, var(--primary-color), #ffa6c6);
@@ -113,19 +109,37 @@
     <div class="progress-fill"></div>
   </div>
   <div class="progress-meta">
-    <span class="label">{{ voice_done }}/{{ voice_total }} complete</span>
-    <span>{{ voice_percent }}%</span>
+    <span class="label">20/720 complete</span>
+    <span>2.78%</span>
   </div>
 </div>
 
-<p _="%" set set_num>{% for i in range(0, voice_files | length, 10) %}</p>
-<h3 id="H{{ set_num }}"><a href="https://harvardsentences.com/#h{{ set_num }}-harvard-sentences">H{{ set_num }} Harvard Sentences</a></h3>
-<ol class="voice-list" start="{{ i + 1 }}">
-{% for file in voice_files[i:i+10] %}
-  <li><audio src="media/voice/{{ file.name }}" controls></audio></li>
-{% endfor %}
+<h3 id="H1"><a href="https://harvardsentences.com/#h1-harvard-sentences">H1 Harvard Sentences</a></h3>
+<ol class="voice-list" start="1">
+  <li><audio src="media/voice/01-01.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-02.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-03.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-04.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-05.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-06.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-07.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-08.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-09.m4a" controls></audio></li>
+  <li><audio src="media/voice/01-10.m4a" controls></audio></li>
 </ol>
-<p>{% endfor %}</p>
+<h3 id="H2"><a href="https://harvardsentences.com/#h2-harvard-sentences">H2 Harvard Sentences</a></h3>
+<ol class="voice-list" start="11">
+  <li><audio src="media/voice/02-01.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-02.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-03.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-04.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-05.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-06.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-07.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-08.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-09.m4a" controls></audio></li>
+  <li><audio src="media/voice/02-10.m4a" controls></audio></li>
+</ol>
     </div>
 </article>
     </main>
