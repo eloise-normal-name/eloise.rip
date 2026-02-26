@@ -24,3 +24,12 @@ node_modules/
 test-results/
 playwright-report/
 tools/
+
+# Local auth/cache artifacts
+.netlify/
+
+# JS package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

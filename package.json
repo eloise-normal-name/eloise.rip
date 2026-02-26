@@ -6,8 +6,10 @@
   "directories": {
     "doc": "docs"
   },
-  "scripts": {
-    "test": "playwright test"
+"scripts": {
+    "cms:server": "npx decap-server",
+    "cms:dev": "pelican content -o output -s pelicanconf.py --listen",
+    "cms": "concurrently \"npm run cms:server\" \"npm run cms:dev\""
   },
   "repository": {
     "type": "git",
@@ -22,6 +24,7 @@
   },
   "homepage": "https://github.com/eloise-normal-name/eloise.rip#readme",
   "devDependencies": {
-    "@playwright/test": "^1.58.2"
+    "concurrently": "^9.2.1",
+    "decap-server": "^3.5.2"
   }
 }
