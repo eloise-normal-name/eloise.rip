@@ -9,7 +9,7 @@ SITESUBTITLE = 'wintertime goblin hole 🕳❄'
 PATH = 'content'
 ARTICLE_PATHS = ['articles']
 PAGE_PATHS = ['pages']
-STATIC_PATHS = ['media', 'extra']
+STATIC_PATHS = ['media', 'extra', 'admin']
 
 # --- Content Settings ---
 TIMEZONE = 'UTC'
@@ -27,7 +27,7 @@ THEME = 'themes/cute-theme'
 
 # --- Plugins ---
 PLUGIN_PATHS = ['pelican-plugins']
-PLUGINS = ['video_embed', 'carousel_embed', 'jinja2content']
+PLUGINS = ['video_embed', 'carousel_embed', 'jinja2content', 'yaml_metadata']
 
 JINJA_GLOBALS = {
     'Path': Path,
