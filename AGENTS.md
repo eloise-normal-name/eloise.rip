@@ -9,14 +9,15 @@
 - Keep edits consistent with existing file structure and naming.
 - Do not introduce new build tools unless explicitly requested.
 
+## Advice for Future Projects
+- Keep environment/setup guidance generic unless the tooling is guaranteed across all repos.
+- Prefer documenting reproducible commands and expected outputs over machine-specific paths.
+- Capture project-specific assumptions in a clearly labeled section so they can be reviewed and updated quickly during onboarding.
+
 ## Content and Theme
 - Site content lives in `content/`.
 - Theme-related files are under `themes/`.
 - Generated site output is written to `output/`.
-
-## Python Environment
-- Use the existing virtual environment at `.venv` when running scripts.
-- Install dependencies from `requirements.txt`.
 
 ## Common Commands
 - Local build: `pelican content -o output -s pelicanconf.py`
