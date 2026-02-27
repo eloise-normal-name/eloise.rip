@@ -6,9 +6,6 @@
   "directories": {
     "doc": "docs"
   },
-  "scripts": {
-    "test": "playwright test"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/eloise-normal-name/eloise.rip.git"
@@ -20,8 +17,5 @@
   "bugs": {
     "url": "https://github.com/eloise-normal-name/eloise.rip/issues"
   },
-  "homepage": "https://github.com/eloise-normal-name/eloise.rip#readme",
-  "devDependencies": {
-    "@playwright/test": "^1.58.2"
-  }
+  "homepage": "https://github.com/eloise-normal-name/eloise.rip#readme"
 }
