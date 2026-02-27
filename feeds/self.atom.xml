@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom"><title>eloise.rip - Self</title><link href="https://eloise.rip/" rel="alternate"></link><link href="https://eloise.rip/feeds/self.atom.xml" rel="self"></link><id>https://eloise.rip/</id><updated>2026-02-26T00:00:00+00:00</updated><subtitle>wintertime goblin hole 🕳❄</subtitle><entry><title>Goblin Sling</title><link href="https://eloise.rip/blog/goblin-sling.html" rel="alternate"></link><published>2026-02-26T00:00:00+00:00</published><updated>2026-02-26T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2026-02-26:/blog/goblin-sling.html</id><summary type="html">&lt;p&gt;Busted my shoulder but did a sling with Catgirl&lt;/p&gt;</summary><content type="html">&lt;p&gt;Last week I tripped in my kitchen and dropped a mug full of hot choco and hurt my bad shoulder 😢. I actually got pretty distraught about it and had to skip L3 pole and had already missed trap due to it being an off week between sessions. &lt;/p&gt;
 &lt;p&gt;Catgirl cheered me up and dragged me to sling class with her though! I had fun and despite being L1 it was really difficult.&lt;/p&gt;
-&lt;p&gt;[[video:goblin-sling]]&lt;/p&gt;
+&lt;figure class="embedded-video"&gt;
+  &lt;video controls preload="metadata" poster="/media/video/goblin-sling.jpg"&gt;
+    &lt;source src="/media/video/goblin-sling.mp4" type="video/mp4" /&gt;
+    Your browser does not support the video tag.
+  &lt;/video&gt;
+&lt;/figure&gt;
 &lt;h2&gt;&lt;del&gt;Boner&lt;/del&gt; Bonus Content&lt;/h2&gt;
 &lt;p&gt;Catgirl sent me a very impressive home choreo video 😍 so I tried to make one for her too. I really struggled and couldn't do any tricks but I tried my best.
-[[video:pole-home-show-shoulder-injury]]&lt;/p&gt;</content><category term="Self"></category><category term="Sling"></category><category term="Catgirl"></category></entry><entry><title>Voice Recorder Page</title><link href="https://eloise.rip/blog/voice-recorder-page.html" rel="alternate"></link><published>2026-02-11T00:00:00+00:00</published><updated>2026-02-11T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2026-02-11:/blog/voice-recorder-page.html</id><summary type="html">&lt;p&gt;making a voice recorder app&lt;/p&gt;</summary><content type="html">&lt;p&gt;I added a voice recorder app &lt;a href="../voice-recorder.html"&gt;Voice Recorder&lt;/a&gt;&lt;/p&gt;
+&lt;figure class="embedded-video"&gt;
+  &lt;video controls preload="metadata" poster="/media/video/pole-home-show-shoulder-injury.jpg"&gt;
+    &lt;source src="/media/video/pole-home-show-shoulder-injury.mp4" type="video/mp4" /&gt;
+    Your browser does not support the video tag.
+  &lt;/video&gt;
+&lt;/figure&gt;&lt;/p&gt;</content><category term="Self"></category><category term="Sling"></category><category term="Catgirl"></category></entry><entry><title>Voice Recorder Page</title><link href="https://eloise.rip/blog/voice-recorder-page.html" rel="alternate"></link><published>2026-02-11T00:00:00+00:00</published><updated>2026-02-11T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2026-02-11:/blog/voice-recorder-page.html</id><summary type="html">&lt;p&gt;making a voice recorder app&lt;/p&gt;</summary><content type="html">&lt;p&gt;I added a voice recorder app &lt;a href="../voice-recorder.html"&gt;Voice Recorder&lt;/a&gt;&lt;/p&gt;
 &lt;p&gt;It's browser-only, nothing gets uploaded anywhere.&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;ask for mic permission&lt;/li&gt;
@@ -61,11 +71,22 @@ little self-conscious 😟.&lt;/p&gt;
 &lt;h1&gt;XX-day&lt;/h1&gt;
 &lt;p&gt;On Friday, Catgirl and I visited Diane's with Eggy Jeff, Dirty Jeff,
 and Landy. I didn't take photos of them, but I got a bunch of Panther.&lt;/p&gt;
-&lt;p&gt;[[carousel:label=Selfies with Panther and Catgirl;
-media/images/xgiving-looking-at-catgirl.avif|Looking at Catgirl;
-media/images/xgiving-gobbo-food.avif|Food time;
-media/images/xgiving-goblin-panther-catgirl.avif|With Panther and Catgirl;]]
-&lt;em&gt;3 images&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;div class="carousel-gallery" role="group" aria-label="Selfies with Panther and Catgirl"&gt;
+  &lt;div class="carousel-scroller" tabindex="0"&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/xgiving-looking-at-catgirl.avif" alt="Looking at Catgirl" loading="lazy"&gt;
+      &lt;figcaption&gt;Looking at Catgirl&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/xgiving-gobbo-food.avif" alt="Food time" loading="lazy"&gt;
+      &lt;figcaption&gt;Food time&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/xgiving-goblin-panther-catgirl.avif" alt="With Panther and Catgirl" loading="lazy"&gt;
+      &lt;figcaption&gt;With Panther and Catgirl&lt;/figcaption&gt;
+    &lt;/figure&gt;
+  &lt;/div&gt;
+&lt;/div&gt;&lt;em&gt;3 images&lt;/em&gt;&lt;/p&gt;
 &lt;p&gt;Catgirl drew a little cat face on his collar, which had been blank
 for too long.&lt;/p&gt;
 &lt;p&gt;We also gave Panther a bath! He obviously didn't like it and 
@@ -73,26 +94,75 @@ eventually let out a sad yowl 😿. Dirty Jeff used soap instead of
 baby shampoo, so I hope his fur is okay. Catgirl and I used the
 blowdryer on him after, and he seemed to like it. He got into a very
 satisfied looking cat-pear pose 🍐.&lt;/p&gt;
-&lt;p&gt;[[carousel:label=Panther at xgiving;
-media/images/xgiving-panther-with-collar.avif|So handsome!;
-media/images/xgiving-panther-cuddle.avif|Cuddle time;
-media/images/xgiving-panther-fireplace.avif|Toasty kitty;]]
-&lt;em&gt;3 images&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;div class="carousel-gallery" role="group" aria-label="Panther at xgiving"&gt;
+  &lt;div class="carousel-scroller" tabindex="0"&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/xgiving-panther-with-collar.avif" alt="So handsome!" loading="lazy"&gt;
+      &lt;figcaption&gt;So handsome!&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/xgiving-panther-cuddle.avif" alt="Cuddle time" loading="lazy"&gt;
+      &lt;figcaption&gt;Cuddle time&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/xgiving-panther-fireplace.avif" alt="Toasty kitty" loading="lazy"&gt;
+      &lt;figcaption&gt;Toasty kitty&lt;/figcaption&gt;
+    &lt;/figure&gt;
+  &lt;/div&gt;
+&lt;/div&gt;&lt;em&gt;3 images&lt;/em&gt;&lt;/p&gt;
 &lt;h1&gt;Pole Practice&lt;/h1&gt;
 &lt;p&gt;I got to do a few shapes at Diane's house. I kicked a cushion
 in the second video.&lt;/p&gt;
-&lt;p&gt;[[video:xgiving-pole-leg-hang]]
-[[video:xgiving-pole-spins]]&lt;/p&gt;
+&lt;p&gt;&lt;figure class="embedded-video"&gt;
+  &lt;video controls preload="metadata" poster="/media/video/xgiving-pole-leg-hang.jpg"&gt;
+    &lt;source src="/media/video/xgiving-pole-leg-hang.mp4" type="video/mp4" /&gt;
+    Your browser does not support the video tag.
+  &lt;/video&gt;
+&lt;/figure&gt;&lt;figure class="embedded-video"&gt;
+  &lt;video controls preload="metadata" poster="/media/video/xgiving-pole-spins.jpg"&gt;
+    &lt;source src="/media/video/xgiving-pole-spins.mp4" type="video/mp4" /&gt;
+    Your browser does not support the video tag.
+  &lt;/video&gt;
+&lt;/figure&gt;&lt;/p&gt;
 &lt;h2&gt;I don't remember this context but it's cute&lt;/h2&gt;
 &lt;p&gt;We must have been moseying around in the moist for a bit?
 &lt;img alt="Catgirl trying to share a brella" src="../media/images/xgiving-comic.avif"&gt;&lt;/p&gt;</content><category term="Self"></category><category term="Catgirl"></category><category term="Panther"></category><category term="Gooning"></category></entry><entry><title>Bio Page</title><link href="https://eloise.rip/blog/bio-page.html" rel="alternate"></link><published>2025-11-05T00:00:00+00:00</published><updated>2025-11-05T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-11-05:/blog/bio-page.html</id><summary type="html">&lt;p&gt;I added a bio page (the about link). It's fun to make, and doesn't really explain why I'm making this blog or anything but maybe I'll add that too.&lt;/p&gt;</summary><content type="html">&lt;p&gt;&lt;a href="../about.html"&gt;It's here&lt;/a&gt;&lt;/p&gt;</content><category term="Self"></category></entry><entry><title>Catgirl Blows Up the Farm</title><link href="https://eloise.rip/blog/catgirl-blows-up-the-farm.html" rel="alternate"></link><published>2025-10-31T00:00:00+00:00</published><updated>2025-10-31T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-10-31:/blog/catgirl-blows-up-the-farm.html</id><summary type="html">&lt;p&gt;Catgirl terrorist&lt;/p&gt;</summary><content type="html">&lt;p&gt;She had just been talking about how she might blow it up when I least expect.
 I was looking at a chest and she noticed and knew I wouldn't expect it immedately after mentioning it.&lt;/p&gt;
-&lt;p&gt;[[video:catgirl-blowing-up-the-farm]]
-She's visible through the menu, and a big red orb appears and she scurries away 😼&lt;/p&gt;</content><category term="Self"></category><category term="Catgirl"></category><category term="Stardew"></category></entry><entry><title>Random selfies</title><link href="https://eloise.rip/blog/random-selfies.html" rel="alternate"></link><published>2025-10-14T00:00:00+00:00</published><updated>2025-10-14T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-10-14:/blog/random-selfies.html</id><summary type="html">&lt;p&gt;😈&lt;/p&gt;</summary><content type="html">&lt;p&gt;[[carousel:label=Gobbo photo set;
-media/images/goofy-gobbo.avif|Not the most flattering but maybe the most me;
-media/images/frizzy-gobbo.avif|Shortly after Collin styled my hair, idk what I did to fuck it up;
-media/images/gamer-gobbo.avif|Farming 🐮;
-media/images/gobbo-splits.avif|Still trying!;
-media/images/goth-gobbo.avif|I crashed out before actually being able to party with Catgirl 😭 Still so sad about this;
-media/images/normal-gobbo.avif|😈]]
-&lt;em&gt;6 images&lt;/em&gt;&lt;/p&gt;</content><category term="Self"></category></entry><entry><title>Magic Trick</title><link href="https://eloise.rip/blog/magic-trick.html" rel="alternate"></link><published>2025-10-13T00:00:00+00:00</published><updated>2025-10-13T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-10-13:/blog/magic-trick.html</id><summary type="html">&lt;p&gt;Deleted by IG for being too cool and mind blowing&lt;/p&gt;</summary><content type="html">&lt;p&gt;[[video:nipple-magic]]&lt;/p&gt;</content><category term="Self"></category></entry></feed>
+&lt;p&gt;&lt;figure class="embedded-video"&gt;
+  &lt;video controls preload="metadata" poster="/media/video/catgirl-blowing-up-the-farm.jpg"&gt;
+    &lt;source src="/media/video/catgirl-blowing-up-the-farm.mp4" type="video/mp4" /&gt;
+    Your browser does not support the video tag.
+  &lt;/video&gt;
+&lt;/figure&gt;She's visible through the menu, and a big red orb appears and she scurries away 😼&lt;/p&gt;</content><category term="Self"></category><category term="Catgirl"></category><category term="Stardew"></category></entry><entry><title>Random selfies</title><link href="https://eloise.rip/blog/random-selfies.html" rel="alternate"></link><published>2025-10-14T00:00:00+00:00</published><updated>2025-10-14T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-10-14:/blog/random-selfies.html</id><summary type="html">&lt;p&gt;😈&lt;/p&gt;</summary><content type="html">&lt;p&gt;&lt;div class="carousel-gallery" role="group" aria-label="Gobbo photo set"&gt;
+  &lt;div class="carousel-scroller" tabindex="0"&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/goofy-gobbo.avif" alt="Not the most flattering but maybe the most me" loading="lazy"&gt;
+      &lt;figcaption&gt;Not the most flattering but maybe the most me&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/frizzy-gobbo.avif" alt="Shortly after Collin styled my hair, idk what I did to fuck it up" loading="lazy"&gt;
+      &lt;figcaption&gt;Shortly after Collin styled my hair, idk what I did to fuck it up&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/gamer-gobbo.avif" alt="Farming 🐮" loading="lazy"&gt;
+      &lt;figcaption&gt;Farming 🐮&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/gobbo-splits.avif" alt="Still trying!" loading="lazy"&gt;
+      &lt;figcaption&gt;Still trying!&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/goth-gobbo.avif" alt="I crashed out before actually being able to party with Catgirl 😭 Still so sad about this" loading="lazy"&gt;
+      &lt;figcaption&gt;I crashed out before actually being able to party with Catgirl 😭 Still so sad about this&lt;/figcaption&gt;
+    &lt;/figure&gt;
+    &lt;figure class="carousel-item"&gt;
+      &lt;img src="/media/images/normal-gobbo.avif" alt="😈" loading="lazy"&gt;
+      &lt;figcaption&gt;😈&lt;/figcaption&gt;
+    &lt;/figure&gt;
+  &lt;/div&gt;
+&lt;/div&gt;&lt;em&gt;6 images&lt;/em&gt;&lt;/p&gt;</content><category term="Self"></category></entry><entry><title>Magic Trick</title><link href="https://eloise.rip/blog/magic-trick.html" rel="alternate"></link><published>2025-10-13T00:00:00+00:00</published><updated>2025-10-13T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-10-13:/blog/magic-trick.html</id><summary type="html">&lt;p&gt;Deleted by IG for being too cool and mind blowing&lt;/p&gt;</summary><content type="html">&lt;figure class="embedded-video"&gt;
+  &lt;video controls preload="metadata" poster="/media/video/nipple-magic.jpg"&gt;
+    &lt;source src="/media/video/nipple-magic.mp4" type="video/mp4" /&gt;
+    Your browser does not support the video tag.
+  &lt;/video&gt;
+&lt;/figure&gt;</content><category term="Self"></category></entry></feed>
