@@ -49,6 +49,13 @@ MARKDOWN = {
 # --- URL Settings ---
 RELATIVE_URLS = True
 
+# --- Feed Settings ---
+FEED_DOMAIN = SITEURL
+FEED_ALL_ATOM = 'feeds/all.atom.xml'
+FEED_ALL_RSS = 'feeds/all.rss.xml'
+CATEGORY_FEED_ATOM = 'feeds/{slug}.atom.xml'
+CATEGORY_FEED_RSS = 'feeds/{slug}.rss.xml'
+
 # --- Extra Path Metadata ---
 EXTRA_PATH_METADATA = {
     f"extra/{name}": {"path": name}
