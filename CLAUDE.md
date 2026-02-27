@@ -35,7 +35,7 @@ pelican -l
 python validate_output.py
 python validate_output.py --check-external   # include external links (slow)
 
-# Media transcoding (requires ffmpeg on PATH or tools/ffmpeg-bin/)
+# Media transcoding (requires ffmpeg on PATH)
 make transcode          # incremental
 make transcode-force    # re-encode all
 
