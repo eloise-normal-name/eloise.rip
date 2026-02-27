@@ -6,34 +6,40 @@ Hostname split for this project:
 - Public blog/site: `www.eloise.rip`
 - Audio upload/transcoding tool: separate app subdomain (planned as `admin.eloise.rip`, final hostname TBD)
 
-## Current Status (as of February 27, 2026)
+## Progress
 
-Setup progress on Windows:
-- Step 2 complete: `cloudflared` installed via `winget` (version `2025.8.1`)
-- Step 3 complete: authenticated and tunnel created
+Last updated: February 27, 2026
+
+Progress tracker (keep this section current as steps are completed):
+- [x] Step 2 (Windows): install `cloudflared` via `winget` (`2025.8.1`)
+- [x] Step 3: authenticate, create tunnel, and route DNS
   - Tunnel name: `audio-app`
   - Tunnel ID: `3c11812a-c895-4274-b17a-c32a7605e9c3`
   - Origin cert: `C:\Users\Admin\.cloudflared\cert.pem`
   - Tunnel credentials: `C:\Users\Admin\.cloudflared\3c11812a-c895-4274-b17a-c32a7605e9c3.json`
-- DNS route created: `admin.eloise.rip` CNAME mapped to the Cloudflare tunnel
-
-Next required step:
-- Step 4: create a repo-local config at `cloudflared/config.yml` and run tunnel commands with `--config`.
+  - DNS route: `admin.eloise.rip` CNAME mapped to tunnel
+- [x] Step 4: repo-local config created at `cloudflared/config.yml` and validated with `cloudflared tunnel --config ... ingress validate`
+- [ ] Step 5: configure nginx reverse proxy
+- [ ] Step 6: configure Cloudflare Access policy for admin subdomain
+- [ ] Step 7: install Python deps and run Flask/gunicorn
+- [ ] Step 8: run `cloudflared` as a system service
+- [ ] Step 9: verify end-to-end from local + phone
 
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [DNS and Domain Layer](#dns-and-domain-layer)
-3. [Cloudflare Layer](#cloudflare-layer)
-4. [Home Machine Layer](#home-machine-layer)
-5. [Authentication Flow](#authentication-flow)
-6. [File Upload and Processing Flow](#file-upload-and-processing-flow)
-7. [Component Reference](#component-reference)
-8. [Setup Guide](#setup-guide)
-9. [Directory Structure](#directory-structure)
-10. [Configuration Reference](#configuration-reference)
+1. [Progress](#progress)
+2. [Architecture Overview](#architecture-overview)
+3. [DNS and Domain Layer](#dns-and-domain-layer)
+4. [Cloudflare Layer](#cloudflare-layer)
+5. [Home Machine Layer](#home-machine-layer)
+6. [Authentication Flow](#authentication-flow)
+7. [File Upload and Processing Flow](#file-upload-and-processing-flow)
+8. [Component Reference](#component-reference)
+9. [Setup Guide](#setup-guide)
+10. [Directory Structure](#directory-structure)
+11. [Configuration Reference](#configuration-reference)
 
 ---
 
