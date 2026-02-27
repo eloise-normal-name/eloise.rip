@@ -33,6 +33,8 @@ JINJA_GLOBALS = {
     'Path': Path,
 }
 
+
+
 # --- Markdown Extensions ---
 MARKDOWN = {
     'extensions': [
