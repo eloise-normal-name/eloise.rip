@@ -27,7 +27,7 @@ THEME = 'themes/cute-theme'
 
 # --- Plugins ---
 PLUGIN_PATHS = ['pelican-plugins']
-PLUGINS = ['video_embed', 'carousel_embed', 'jinja2content', 'feed_processor']
+PLUGINS = ['video_embed', 'carousel_embed', 'jinja2content']
 
 JINJA_GLOBALS = {
     'Path': Path,
