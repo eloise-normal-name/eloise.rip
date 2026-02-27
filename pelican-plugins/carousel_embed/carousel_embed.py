@@ -173,21 +173,47 @@ def _build_html(label: str, items: List[CarouselItem], settings) -> str:
     return '\n'.join(lines)
 
 
+def _replace_carousels_in_text(text: str, settings, instance) -> str:
+    def _repl(match: re.Match) -> str:
+        spec = match.group('spec')
+        label, items = _parse_spec(spec, settings, instance)
+        if not items:
+            return ''
+        return _build_html(label, items, settings)
+
+    replaced = CAROUSEL_PATTERN.sub(_repl, text)
+    container_class = settings.get('CAROUSEL_CONTAINER_CLASS', 'carousel-gallery')
+    wrapper_pattern = re.compile(
+        rf'<p>\s*(<div class="{re.escape(container_class)}".*?</div>)\s*</p>',
+        re.IGNORECASE | re.DOTALL,
+    )
+    return wrapper_pattern.sub(r'\1', replaced)
+
+
 def replace_carousels(instance):
     if not isinstance(instance, (Article, Page)):
         return
-    if not getattr(instance, 'content', None):
+    source = getattr(instance, '_content', None) or getattr(instance, 'content', None)
+    if not source:
         return
 
-    def _repl(match: re.Match) -> str:
-        spec = match.group('spec')
-        label, items = _parse_spec(spec, instance.settings, instance)
-        if not items:
-            return ''
-        return _build_html(label, items, instance.settings)
+    instance._content = _replace_carousels_in_text(source, instance.settings, instance)  # noqa: SLF001
 
-    instance._content = CAROUSEL_PATTERN.sub(_repl, instance._content)  # noqa: SLF001
+
+def replace_carousels_late(generators):
+    for generator in generators:
+        for attr in ('articles', 'pages'):
+            for instance in getattr(generator, attr, []):
+                if not isinstance(instance, (Article, Page)):
+                    continue
+                content = getattr(instance, '_content', None)
+                if content:
+                    instance._content = _replace_carousels_in_text(content, instance.settings, instance)  # noqa: SLF001
+                summary = getattr(instance, '_summary', None)
+                if summary:
+                    instance._summary = _replace_carousels_in_text(summary, instance.settings, instance)  # noqa: SLF001
 
 
 def register():
     signals.content_object_init.connect(replace_carousels)
+    signals.all_generators_finalized.connect(replace_carousels_late)
