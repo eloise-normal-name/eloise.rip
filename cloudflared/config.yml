@@ -1,0 +1,7 @@
+tunnel: 3c11812a-c895-4274-b17a-c32a7605e9c3
+credentials-file: C:/Users/Admin/.cloudflared/3c11812a-c895-4274-b17a-c32a7605e9c3.json
+
+ingress:
+  - hostname: admin.eloise.rip
+    service: http://localhost:5000
+  - service: http_status:404
