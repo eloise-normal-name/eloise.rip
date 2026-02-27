@@ -34,12 +34,7 @@ They're missing the seaweed wrap ☹ but was assured it exists somewhere in thei
 &lt;p&gt;Also here's an eyeball I made for a 3yo's birthday. It's supposed to be &lt;a href="https://starwars.fandom.com/wiki/Dianoga"&gt;dianoga&lt;/a&gt;
 but I didn't make the tentacle part. You can stuff it in your sleeve and use it like a puppet though. 
 I made it super quickly and it's not the best quality but am proud of how fast it came out.
-&lt;figure class="embedded-video"&gt;
-  &lt;video controls preload="metadata" poster="/media/video/plush-eyeball.jpg"&gt;
-    &lt;source src="/media/video/plush-eyeball.mp4" type="video/mp4" /&gt;
-    Your browser does not support the video tag.
-  &lt;/video&gt;
-&lt;/figure&gt;&lt;/p&gt;</content><category term="Art"></category><category term="Plushie"></category></entry><entry><title>Catgirl Art</title><link href="https://eloise.rip/blog/catgirl-art.html" rel="alternate"></link><published>2025-10-22T00:00:00+00:00</published><updated>2025-10-22T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-10-22:/blog/catgirl-art.html</id><summary type="html">&lt;p&gt;I think it's in progress? I don't know. Might as well post.&lt;/p&gt;</summary><content type="html">&lt;p&gt;&lt;div class="carousel-gallery" role="group" aria-label="Catgirl and Goblin photo set"&gt;
+&lt;figure&gt;&lt;img src="/media/video/plush-eyeball.jpg" alt="Video" /&gt;&lt;/figure&gt;&lt;/p&gt;</content><category term="Art"></category><category term="Plushie"></category></entry><entry><title>Catgirl Art</title><link href="https://eloise.rip/blog/catgirl-art.html" rel="alternate"></link><published>2025-10-22T00:00:00+00:00</published><updated>2025-10-22T00:00:00+00:00</updated><author><name></name></author><id>tag:eloise.rip,2025-10-22:/blog/catgirl-art.html</id><summary type="html">&lt;p&gt;I think it's in progress? I don't know. Might as well post.&lt;/p&gt;</summary><content type="html">&lt;p&gt;&lt;div class="carousel-gallery" role="group" aria-label="Catgirl and Goblin photo set"&gt;
   &lt;div class="carousel-scroller" tabindex="0"&gt;
     &lt;figure class="carousel-item"&gt;
       &lt;img src="/media/images/goblin-pole-butterfly.avif" alt="I wanna learn more shapes that Catgirl can draw of me 🦋" loading="lazy"&gt;
@@ -83,11 +78,6 @@ and drank hot chocolate and other things too probably.&lt;/p&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
 &lt;p&gt;Demo opening the zipper
-&lt;figure class="embedded-video"&gt;
-  &lt;video controls preload="metadata" poster="/media/video/cat-purse-demo.jpg"&gt;
-    &lt;source src="/media/video/cat-purse-demo.mp4" type="video/mp4" /&gt;
-    Your browser does not support the video tag.
-  &lt;/video&gt;
-&lt;/figure&gt;&lt;/p&gt;
+&lt;figure&gt;&lt;img src="/media/video/cat-purse-demo.jpg" alt="Video" /&gt;&lt;/figure&gt;&lt;/p&gt;
 &lt;p&gt;I used blender to create the sewing pattern
 &lt;img alt="Design in blender" src="../media/images/cat-purse-blender.avif"&gt;&lt;/p&gt;</content><category term="Art"></category><category term="Sewing"></category><category term="Catgirl"></category><category term="Pinball"></category></entry></feed>
