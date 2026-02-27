@@ -22,7 +22,7 @@ Progress tracker (keep this section current as steps are completed):
 - [x] Step 5: nginx installed (`1.29.4`), repo config added (`nginx/audio-app.conf`), include added to nginx.conf, and `nginx -t` passed
 - [ ] Step 6: configure Cloudflare Access policy for admin subdomain
 - [x] Step 7: Python deps installed in `.venv`, `app.py` added, and Waitress verified on `127.0.0.1:8000` (`/health` and `/` returned `200`)
-- [ ] Step 8: run `cloudflared` as a system service
+- [ ] Step 8: blocked in non-elevated shell (`cloudflared service install` requires Administrator / Service Control Manager access)
 - [ ] Step 9: verify end-to-end from local + phone
 
 ---
