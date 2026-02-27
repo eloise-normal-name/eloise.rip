@@ -18,7 +18,7 @@ Setup progress on Windows:
 - DNS route created: `admin.eloise.rip` CNAME mapped to the Cloudflare tunnel
 
 Next required step:
-- Step 4: create `~/.cloudflared/config.yml` (Windows path: `C:\Users\Admin\.cloudflared\config.yml`) with the tunnel ID and credentials file above.
+- Step 4: create a repo-local config at `cloudflared/config.yml` and run tunnel commands with `--config`.
 
 ---
 
@@ -315,16 +315,22 @@ cloudflared tunnel route dns audio-app admin.eloise.rip
 
 ### Step 4 — Write the cloudflared config
 
-Create `~/.cloudflared/config.yml`:
+Create a repo-local config file at `cloudflared/config.yml` (example absolute path on this machine: `C:\Users\Admin\eloise.rip\eloise.rip\cloudflared\config.yml`):
 
 ```yaml
 tunnel: <your-tunnel-id>
-credentials-file: /home/youruser/.cloudflared/<your-tunnel-id>.json
+credentials-file: C:\Users\Admin\.cloudflared\<your-tunnel-id>.json
 
 ingress:
   - hostname: admin.eloise.rip
     service: http://localhost:5000   # nginx listens here
   - service: http_status:404         # catch-all for unmatched hostnames
+```
+
+Run with the explicit config path from the repository workspace:
+
+```powershell
+cloudflared tunnel --config C:\Users\Admin\eloise.rip\eloise.rip\cloudflared\config.yml run audio-app
 ```
 
 ### Step 5 — Configure nginx
