@@ -19,9 +19,9 @@ Progress tracker (keep this section current as steps are completed):
   - Tunnel credentials: `C:\Users\Admin\.cloudflared\3c11812a-c895-4274-b17a-c32a7605e9c3.json`
   - DNS route: `admin.eloise.rip` CNAME mapped to tunnel
 - [x] Step 4: repo-local config created at `cloudflared/config.yml` and validated with `cloudflared tunnel --config ... ingress validate`
-- [ ] Step 5: configure nginx reverse proxy
+- [x] Step 5: nginx installed (`1.29.4`), repo config added (`nginx/audio-app.conf`), include added to nginx.conf, and `nginx -t` passed
 - [ ] Step 6: configure Cloudflare Access policy for admin subdomain
-- [ ] Step 7: install Python deps and run Flask/gunicorn
+- [x] Step 7: Python deps installed in `.venv`, `app.py` added, and Waitress verified on `127.0.0.1:8000` (`/health` and `/` returned `200`)
 - [ ] Step 8: run `cloudflared` as a system service
 - [ ] Step 9: verify end-to-end from local + phone
 
@@ -288,17 +288,9 @@ Log in to [cloudflare.com](https://cloudflare.com), add your domain, and copy th
 
 ### Step 2 — Install cloudflared
 
-```bash
-# Ubuntu / Debian
-sudo mkdir -p /etc/apt/keyrings
-curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg \
-  | sudo tee /etc/apt/keyrings/cloudflare-main.gpg > /dev/null
-
-echo "deb [signed-by=/etc/apt/keyrings/cloudflare-main.gpg] \
-  https://pkg.cloudflare.com/cloudflared any main" \
-  | sudo tee /etc/apt/sources.list.d/cloudflared.list
-
-sudo apt update && sudo apt install cloudflared
+```powershell
+# Windows
+winget install --id Cloudflare.cloudflared -e
 
 # Verify
 cloudflared --version
@@ -341,7 +333,23 @@ cloudflared tunnel --config C:\Users\Admin\eloise.rip\eloise.rip\cloudflared\con
 
 ### Step 5 — Configure nginx
 
-Install nginx (`sudo apt install nginx`) and write a site config at `/etc/nginx/sites-available/audio-app`:
+Install nginx on Windows and use a repo-local server config:
+
+```powershell
+winget install --id nginxinc.nginx -e
+```
+
+Create [audio-app.conf](/C:/Users/Admin/eloise.rip/eloise.rip/nginx/audio-app.conf) and include it from your nginx main config (`nginx.conf`):
+
+```nginx
+http {
+    include       mime.types;
+    include       C:/Users/Admin/eloise.rip/eloise.rip/nginx/audio-app.conf;
+    ...
+}
+```
+
+The included server block should look like:
 
 ```nginx
 server {
@@ -376,10 +384,12 @@ server {
 }
 ```
 
-```bash
-sudo ln -s /etc/nginx/sites-available/audio-app /etc/nginx/sites-enabled/
-sudo nginx -t        # verify config is valid
-sudo systemctl reload nginx
+```powershell
+# Validate config (explicit package root from winget install)
+nginx -t -p C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\nginxinc.nginx_Microsoft.Winget.Source_8wekyb3d8bbwe\nginx-1.29.4 -c conf/nginx.conf
+
+# Reload after changes
+nginx -s reload
 ```
 
 ### Step 6 — Set up Cloudflare Access
@@ -388,28 +398,33 @@ In the Cloudflare dashboard, navigate to Zero Trust → Access → Applications.
 
 ### Step 7 — Install Python dependencies and run Flask
 
-```bash
-pip install flask gunicorn werkzeug itsdangerous
+```powershell
+pip install flask waitress werkzeug itsdangerous
 
 # For development
 python app.py
 
-# For production — gunicorn handles multiple concurrent requests properly
-gunicorn --bind 127.0.0.1:8000 --workers 2 --timeout 120 app:app
+# For production on Windows
+waitress-serve --listen=127.0.0.1:8000 app:app
 ```
 
 ### Step 8 — Run cloudflared as a system service
 
-```bash
-sudo cloudflared service install
-sudo systemctl enable cloudflared
-sudo systemctl start cloudflared
-sudo systemctl status cloudflared   # confirm it's running
+```powershell
+# Windows service install (run in elevated PowerShell)
+cloudflared service install
+
+# Check service status
+Get-Service cloudflared
+
+# If using repo-local config, create a Task Scheduler startup task instead:
+# Program/script: cloudflared
+# Arguments: tunnel --config C:\Users\Admin\eloise.rip\eloise.rip\cloudflared\config.yml run audio-app
 ```
 
 ### Step 9 — Verify end-to-end
 
-```bash
+```powershell
 # Check the tunnel is connected
 cloudflared tunnel info audio-app
 
