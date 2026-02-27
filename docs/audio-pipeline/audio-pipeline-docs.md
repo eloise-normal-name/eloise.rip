@@ -2,6 +2,24 @@
 
 A self-hosted audio transcoding service accessible from anywhere, built on Flask, nginx, Cloudflare Tunnel, and FFmpeg. The service is gated behind two layers of authentication and runs processing on a home machine while remaining reachable via a Squarespace-managed domain.
 
+Hostname split for this project:
+- Public blog/site: `www.eloise.rip`
+- Audio upload/transcoding tool: separate app subdomain (planned as `admin.eloise.rip`, final hostname TBD)
+
+## Current Status (as of February 27, 2026)
+
+Setup progress on Windows:
+- Step 2 complete: `cloudflared` installed via `winget` (version `2025.8.1`)
+- Step 3 complete: authenticated and tunnel created
+  - Tunnel name: `audio-app`
+  - Tunnel ID: `3c11812a-c895-4274-b17a-c32a7605e9c3`
+  - Origin cert: `C:\Users\Admin\.cloudflared\cert.pem`
+  - Tunnel credentials: `C:\Users\Admin\.cloudflared\3c11812a-c895-4274-b17a-c32a7605e9c3.json`
+- DNS route created: `admin.eloise.rip` CNAME mapped to the Cloudflare tunnel
+
+Next required step:
+- Step 4: create `~/.cloudflared/config.yml` (Windows path: `C:\Users\Admin\.cloudflared\config.yml`) with the tunnel ID and credentials file above.
+
 ---
 
 ## Table of Contents
@@ -44,6 +62,14 @@ graph TD
 
 The key architectural insight is that **no inbound port needs to be opened on your router**. The `cloudflared` agent on your home machine makes an outbound connection to Cloudflare's edge, and Cloudflare forwards traffic back through that persistent tunnel. This means your home IP address is never exposed, and your ISP's dynamic IP changes are irrelevant.
 
+### Hostname plan
+
+This architecture assumes the public website and the private upload tool are on different hostnames:
+- `www.eloise.rip` serves the public blog/content site.
+- `admin.eloise.rip` (or another final admin subdomain) fronts the Flask upload app through Cloudflare Access and Tunnel.
+
+Only the admin app subdomain should route through this upload pipeline.
+
 ---
 
 ## DNS and Domain Layer
@@ -55,7 +81,7 @@ graph LR
     Registrar["🟦 Squarespace\nDomain Registrar\n(billing stays here)"]
     NS["🌐 Nameservers\nChanged to Cloudflare's\nns1.cloudflare.com\nns2.cloudflare.com"]
     CFDNS["☁️ Cloudflare DNS\nManages all records\nfor yourdomain.com"]
-    Tunnel["🔒 CNAME Record\naudio.yourdomain.com\n→ tunnel-id.cfargotunnel.com"]
+    Tunnel["🔒 CNAME Record\nadmin.eloise.rip (example)\n→ tunnel-id.cfargotunnel.com"]
 
     Registrar -->|"Nameserver delegation"| NS
     NS --> CFDNS
@@ -76,7 +102,7 @@ Cloudflare sits between the public internet and your home machine. It performs t
 
 ```mermaid
 graph TD
-    Internet["🌐 Public Internet Request\nhttps://audio.yourdomain.com/upload"]
+    Internet["🌐 Public Internet Request\nhttps://admin.eloise.rip/upload (example)"]
 
     subgraph Cloudflare Edge
         TLS["TLS Termination\nCloudflare holds the certificate\nand decrypts HTTPS here"]
@@ -154,7 +180,7 @@ sequenceDiagram
     participant Flask as Flask App
     participant Session as Browser Session Cookie
 
-    Phone->>CF: GET https://audio.yourdomain.com/
+    Phone->>CF: GET https://admin.eloise.rip/
     CF->>CF: Check for valid CF Access JWT cookie
     alt No valid JWT (first visit or expired)
         CF->>Phone: Show Cloudflare login page
@@ -283,8 +309,8 @@ cloudflared tunnel create audio-app
 
 # Note the tunnel ID printed in the output, you need it for the config file
 
-# Create a DNS CNAME record pointing your subdomain at the tunnel
-cloudflared tunnel route dns audio-app audio.yourdomain.com
+# Create a DNS CNAME record pointing your admin app subdomain at the tunnel
+cloudflared tunnel route dns audio-app admin.eloise.rip
 ```
 
 ### Step 4 — Write the cloudflared config
@@ -296,7 +322,7 @@ tunnel: <your-tunnel-id>
 credentials-file: /home/youruser/.cloudflared/<your-tunnel-id>.json
 
 ingress:
-  - hostname: audio.yourdomain.com
+  - hostname: admin.eloise.rip
     service: http://localhost:5000   # nginx listens here
   - service: http_status:404         # catch-all for unmatched hostnames
 ```
@@ -346,7 +372,7 @@ sudo systemctl reload nginx
 
 ### Step 6 — Set up Cloudflare Access
 
-In the Cloudflare dashboard, navigate to Zero Trust → Access → Applications. Click "Add an application" and choose "Self-hosted". Set the subdomain to `audio.yourdomain.com`. On the next screen, add a policy with the "Emails" rule type and list the email addresses that should be allowed. Leave all other settings at their defaults and save.
+In the Cloudflare dashboard, navigate to Zero Trust → Access → Applications. Click "Add an application" and choose "Self-hosted". Set the subdomain to your admin app hostname (for example `admin.eloise.rip`; final hostname TBD). On the next screen, add a policy with the "Emails" rule type and list the email addresses that should be allowed. Leave all other settings at their defaults and save.
 
 ### Step 7 — Install Python dependencies and run Flask
 
@@ -379,7 +405,7 @@ cloudflared tunnel info audio-app
 curl http://localhost:5000/
 
 # Test from phone via public URL
-# Visit https://audio.yourdomain.com — should see Cloudflare Access login
+# Visit https://admin.eloise.rip — should see Cloudflare Access login
 ```
 
 ---
