@@ -13,11 +13,14 @@ app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev-only-change-me")
 app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", "200")) * 1024 * 1024
 
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "media-source"))
-TRANSCODED_DIR = Path(os.getenv("OUTPUT_DIR", "content/media/voice"))
+REPO_ROOT = Path(subprocess.run(
+    ["git", "rev-parse", "--show-toplevel"],
+    capture_output=True, text=True, check=True,
+).stdout.strip())
+UPLOAD_DIR = REPO_ROOT / os.getenv("UPLOAD_DIR", "media-source")
+TRANSCODED_DIR = REPO_ROOT / os.getenv("OUTPUT_DIR", "content/media/voice")
 OUTPUT_FORMAT = "m4a"
 CLIP_ID_PATTERN = re.compile(r"(\d{2}-\d{2})")
-REPO_ROOT = Path(__file__).resolve().parent.parent
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 TRANSCODED_DIR.mkdir(parents=True, exist_ok=True)
@@ -38,7 +41,7 @@ def git_push_transcoded(output_path: Path) -> str | None:
         subprocess.run(cmd, capture_output=True, text=True, check=True, cwd=REPO_ROOT)
 
     try:
-        run(["git", "add", str(output_path.resolve())])
+        run(["git", "add", str(output_path)])
         run(["git", "commit", "-m", f"audio: add {output_path.name}"])
         run(["git", "push", "origin", "main"])
         return None
@@ -49,12 +52,8 @@ def git_push_transcoded(output_path: Path) -> str | None:
 
 
 def build_output_filename(input_name: str) -> str | None:
-    stem = Path(input_name).stem
-    match = CLIP_ID_PATTERN.search(stem)
-    if not match:
-        return None
-    base_name = match.group(1)
-    return f"{base_name}.{OUTPUT_FORMAT}"
+    match = CLIP_ID_PATTERN.search(Path(input_name).stem)
+    return f"{match.group(1)}.{OUTPUT_FORMAT}" if match else None
 
 
 def transcode_audio(job_id: str, input_path: Path, output_filename: str) -> None:
@@ -140,12 +139,11 @@ def upload_audio():
             "completed_at": None,
         }
 
-    worker = threading.Thread(
+    threading.Thread(
         target=transcode_audio,
         args=(job_id, input_path, output_filename),
         daemon=True,
-    )
-    worker.start()
+    ).start()
 
     return jsonify({"job_id": job_id, "status_url": f"/api/jobs/{job_id}"})
 
