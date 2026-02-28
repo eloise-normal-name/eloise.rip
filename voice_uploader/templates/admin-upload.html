@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Audio Admin Upload</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f8f9fc;
+            --text: #17202a;
+            --muted: #586174;
+            --card: #ffffff;
+            --border: #d8dee9;
+            --primary: #0a63d8;
+            --primary-strong: #084fb0;
+            --error: #b42318;
+        }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 40%);
+            color: var(--text);
+        }
+        .wrap {
+            max-width: 720px;
+            margin: 40px auto;
+            padding: 0 16px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 6px 18px rgba(19, 34, 63, 0.06);
+        }
+        h1 {
+            margin-top: 0;
+            margin-bottom: 6px;
+            font-size: 1.5rem;
+        }
+        .sub {
+            margin-top: 0;
+            color: var(--muted);
+            margin-bottom: 20px;
+        }
+        .field {
+            margin-bottom: 14px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        input, select, button {
+            width: 100%;
+            box-sizing: border-box;
+            font: inherit;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        button {
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover {
+            background: var(--primary-strong);
+        }
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #f6f9ff;
+            display: none;
+        }
+        .status.show {
+            display: block;
+        }
+        .status.error {
+            border-color: #f4c7c3;
+            color: var(--error);
+            background: #fff5f4;
+        }
+        .status a {
+            color: var(--primary-strong);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="card">
+        <h1>Audio File Upload</h1>
+        <p class="sub">Upload one <code>.qta</code> source file, transcode to <code>.m4a</code>, then download when complete.</p>
+        <form id="upload-form">
+            <div class="field">
+                <label for="file">Input file (.qta)</label>
+                <input id="file" name="file" type="file" accept=".qta,audio/*" required>
+            </div>
+            <button id="submit-btn" type="submit">Start Transcode</button>
+        </form>
+        <div id="status" class="status" aria-live="polite"></div>
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("upload-form");
+    const statusBox = document.getElementById("status");
+    const submitBtn = document.getElementById("submit-btn");
+
+    function showStatus(text, isError = false) {
+        statusBox.classList.add("show");
+        statusBox.classList.toggle("error", isError);
+        statusBox.innerHTML = text;
+    }
+
+    async function pollJob(jobId) {
+        const interval = 2000;
+        while (true) {
+            const res = await fetch(`/api/jobs/${jobId}`);
+            if (!res.ok) {
+                showStatus("Could not read job status.", true);
+                return;
+            }
+            const data = await res.json();
+            if (data.status === "done") {
+                showStatus(`Complete. <a href="${data.download_url}">Download ${data.output_filename}</a>`);
+                submitBtn.disabled = false;
+                return;
+            }
+            if (data.status === "error") {
+                showStatus(`Transcode failed: ${data.error || "unknown error"}`, true);
+                submitBtn.disabled = false;
+                return;
+            }
+            showStatus(`Job ${data.status}...`);
+            await new Promise((resolve) => setTimeout(resolve, interval));
+        }
+    }
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        submitBtn.disabled = true;
+        showStatus("Uploading file...");
+
+        const payload = new FormData(form);
+        const res = await fetch("/api/upload", {
+            method: "POST",
+            body: payload
+        });
+
+        if (!res.ok) {
+            const errorBody = await res.json().catch(() => ({ error: "upload failed" }));
+            showStatus(`Upload failed: ${errorBody.error || "unknown error"}`, true);
+            submitBtn.disabled = false;
+            return;
+        }
+
+        const data = await res.json();
+        showStatus("Upload accepted. Starting background job...");
+        await pollJob(data.job_id);
+    });
+</script>
+</body>
+</html>
