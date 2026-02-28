@@ -8,7 +8,7 @@ Hostname split for this project:
 
 ## Progress
 
-Last updated: February 27, 2026
+Last updated: February 28, 2026
 
 Progress tracker (keep this section current as steps are completed):
 - [x] Step 2 (Windows): install `cloudflared` via `winget` (`2025.8.1`)
@@ -21,10 +21,11 @@ Progress tracker (keep this section current as steps are completed):
 - [x] Step 4: repo-local config created at `cloudflared/config.yml` and validated with `cloudflared tunnel --config ... ingress validate`
 - [x] Step 5: nginx installed (`1.29.4`), repo config added (`nginx/audio-app.conf`), include added to nginx.conf, and `nginx -t` passed
 - [x] Step 6: Cloudflare Access policy configured and verified (unauthenticated browser now prompts for Access login)
-- [x] Step 7: Python deps installed in `.venv`, `app.py` added, and Waitress verified on `127.0.0.1:8000` (`/health` and `/` returned `200`)
+- [x] Step 7: Python deps installed in `.venv`, `voice_uploader/app.py` added, and Waitress verified on `127.0.0.1:8000` (`/health` and `/` returned `200`)
 - [ ] Step 8: blocked in non-elevated shell (`cloudflared service install` requires Administrator / Service Control Manager access)
 - [ ] Step 9: verify end-to-end from local + phone
 - [x] Startup automation script added: `scripts/start-audio-pipeline.ps1`
+- [x] Simple admin upload page implemented at `/admin/upload` with API routes in `voice_uploader/app.py`
 
 ---
 
@@ -41,6 +42,7 @@ Progress tracker (keep this section current as steps are completed):
 9. [Setup Guide](#setup-guide)
 10. [Directory Structure](#directory-structure)
 11. [Configuration Reference](#configuration-reference)
+12. [Admin Upload Page Notes](#admin-upload-page-notes)
 
 ---
 
@@ -226,7 +228,7 @@ sequenceDiagram
     participant Download as Flask /download/:id
 
     Phone->>Flask: POST /upload (multipart/form-data, audio file + target format)
-    Flask->>FS: Save to /uploads/{job_id}_{filename}
+    Flask->>FS: Save to /media-source/{job_id}_{filename}
     Flask->>Flask: Create jobs[job_id] = {status: "pending"}
     Flask->>Thread: threading.Thread(target=transcode, args=(job_id, path, format)).start()
     Flask->>Phone: 200 OK — {"job_id": "abc-123"}  ← returns immediately
@@ -403,10 +405,10 @@ In the Cloudflare dashboard, navigate to Zero Trust → Access → Applications.
 pip install flask waitress werkzeug itsdangerous
 
 # For development
-python app.py
+python -m voice_uploader.app
 
 # For production on Windows
-waitress-serve --listen=127.0.0.1:8000 app:app
+waitress-serve --listen=127.0.0.1:8000 voice_uploader.app:app
 ```
 
 ### Step 8 — Run cloudflared as a system service
@@ -451,13 +453,30 @@ Runtime artifacts are written under `.run/audio-pipeline/`:
 - PID files: `waitress.pid`, `nginx.pid`, `cloudflared.pid`
 - Logs: `*.out.log` and `*.err.log` for each process
 
+### Optional — Restart Waitress only (Windows)
+
+Use [restart-waitress.ps1](/C:/Users/Admin/eloise.rip/eloise.rip/scripts/restart-waitress.ps1) when app code changes need a fast refresh but nginx and cloudflared are already running.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\restart-waitress.ps1
+```
+
+What it does:
+- Stops Waitress using `.run/audio-pipeline/waitress.pid` if present
+- Falls back to stopping the process listening on `127.0.0.1:8000`
+- Starts Waitress again from `.venv`
+- Verifies `http://127.0.0.1:8000/health` returns `200`
+
 ---
 
 ## Directory Structure
 
 ```
 project/
-├── app.py                  # Flask application
+├── voice_uploader/
+│   ├── app.py              # Flask application
+│   └── templates/
+│       └── admin-upload.html
 ├── gunicorn.conf.py        # gunicorn configuration (optional)
 │
 ├── content/                # Pelican source files (Markdown, etc.)
@@ -471,8 +490,10 @@ project/
 │       └── my-post/
 │           └── index.html
 │
-├── uploads/                # Incoming audio files (pre-transcoding)
-│   └── {job_id}_{filename}
+├── content/
+│   └── media/
+│       └── voice/          # Incoming uploaded .qta files
+│           └── {job_id}_{filename}
 │
 └── transcoded/             # FFmpeg output files
     └── {job_id}.{format}
@@ -484,7 +505,7 @@ project/
 
 ### Environment variables
 
-Rather than hardcoding secrets in `app.py`, use environment variables or a `.env` file (loaded with `python-dotenv`):
+Rather than hardcoding secrets in `voice_uploader/app.py`, use environment variables or a `.env` file (loaded with `python-dotenv`):
 
 ```bash
 SECRET_KEY=your-long-random-string-here
@@ -495,7 +516,7 @@ STATIC_DIR=/path/to/project/output
 MAX_UPLOAD_MB=500
 ```
 
-### Flask app.py (abbreviated)
+### Flask voice_uploader/app.py (abbreviated)
 
 ```python
 import os, threading, subprocess, uuid, time
@@ -626,3 +647,15 @@ ALLOWED_EXTENSIONS = {"mp3", "wav", "flac", "aac", "ogg", "m4a", "opus", "aiff"}
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 ```
+
+---
+
+## Admin Upload Page Notes
+
+For the simple design and implementation details of the new admin page, see:
+- [admin-upload-page-design-implementation.md](./admin-upload-page-design-implementation.md)
+
+Current simplified profile:
+- Input file type: `.qta` only
+- Input filename can include GUID-style prefixes, but must include clip id `##-##`
+- Output file type: `.m4a` only
