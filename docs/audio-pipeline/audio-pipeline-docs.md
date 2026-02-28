@@ -24,6 +24,7 @@ Progress tracker (keep this section current as steps are completed):
 - [x] Step 7: Python deps installed in `.venv`, `app.py` added, and Waitress verified on `127.0.0.1:8000` (`/health` and `/` returned `200`)
 - [ ] Step 8: blocked in non-elevated shell (`cloudflared service install` requires Administrator / Service Control Manager access)
 - [ ] Step 9: verify end-to-end from local + phone
+- [x] Startup automation script added: `scripts/start-audio-pipeline.ps1`
 
 ---
 
@@ -434,6 +435,21 @@ curl http://localhost:5000/
 # Test from phone via public URL
 # Visit https://admin.eloise.rip — should see Cloudflare Access login
 ```
+
+### Optional — One-command startup (Windows)
+
+Use [start-audio-pipeline.ps1](/C:/Users/Admin/eloise.rip/eloise.rip/scripts/start-audio-pipeline.ps1) to start the required background services together:
+- Waitress app (`127.0.0.1:8000`)
+- nginx reverse proxy (`localhost:5000`)
+- cloudflared tunnel (`audio-app`) using repo config
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\start-audio-pipeline.ps1
+```
+
+Runtime artifacts are written under `.run/audio-pipeline/`:
+- PID files: `waitress.pid`, `nginx.pid`, `cloudflared.pid`
+- Logs: `*.out.log` and `*.err.log` for each process
 
 ---
 
