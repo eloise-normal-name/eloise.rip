@@ -100,7 +100,7 @@
         <form id="upload-form">
             <div class="field">
                 <label for="file">Input file (.qta)</label>
-                <input id="file" name="file" type="file" accept=".qta,audio/*" required>
+                <input id="file" name="file" type="file" accept=".qta" required>
             </div>
             <button id="submit-btn" type="submit">Start Transcode</button>
         </form>
@@ -129,7 +129,10 @@
             }
             const data = await res.json();
             if (data.status === "done") {
-                showStatus(`Complete. <a href="${data.download_url}">Download ${data.output_filename}</a>`);
+                const pushNote = data.push_error
+                    ? `<br><span style="color:var(--error)">Git push failed: ${data.push_error}</span>`
+                    : " Pushed to origin/main.";
+                showStatus(`Complete. <a href="${data.download_url}">Download ${data.output_filename}</a>${pushNote}`);
                 submitBtn.disabled = false;
                 return;
             }

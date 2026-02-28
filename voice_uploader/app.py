@@ -17,6 +17,7 @@ UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "media-source"))
 TRANSCODED_DIR = Path(os.getenv("OUTPUT_DIR", "content/media/voice"))
 OUTPUT_FORMAT = "m4a"
 CLIP_ID_PATTERN = re.compile(r"(\d{2}-\d{2})")
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 TRANSCODED_DIR.mkdir(parents=True, exist_ok=True)
@@ -29,6 +30,22 @@ def set_job(job_id: str, **updates) -> None:
     with jobs_lock:
         if job_id in jobs:
             jobs[job_id].update(updates)
+
+
+def git_push_transcoded(output_path: Path) -> str | None:
+    """Stage, commit, and push one transcoded file. Returns an error string or None."""
+    def run(cmd: list[str]) -> None:
+        subprocess.run(cmd, capture_output=True, text=True, check=True, cwd=REPO_ROOT)
+
+    try:
+        run(["git", "add", str(output_path.resolve())])
+        run(["git", "commit", "-m", f"audio: add {output_path.name}"])
+        run(["git", "push", "origin", "main"])
+        return None
+    except FileNotFoundError:
+        return "git not found in PATH"
+    except subprocess.CalledProcessError as err:
+        return (err.stderr or err.stdout or "git command failed")[-800:]
 
 
 def build_output_filename(input_name: str) -> str | None:
@@ -61,12 +78,14 @@ def transcode_audio(job_id: str, input_path: Path, output_filename: str) -> None
 
     try:
         subprocess.run(command, capture_output=True, text=True, check=True)
+        push_error = git_push_transcoded(output_file)
         set_job(
             job_id,
             status="done",
             output_path=str(output_file),
             output_filename=output_filename,
             completed_at=datetime.now(timezone.utc).isoformat(),
+            push_error=push_error,
         )
     except FileNotFoundError:
         set_job(job_id, status="error", error="ffmpeg not found in PATH")
@@ -116,6 +135,7 @@ def upload_audio():
             "output_filename": output_filename,
             "output_path": None,
             "error": None,
+            "push_error": None,
             "created_at": created_at,
             "completed_at": None,
         }
@@ -143,6 +163,7 @@ def job_status(job_id: str):
         "output_format": job["output_format"],
         "output_filename": job["output_filename"],
         "error": job["error"],
+        "push_error": job["push_error"],
         "created_at": job["created_at"],
         "completed_at": job["completed_at"],
     }
