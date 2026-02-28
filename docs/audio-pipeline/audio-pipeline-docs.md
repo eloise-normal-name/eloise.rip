@@ -46,24 +46,35 @@ Progress tracker (keep this section current as steps are completed):
 
 ---
 
+## Two separate systems
+
+This project has two completely independent components that share a git repository but are deployed and hosted separately:
+
+- **`eloise.rip` (public site)** — static HTML/CSS/JS built by Pelican and deployed to **GitHub Pages**. The voice recorder page lives here. There is no server component; everything runs in the browser. Flask is never involved.
+- **`admin.eloise.rip` (admin upload tool)** — a local Flask/Waitress app for uploading voice clips, transcoding them with FFmpeg, and pushing results to the repo. It is exposed remotely via **Cloudflare Tunnel**. It has no connection to the public site except that both live in the same repository.
+
+The rest of this document describes the admin upload pipeline only.
+
+---
+
 ## Architecture Overview
 
-The system is composed of four logical layers. A request from a phone on a mobile network travels through all four before any data is processed, and the response travels back the same path in reverse.
+The upload pipeline is composed of four logical layers. A request from a phone on a mobile network travels through all four before any data is processed, and the response travels back the same path in reverse.
 
 ```mermaid
 graph TD
     Phone["📱 Phone / Browser\n(anywhere in the world)"]
     CF["☁️ Cloudflare Edge\nDDoS protection, TLS termination,\nAccess authentication"]
     Tunnel["🔒 Cloudflare Tunnel\nEncrypted outbound connection\nfrom home machine to Cloudflare"]
-    nginx["🔁 nginx\nReverse proxy on localhost\nRoute splitting, static file serving"]
-    Flask["🐍 Flask App\nSession auth, upload handling,\njob tracking, Pelican static serving"]
+    nginx["🔁 nginx\nReverse proxy on localhost"]
+    Flask["🐍 Flask App\nUpload handling, job tracking"]
     FFmpeg["⚙️ FFmpeg Worker\nBackground thread\nAudio transcoding"]
-    FS["💾 Filesystem\n/uploads  /transcoded\n/output (Pelican)"]
+    FS["💾 Filesystem\nmedia-source/  content/media/voice/"]
 
     Phone -->|"HTTPS — public internet"| CF
     CF -->|"Cloudflare Access checks\nemail allowlist"| Tunnel
     Tunnel -->|"HTTP on localhost:5000\n(TLS handled by Cloudflare)"| nginx
-    nginx -->|"Proxy to Flask\nor serve static files"| Flask
+    nginx -->|"Proxy to Flask"| Flask
     Flask -->|"Spawns background thread"| FFmpeg
     FFmpeg -->|"Reads/writes"| FS
     Flask -->|"Reads/writes"| FS
@@ -73,11 +84,10 @@ The key architectural insight is that **no inbound port needs to be opened on yo
 
 ### Hostname plan
 
-This architecture assumes the public website and the private upload tool are on different hostnames:
-- `www.eloise.rip` serves the public blog/content site.
-- `admin.eloise.rip` (or another final admin subdomain) fronts the Flask upload app through Cloudflare Access and Tunnel.
+- `www.eloise.rip` — public blog/content site, served by GitHub Pages (no Flask).
+- `admin.eloise.rip` — admin upload app, routed through Cloudflare Access and Tunnel to the local Flask process.
 
-Only the admin app subdomain should route through this upload pipeline.
+Only the admin subdomain routes through this upload pipeline.
 
 ---
 
@@ -148,24 +158,16 @@ graph TD
 
     subgraph "Home Machine (localhost)"
         nginx["nginx\nListening on :5000\nReverse proxy"]
-        StaticCheck{"Request path\nstarts with\n/static/?"}
-        ServeStatic["Serve file directly\nfrom disk\n(no Flask involved)"]
         Flask["Flask :8000\nPython application"]
-        PelicanCheck{"Path matches\nPelican output?"}
-        UploadCheck{"POST /upload?"}
-        ServeHTML["send_from_directory()\nPelican HTML"]
+        UploadCheck{"POST /api/upload?"}
         HandleUpload["Save file\nSpawn FFmpeg thread\nReturn job_id"]
-        FFmpeg["FFmpeg subprocess\nRuns in background thread\nWrites to /transcoded"]
+        FFmpeg["FFmpeg subprocess\nRuns in background thread\nWrites to content/media/voice/"]
         Jobs["jobs{} dict\nIn-memory job tracker"]
     end
 
     Tunnel --> nginx
-    nginx --> StaticCheck
-    StaticCheck -->|"Yes"| ServeStatic
-    StaticCheck -->|"No"| Flask
-    Flask --> PelicanCheck
+    nginx --> Flask
     Flask --> UploadCheck
-    PelicanCheck -->|"Yes"| ServeHTML
     UploadCheck -->|"Yes"| HandleUpload
     HandleUpload --> FFmpeg
     HandleUpload --> Jobs
@@ -271,15 +273,17 @@ nginx runs on the home machine and listens on the port that `cloudflared` forwar
 
 ### Flask
 
-Flask is the application layer. It handles session management, the upload endpoint, job tracking, Pelican static file serving, and spawning FFmpeg subprocesses. It runs on `localhost:8000` (or any port not exposed externally — nginx is the only thing that talks to it from outside).
+Flask is the application layer for the admin upload tool. It handles the upload endpoint, job tracking, and spawning FFmpeg subprocesses. It runs on `localhost:8000` (not exposed externally — nginx is the only thing that talks to it from outside).
+
+Flask does **not** serve the public site or the voice recorder page. Those are static files deployed to GitHub Pages by a separate pipeline.
 
 ### FFmpeg
 
-FFmpeg runs as a subprocess spawned by Python's `subprocess.run()`. Your existing FFmpeg workflow slots in here — the Flask code simply calls whatever command you'd run manually, passing the input path and output path as arguments. The full stderr output from FFmpeg is captured and stored in the job record so you can see what went wrong if a transcode fails.
+FFmpeg runs as a subprocess spawned by Python's `subprocess.run()`. The Flask code calls FFmpeg with the input path (saved `.qta` file) and output path (`content/media/voice/MM-DD.m4a`). The full stderr output from FFmpeg is captured and stored in the job record so you can see what went wrong if a transcode fails.
 
 ### Pelican
 
-Pelican generates a flat directory of HTML, CSS, and JS files into `output/`. Flask serves this directory for all routes that don't match `/upload`, `/download`, `/status`, or `/login`. The route handler checks for `path/index.html` as a fallback for Pelican's clean URL structure.
+Pelican is **not part of this pipeline**. It builds the public static site (including the voice recorder page) and its output is deployed to GitHub Pages. The two systems share a git repository but are otherwise completely independent.
 
 ---
 
@@ -362,14 +366,7 @@ server {
     # Increase for large audio file uploads (adjust to suit your needs)
     client_max_body_size 500M;
 
-    # Serve Pelican static assets directly from disk — no Flask involved
-    location /static/ {
-        alias /path/to/your/project/output/static/;
-        expires 7d;
-        add_header Cache-Control "public";
-    }
-
-    # Everything else proxies to Flask
+    # Proxy everything to Flask
     location / {
         proxy_pass         http://127.0.0.1:8000;
         proxy_set_header   Host $host;
@@ -474,29 +471,20 @@ What it does:
 ```
 project/
 ├── voice_uploader/
-│   ├── app.py              # Flask application
+│   ├── app.py              # Flask admin upload app
 │   └── templates/
 │       └── admin-upload.html
-├── gunicorn.conf.py        # gunicorn configuration (optional)
 │
-├── content/                # Pelican source files (Markdown, etc.)
+├── media-source/           # Raw uploaded .qta files (gitignored)
+│   └── {job_id}_{filename}
+│
+├── content/media/voice/    # FFmpeg output — transcoded .m4a files (committed to git)
+│   └── MM-DD.m4a
+│
+│   # --- separate system below: Pelican static site → GitHub Pages ---
+├── content/                # Pelican source files (Markdown articles, pages, media)
 ├── pelicanconf.py          # Pelican configuration
-├── output/                 # Pelican build output — served by Flask/nginx
-│   ├── index.html
-│   ├── static/
-│   │   ├── css/
-│   │   └── js/
-│   └── blog/
-│       └── my-post/
-│           └── index.html
-│
-├── content/
-│   └── media/
-│       └── voice/          # Incoming uploaded .qta files
-│           └── {job_id}_{filename}
-│
-└── transcoded/             # FFmpeg output files
-    └── {job_id}.{format}
+└── output/                 # Pelican build output — deployed to GitHub Pages (gitignored)
 ```
 
 ---
@@ -509,113 +497,20 @@ Rather than hardcoding secrets in `voice_uploader/app.py`, use environment varia
 
 ```bash
 SECRET_KEY=your-long-random-string-here
-ALLOWED_EMAILS=alice@example.com,bob@example.com
-UPLOAD_DIR=/path/to/project/uploads
-OUTPUT_DIR=/path/to/project/transcoded
-STATIC_DIR=/path/to/project/output
-MAX_UPLOAD_MB=500
+UPLOAD_DIR=media-source              # raw .qta input files (gitignored)
+OUTPUT_DIR=content/media/voice       # transcoded .m4a output (committed to git)
+MAX_UPLOAD_MB=200
 ```
 
 ### Flask voice_uploader/app.py (abbreviated)
 
-```python
-import os, threading, subprocess, uuid, time
-from flask import Flask, request, session, redirect, send_from_directory, jsonify, send_file
-from werkzeug.utils import secure_filename
+The actual implementation lives at `voice_uploader/app.py`. Key env vars:
 
-app = Flask(__name__)
-app.secret_key = os.environ["SECRET_KEY"]
-app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", 200)) * 1024 * 1024
-
-ALLOWED_EMAILS = set(os.environ["ALLOWED_EMAILS"].split(","))
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
-OUTPUT_DIR = os.getenv("OUTPUT_DIR", "transcoded")
-STATIC_DIR = os.getenv("STATIC_DIR", "output")
-jobs = {}  # in-memory job store; replace with SQLite if persistence needed
-
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-@app.before_request
-def check_auth():
-    # Cloudflare Access has already verified the user — trust this header
-    cf_email = request.headers.get("Cf-Access-Authenticated-User-Email", "").lower().strip()
-    if cf_email and cf_email in ALLOWED_EMAILS:
-        session["user"] = cf_email
-    public = {"login", "static"}
-    if "user" not in session and request.endpoint not in public:
-        return redirect("/login")
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    # Used for local development only — Cloudflare Access handles production auth
-    if request.method == "POST":
-        email = request.form.get("email", "").lower().strip()
-        password = request.form.get("password", "")
-        if email in ALLOWED_EMAILS and password == os.getenv("DEV_PASSWORD", ""):
-            session["user"] = email
-            return redirect("/")
-        return "Invalid credentials", 401
-    return '<form method="post"><input name="email"><input type="password" name="password"><button>Login</button></form>'
-
-@app.route("/upload", methods=["GET", "POST"])
-def upload():
-    if request.method == "POST":
-        file = request.files.get("file")
-        target_format = request.form.get("format", "mp3")
-        if not file or not file.filename:
-            return jsonify({"error": "No file"}), 400
-        job_id = str(uuid.uuid4())
-        filename = secure_filename(file.filename)
-        input_path = os.path.join(UPLOAD_DIR, f"{job_id}_{filename}")
-        file.save(input_path)
-        jobs[job_id] = {"status": "pending", "input": filename, "format": target_format,
-                        "output_path": None, "output_filename": None, "error": None}
-        t = threading.Thread(target=transcode, args=(job_id, input_path, target_format), daemon=True)
-        t.start()
-        return jsonify({"job_id": job_id})
-    # GET — return the upload form (omitted for brevity)
-    return "upload form here"
-
-def transcode(job_id, input_path, target_format):
-    jobs[job_id]["status"] = "processing"
-    output_filename = f"{job_id}.{target_format}"
-    output_path = os.path.join(OUTPUT_DIR, output_filename)
-    # Insert your existing FFmpeg workflow here — just ensure input_path and output_path are used
-    cmd = ["ffmpeg", "-i", input_path, "-vn", "-y", output_path]
-    try:
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
-        base = jobs[job_id]["input"].rsplit(".", 1)[0]
-        jobs[job_id].update({"status": "done", "output_path": output_path,
-                              "output_filename": f"{base}.{target_format}"})
-    except subprocess.CalledProcessError as e:
-        jobs[job_id].update({"status": "error", "error": e.stderr[-1000:]})
-
-@app.route("/status/<job_id>")
-def status(job_id):
-    job = jobs.get(job_id)
-    if not job:
-        return jsonify({"status": "not_found"}), 404
-    return jsonify({"status": job["status"], "output_filename": job.get("output_filename"),
-                    "error": job.get("error")})
-
-@app.route("/download/<job_id>")
-def download(job_id):
-    job = jobs.get(job_id)
-    if not job or job["status"] != "done":
-        return "Not ready", 404
-    return send_file(job["output_path"], as_attachment=True, download_name=job["output_filename"])
-
-@app.route("/", defaults={"path": "index.html"})
-@app.route("/<path:path>")
-def serve(path):
-    full = os.path.join(STATIC_DIR, path)
-    if os.path.isfile(full):
-        return send_from_directory(STATIC_DIR, path)
-    return send_from_directory(STATIC_DIR, path.rstrip("/") + "/index.html")
-
-if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=8000, debug=True)
+```bash
+SECRET_KEY=your-long-random-string-here
+UPLOAD_DIR=media-source            # where raw .qta files are saved (gitignored)
+OUTPUT_DIR=content/media/voice     # where transcoded .m4a files go (committed)
+MAX_UPLOAD_MB=200
 ```
 
 ### gunicorn.conf.py

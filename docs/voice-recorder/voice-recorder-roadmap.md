@@ -95,6 +95,10 @@ Add more audio analysis capabilities
   - Average pitch over recording
   - Pitch range (min/max)
   - Stability metrics
+- [ ] Audio post-processing panel (see [audio-processing-plan.md](audio-processing-plan.md))
+  - Silence trimming (strip leading/trailing silence from recorded clips)
+  - Audio enhancement (high-pass filter, presence boost, soft compression, peak normalization)
+  - Experimental: pitch shift toward masculine/feminine (SoundTouch.js WSOLA, vendored locally)
 - [ ] Audio effects
   - Real-time reverb
   - Echo
