@@ -1,5 +1,11 @@
 # Admin Audio Upload Page (Simple Design + Implementation)
 
+## Hosting
+
+This is a **locally-run Flask app**, not part of the public site. It is exposed remotely via Cloudflare Tunnel at `admin.eloise.rip` for mobile uploads.
+
+The public voice recorder page (`eloise.rip/voice-recorder`) is a **completely separate** static page served by GitHub Pages. The two share a git repository but have no runtime connection.
+
 ## Goal
 
 Provide a minimal admin page to upload one `.qta` voice clip, transcode it to `.m4a` with FFmpeg, and download the result.

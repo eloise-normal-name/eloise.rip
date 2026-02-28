@@ -18,6 +18,7 @@ New to the voice recorder? Start here:
 
 ### Planning & Future Work
 - **[Roadmap](voice-recorder-roadmap.md)** - Completed features and planned sprints
+- **[Audio Processing Plan](audio-processing-plan.md)** - Planned: silence trim, audio enhancement, pitch shift
 - **[Archive](archive/)** - Completed implementation plans (historical reference)
 
 ## File Map
@@ -42,6 +43,7 @@ docs/
 ├── voice-recorder-bugs.md              # Bug tracking
 ├── voice-recorder-test-scenarios.md    # Test procedures
 ├── voice-recorder-roadmap.md           # Feature planning
+├── audio-processing-plan.md            # Planned: silence trim, enhancement, pitch shift
 └── archive/
     ├── voice-recorder-pitch-plan.md    # Completed: Pitch visualization plan
     └── voice-recorder-pitchy-integration-plan.md  # Completed: Pitchy integration

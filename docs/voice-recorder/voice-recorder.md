@@ -6,6 +6,12 @@
 
 A client-side voice recorder that captures microphone audio, draws a live waveform with pitch overlay on a canvas, and records the canvas and audio as a video. Everything runs in the browser—no server upload is involved.
 
+## Deployment
+
+The voice recorder is a **static HTML page, part of the Pelican-built site deployed to GitHub Pages** at `eloise.rip`. It has no server-side component — all recording, pitch detection, and clip storage run entirely in the browser.
+
+It is completely separate from the admin upload pipeline (`voice_uploader/`). The admin tool is a local Flask app accessed at `admin.eloise.rip`; it is not involved in serving or powering the voice recorder in any way.
+
 ## Architecture
 
 ### Components
