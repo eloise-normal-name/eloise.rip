@@ -12,15 +12,13 @@ Claude Sonnet 4.6 → **Sable [cs46]**
 
 ## Environment Setup
 
-```bash
-# Activate virtual environment (required before any Pelican commands)
-.venv\Scripts\activate          # Windows
-source .venv/bin/activate       # Linux/Mac
+Install Python dependencies before running any Pelican commands:
 
+```bash
 pip install -r requirements.txt
 ```
 
-If `pelican` is not found, the virtual environment is not activated.
+Key packages: `pelican==4.10.1`, `Markdown==3.6`, `Pillow==11.1.0`, `beautifulsoup4`, `requests`, `flask`, `waitress`.
 
 ## Common Commands
 
