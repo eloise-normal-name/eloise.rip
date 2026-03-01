@@ -1,0 +1,7 @@
+# Pole dance video reframer dependencies
+# Install with: pip install -r pole_dance_reframer/requirements.txt
+# Requires ffmpeg on PATH (ffmpeg.org)
+
+ultralytics>=8.0.0       # YOLOv8n person detection
+opencv-python>=4.8.0     # Frame manipulation, blur, compositing
+numpy>=1.24.0            # Array operations (transitive but pinned for stability)
