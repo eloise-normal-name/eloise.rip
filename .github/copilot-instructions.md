@@ -32,15 +32,12 @@ If your model is not in the list above, add yourself to this file with a feminin
 ## Pelican Preview Workflow: Requirements & Common Mistakes
 
 ### Requirements for Correct Preview
-- Virtual environment must be activated before running Pelican commands.
-- Pelican must be available in PATH (from the virtual environment).
 - The Pelican server (`pelican -l`) must be running before opening any localhost preview.
 - Always check server status before opening a preview; never assume.
 - Use the correct script path for static assets in output (e.g., `./theme/voice-recorder/script.js`).
 
 ### Common Mistakes (Tally)
 - Opening localhost preview without checking if Pelican server is running (repeated).
-- Failing to activate virtual environment before running Pelican commands.
 - Not verifying Pelican command availability in PATH.
 - Using incorrect script/static asset paths in output.
 - Asking unnecessary questions about server status instead of checking directly.
@@ -66,31 +63,15 @@ This is a **Pelican static site generator** project for a personal blog at [eloi
 
 ## Critical Workflows
 
-pip install -r requirements.txt
 ### Environment Setup
+
+Install Python dependencies before running Pelican:
+
 ```bash
-# Windows
-.venv\Scripts\activate
-
-# Linux/Mac
-source .venv/bin/activate
-
 pip install -r requirements.txt
 ```
 
-#### Troubleshooting: Pelican Not Found
-If you see an error like `pelican : The term 'pelican' is not recognized as the name of a cmdlet...`, it means:
-- The virtual environment is not activated, or
-- Pelican is not installed in the environment, or
-- The shell session does not recognize the environment activation.
-
-**To fix:**
-1. Activate the virtual environment (see above).
-2. Ensure you are running commands in the same shell session where the environment was activated.
-3. If using VS Code tasks or terminals, always activate `.venv` before running Pelican commands.
-
-**Reason for previous failure:**
-The Pelican command was run before activating the virtual environment, so Pelican was not available in PATH. Always activate `.venv` first.
+Key packages: `pelican==4.10.1`, `Markdown==3.6`, `Pillow==11.1.0`, `beautifulsoup4`, `requests`, `flask`, `waitress`.
 
 ### Building the Site
 ```bash
@@ -168,8 +149,7 @@ thumbnail: images/preview.avif
 
 ## Development Notes
 
-- **Virtual environment**: Use `.venv/` - activate before running any commands (`source .venv/bin/activate` or `.venv\Scripts\activate` on Windows)
-- **Dependencies**: [requirements.txt](../requirements.txt) - Pelican 4.10.1, Pillow 11.1.0, pillow-heif for HEIC support, beautifulsoup4 and requests for validation
+- **Dependencies**: [requirements.txt](../requirements.txt) - Pelican 4.10.1, Markdown 3.6, Pillow 11.1.0, beautifulsoup4 and requests for validation, flask and waitress for voice uploader
 - **Media transcoding** requires `ffmpeg` on PATH
 - **CSS analysis**: [analyze_styles.py](../analyze_styles.py) generates reports matching HTML elements to CSS rules
 - **Link validation**: [validate_output.py](../validate_output.py) - post-build checker for broken links and missing media
