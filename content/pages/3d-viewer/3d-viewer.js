@@ -1,7 +1,7 @@
 // 3D Model Viewer — WebGPU, PBR lighting, dynamic tessellation, arcball rotation
 // Platforms: iOS Safari 17.4+, Chrome 113+, Edge 113+
 
-(async () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const canvas   = document.getElementById('viewer-canvas');
   const statusEl = document.getElementById('viewer-status');
   const tessBadge = document.getElementById('tess-badge');
@@ -157,9 +157,9 @@
     uniData.set([0, 0, camDist, 1], 32);
     // 3 point lights: pos(w=1), color(w=intensity)
     const lights = [
-      [ 4,  6,  5], [1.0, 0.95, 0.90],   // key: warm white
-      [-5,  3, -2], [0.25, 0.30, 0.45],   // fill: cool blue
-      [ 0, -4,  4], [0.15, 0.10, 0.20],   // rim: purple
+      [[ 4,  6,  5], [1.0, 0.95, 0.90]],   // key: warm white
+      [[-5,  3, -2], [0.25, 0.30, 0.45]],   // fill: cool blue
+      [[ 0, -4,  4], [0.15, 0.10, 0.20]],   // rim: purple
     ];
     let off = 36;
     for (const [pos, col] of lights) {
@@ -540,4 +540,4 @@ fn ambient(N: vec3<f32>, albedo: vec3<f32>) -> vec3<f32> {
   }
 
   render();
-})();
+});
