@@ -3,7 +3,7 @@ param(
     [string]$ListenHost = "127.0.0.1",
     [int]$AppPort = 8000,
     [int]$NginxPort = 5000,
-    [string]$TunnelName = "audio-app",
+    [string]$TunnelName = "content-manager",
     [string]$CloudflaredConfig = "",
     [switch]$ForceRestart
 )
@@ -14,7 +14,7 @@ if (-not $CloudflaredConfig) {
     $CloudflaredConfig = Join-Path $ProjectRoot "cloudflared\config.yml"
 }
 
-$RunDir = Join-Path $ProjectRoot ".run\audio-pipeline"
+$RunDir = Join-Path $ProjectRoot ".run\content-manager"
 New-Item -ItemType Directory -Path $RunDir -Force | Out-Null
 
 function Write-Section([string]$Text) {
@@ -161,7 +161,7 @@ if (Test-PidAlive $waitressPid -or (Test-PortListen $AppPort)) {
     Start-BackgroundProcess `
         -Name "waitress" `
         -FilePath $pythonExe `
-        -ArgumentList @("-m", "waitress", "--listen=$ListenHost`:$AppPort", "voice_uploader.app:app") `
+        -ArgumentList @("-m", "waitress", "--listen=$ListenHost`:$AppPort", "content_manager.app:app") `
         -WorkingDirectory $ProjectRoot | Out-Null
     Write-Host "Started Waitress."
 }

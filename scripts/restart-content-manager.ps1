@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 
 $ListenHost = "127.0.0.1"
 $AppPort = 8000
-$RunDir = Join-Path $ProjectRoot ".run\audio-pipeline"
+$RunDir = Join-Path $ProjectRoot ".run\content-manager"
 $PidFile = Join-Path $RunDir "waitress.pid"
 $pythonExe = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $outLog = Join-Path $RunDir "waitress.out.log"
@@ -88,7 +88,7 @@ Stop-WaitressByPort
 Write-Host "Starting Waitress..."
 $proc = Start-Process `
     -FilePath $pythonExe `
-    -ArgumentList @("-m", "waitress", "--listen=$ListenHost`:$AppPort", "voice_uploader.app:app") `
+    -ArgumentList @("-m", "waitress", "--listen=$ListenHost`:$AppPort", "content_manager.app:app") `
     -WorkingDirectory $ProjectRoot `
     -WindowStyle Hidden `
     -RedirectStandardOutput $outLog `
