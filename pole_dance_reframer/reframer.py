@@ -116,6 +116,10 @@ def parse_args() -> argparse.Namespace:
         help="Frames to hold position after losing the subject before re-selecting a new one",
     )
     parser.add_argument(
+        "--blur-overlap", type=float, default=0.3,
+        help="IoU threshold: skip blurring a box if it overlaps the primary by this much (catches split detections of the subject)",
+    )
+    parser.add_argument(
         "--keep-frames", action="store_true",
         help="Copy temp frames to output dir for debugging",
     )
@@ -305,19 +309,38 @@ def update_ema(state: CropState, nx: float, ny: float, alpha: float) -> None:
 # Background blur
 # ---------------------------------------------------------------------------
 
+def iou(a: BBox, b: BBox) -> float:
+    """Intersection over Union for two bounding boxes."""
+    ix1, iy1 = max(a.x1, b.x1), max(a.y1, b.y1)
+    ix2, iy2 = min(a.x2, b.x2), min(a.y2, b.y2)
+    if ix2 <= ix1 or iy2 <= iy1:
+        return 0.0
+    intersection = (ix2 - ix1) * (iy2 - iy1)
+    union = a.area + b.area - intersection
+    return intersection / union if union > 0 else 0.0
+
+
 def apply_blur_regions(
     frame: np.ndarray,
     primary: BBox,
     all_boxes: list[BBox],
     kernel: int,
+    overlap_threshold: float = 0.3,
 ) -> np.ndarray:
-    """Gaussian-blur every detected person except the primary subject."""
+    """Gaussian-blur every detected person except the primary subject.
+
+    Boxes that overlap the primary above overlap_threshold are skipped —
+    these are split detections of the subject caused by occlusion or
+    unusual poses (inverted, horizontal, partially behind the pole).
+    """
     k = kernel if kernel % 2 == 1 else kernel + 1
     h, w = frame.shape[:2]
     result = frame.copy()
     for box in all_boxes:
         if box is primary:
             continue
+        if iou(box, primary) >= overlap_threshold:
+            continue  # split detection of the subject — do not blur
         y1, y2 = max(0, box.y1), min(h, box.y2)
         x1, x2 = max(0, box.x1), min(w, box.x2)
         if x2 > x1 and y2 > y1:
@@ -339,6 +362,7 @@ def process_frame(
     aspect_h: int,
     alpha: float,
     blur_strength: int,
+    overlap_threshold: float,
     device: str,
 ) -> None:
     """Detect → smooth → blur → crop → save one frame."""
@@ -361,7 +385,7 @@ def process_frame(
 
     # Blur background persons before cropping (operates on full frame)
     if primary is not None and len(boxes) > 1:
-        frame = apply_blur_regions(frame, primary, boxes, blur_strength)
+        frame = apply_blur_regions(frame, primary, boxes, blur_strength, overlap_threshold)
 
     x, y, cw, ch = compute_crop_window(
         state.cx * fw, state.cy * fh, aspect_w, aspect_h, fw, fh,
@@ -436,7 +460,8 @@ def process_file(video_path: Path, args: argparse.Namespace, model: YOLO) -> boo
             try:
                 process_frame(
                     fp, proc_dir / fp.name, model, state, tracker,
-                    aspect_w, aspect_h, args.smooth, args.blur_strength, args.device,
+                    aspect_w, aspect_h, args.smooth, args.blur_strength,
+                    args.blur_overlap, args.device,
                 )
             except Exception as exc:
                 log.warning("  Skipping frame %s: %s", fp.name, exc)
