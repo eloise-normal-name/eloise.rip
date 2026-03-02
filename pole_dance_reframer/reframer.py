@@ -120,6 +120,10 @@ def parse_args() -> argparse.Namespace:
         help="IoU threshold: skip blurring a box if it overlaps the primary by this much (catches split detections of the subject)",
     )
     parser.add_argument(
+        "--no-blur", action="store_true",
+        help="Skip background blurring entirely; output crop-only version (suffix: _framed)",
+    )
+    parser.add_argument(
         "--keep-frames", action="store_true",
         help="Copy temp frames to output dir for debugging",
     )
@@ -320,6 +324,17 @@ def iou(a: BBox, b: BBox) -> float:
     return intersection / union if union > 0 else 0.0
 
 
+def centroid_inside(box: BBox, primary: BBox) -> bool:
+    """True if box's centroid falls within primary's bounding box.
+
+    A reliable indicator that box is a partial/split detection of the same
+    person (e.g. just the legs when the subject is inverted), since a
+    genuinely different background person's centroid would not overlap the
+    subject's bounding box.
+    """
+    return primary.x1 <= box.cx <= primary.x2 and primary.y1 <= box.cy <= primary.y2
+
+
 def apply_blur_regions(
     frame: np.ndarray,
     primary: BBox,
@@ -329,9 +344,12 @@ def apply_blur_regions(
 ) -> np.ndarray:
     """Gaussian-blur every detected person except the primary subject.
 
-    Boxes that overlap the primary above overlap_threshold are skipped —
-    these are split detections of the subject caused by occlusion or
-    unusual poses (inverted, horizontal, partially behind the pole).
+    A box is skipped (not blurred) when any of:
+    - it IS the primary (identity check)
+    - its centroid falls inside the primary's bounding box (split detection —
+      subject's limbs detected separately in unusual poses)
+    - its IoU with the primary >= overlap_threshold (heavy overlap —
+      partial occlusion by pole, inversion, etc.)
     """
     k = kernel if kernel % 2 == 1 else kernel + 1
     h, w = frame.shape[:2]
@@ -339,8 +357,10 @@ def apply_blur_regions(
     for box in all_boxes:
         if box is primary:
             continue
+        if centroid_inside(box, primary):
+            continue  # split detection — centroid is inside subject's box
         if iou(box, primary) >= overlap_threshold:
-            continue  # split detection of the subject — do not blur
+            continue  # heavy overlap — split detection of the subject
         y1, y2 = max(0, box.y1), min(h, box.y2)
         x1, x2 = max(0, box.x1), min(w, box.x2)
         if x2 > x1 and y2 > y1:
@@ -363,6 +383,7 @@ def process_frame(
     alpha: float,
     blur_strength: int,
     overlap_threshold: float,
+    no_blur: bool,
     device: str,
 ) -> None:
     """Detect → smooth → blur → crop → save one frame."""
@@ -384,7 +405,7 @@ def process_frame(
         state.cx, state.cy, state.initialized = 0.5, 0.5, True
 
     # Blur background persons before cropping (operates on full frame)
-    if primary is not None and len(boxes) > 1:
+    if not no_blur and primary is not None and len(boxes) > 1:
         frame = apply_blur_regions(frame, primary, boxes, blur_strength, overlap_threshold)
 
     x, y, cw, ch = compute_crop_window(
@@ -408,7 +429,8 @@ def process_file(video_path: Path, args: argparse.Namespace, model: YOLO) -> boo
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{video_path.stem}_reframed{video_path.suffix}"
+    label = "framed" if args.no_blur else "reframed"
+    output_path = output_dir / f"{video_path.stem}_{label}{video_path.suffix}"
 
     log.info("Processing: %s → %s", video_path.name, output_path.name)
 
@@ -461,7 +483,7 @@ def process_file(video_path: Path, args: argparse.Namespace, model: YOLO) -> boo
                 process_frame(
                     fp, proc_dir / fp.name, model, state, tracker,
                     aspect_w, aspect_h, args.smooth, args.blur_strength,
-                    args.blur_overlap, args.device,
+                    args.blur_overlap, args.no_blur, args.device,
                 )
             except Exception as exc:
                 log.warning("  Skipping frame %s: %s", fp.name, exc)
