@@ -93,8 +93,10 @@ thumbnail: {thumbnail_path}  # e.g., media/video/poster.jpg or media/images/thum
 - User writes text content in Markdown
 - Media syntax is **automatically generated** based on uploaded files:
   - **Single uploaded video** → prepends `[[video:basename]]` (basename without extension)
+  - **Single uploaded image** → standard Markdown image: `![](media/images/name.avif)` (not a carousel)
   - **Multiple uploaded images** → prepends `[[carousel:label={title} Gallery; ...]]` with all images
-  - **Mixed media**: video + images → video first, then carousel of images
+  - **Mixed media**: video + images → video first, then image or carousel depending on image count
+  - **1 image = plain `![](…)`, 2+ images = `[[carousel:…]]`**
 - Users can also manually add `[[video:]]` and `[[carousel:]]` syntax if they prefer
 - The system tracks which media files are associated with the article and generates the appropriate Pelican plugin syntax automatically
 

@@ -67,6 +67,14 @@ This creates an audit trail for reviewers and prevents outdated comments from be
 - Never commit secrets or credentials.
 - Do not delete user content without explicit instruction.
 
+## Content Manager
+- Flask admin app at `content_manager/` (renamed from `voice_uploader/`)
+- Voice upload: `/admin/upload/voice`
+- Article authoring: `/admin/articles/new`
+- Media upload API: `/api/media/upload` (images → AVIF, videos → HEVC MP4 + poster)
+- Article publish API: `/api/article/publish` (writes markdown to `content/articles/`)
+- Start: `python -m waitress --listen=127.0.0.1:8000 content_manager.app:app`
+
 ## Voice Recorder
 - Reference doc: docs/voice-recorder.md
 

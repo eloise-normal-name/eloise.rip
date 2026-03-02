@@ -46,6 +46,7 @@ make transcode-force    # re-encode all
 **Pelican** (Python static site generator) builds Markdown content into static HTML deployed to GitHub Pages.
 
 ### Content Pipeline
+
 `content/articles/*.md` → Pelican + custom plugins → `output/` (static HTML, git-ignored)
 
 - Articles: `content/articles/` → URL `/blog/{slug}.html`
@@ -55,7 +56,9 @@ make transcode-force    # re-encode all
 - Pagination: 8 posts per page
 
 ### Media Pipeline
+
 High-quality source files (`media-source/`, git-ignored) are transcoded via the Makefile+FFmpeg pipeline into web-optimized assets committed to `content/media/`:
+
 - Images → AVIF (`content/media/images/`)
 - Videos → HEVC MP4 + JPG poster (`content/media/video/`)
 - Audio → M4A (`content/media/voice/`)
@@ -63,12 +66,27 @@ High-quality source files (`media-source/`, git-ignored) are transcoded via the 
 Only web-optimized files are committed (no Git LFS).
 
 ### Custom Plugins (`pelican-plugins/`)
+
 Plugins hook into `signals.content_object_init` to replace inline markers in article/page content:
 
 - **`video_embed`**: `[[video:name]]` → `<figure>` with `<video src="/media/video/name.mp4" poster="name.jpg">`
 - **`carousel_embed`**: `[[carousel:label=Name;media/images/img.avif|Caption]]` → CSS carousel; uses PIL to probe image dimensions for aspect-ratio CSS variables
 
+### Content Manager (`content_manager/`)
+
+Flask-based admin tool for content management, accessible at `admin.eloise.rip`:
+
+- **Voice Upload** (`/admin/upload/voice`): Upload `.qta` audio files → M4A transcoding → git push
+- **Article Authoring** (`/admin/articles/new`): Create blog posts with media upload, transcoding, and publishing
+- **Media API** (`/api/media/upload`, `/api/media/jobs/<id>`, `/api/media/list`): Upload images/videos with background transcoding
+- **Article API** (`/api/article/draft`, `/api/article/publish`, `/api/article/preview`): Draft saving and article publishing
+
+Start with: `python -m waitress --listen=127.0.0.1:8000 content_manager.app:app`
+
+Env vars: `SECRET_KEY`, `MAX_UPLOAD_MB`, `UPLOAD_DIR`, `OUTPUT_DIR`, `AUTO_COMMIT`, `GIT_REMOTE`, `GIT_BRANCH`
+
 ### Interactive Web Apps
+
 - **Voice Recorder** (`content/pages/voice-recorder/`): Web Audio API app for pitch detection and recording. See `docs/voice-recorder.md` for architecture. Specialized agent available at `.github/agents/voice-affirming-audio-engineer.md`.
 - **Hearing Age Test** (`content/pages/hearing-age/`): Canvas-based hearing assessment tool.
 
