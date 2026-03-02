@@ -47,6 +47,7 @@ class BBox:
     y1: int
     x2: int
     y2: int
+    track_id: int | None = None
 
     @property
     def cx(self) -> float:
@@ -67,6 +68,14 @@ class CropState:
     cx: float = 0.5
     cy: float = 0.5
     initialized: bool = False
+
+
+@dataclass
+class SubjectTracker:
+    """Locks onto one person's ByteTrack ID across frames."""
+    locked_id: int | None = None
+    frames_missing: int = 0
+    reacquire_after: int = 45  # frames before giving up on a lost subject
 
 
 # ---------------------------------------------------------------------------
@@ -101,6 +110,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--device", default="cpu", choices=["cpu", "cuda"],
         help="Inference device for YOLOv8",
+    )
+    parser.add_argument(
+        "--reacquire", type=int, default=45,
+        help="Frames to hold position after losing the subject before re-selecting a new one",
     )
     parser.add_argument(
         "--keep-frames", action="store_true",
@@ -176,30 +189,63 @@ def assemble_video(
 # ---------------------------------------------------------------------------
 
 def detect_persons(frame: np.ndarray, model: YOLO, device: str) -> list[BBox]:
-    """Run YOLOv8n inference; return bounding boxes for all detected persons."""
-    results = model(frame, device=device, classes=[0], verbose=False)
+    """Run YOLOv8n tracking; return bounding boxes with persistent track IDs."""
+    results = model.track(frame, device=device, classes=[0], verbose=False, persist=True)
     boxes: list[BBox] = []
     for r in results:
+        if r.boxes is None:
+            continue
         for box in r.boxes:
             x1, y1, x2, y2 = (int(v) for v in box.xyxy[0].tolist())
-            boxes.append(BBox(x1, y1, x2, y2))
+            track_id = int(box.id[0].item()) if box.id is not None else None
+            boxes.append(BBox(x1, y1, x2, y2, track_id=track_id))
     return boxes
 
 
-def pick_primary(boxes: list[BBox], frame_w: int, frame_h: int) -> BBox | None:
+def pick_primary(
+    boxes: list[BBox],
+    frame_w: int,
+    frame_h: int,
+    tracker: SubjectTracker,
+) -> BBox | None:
     """
-    Select the primary subject: the person whose centroid is closest to the
-    frame centre. Largest bounding box area breaks ties.
+    Return the primary subject box, preferring the locked track ID.
+
+    First call (or after re-acquisition): select by centre proximity + area.
+    Subsequent calls: return the box whose track_id matches tracker.locked_id.
+    If that ID goes missing, hold position (return None) for up to
+    tracker.reacquire_after frames, then re-acquire.
     """
     if not boxes:
+        tracker.frames_missing += 1
+        if tracker.frames_missing > tracker.reacquire_after:
+            tracker.locked_id = None
         return None
+
+    # Prefer the established subject
+    if tracker.locked_id is not None:
+        for box in boxes:
+            if box.track_id == tracker.locked_id:
+                tracker.frames_missing = 0
+                return box
+        # ID not found this frame — hold position for now
+        tracker.frames_missing += 1
+        if tracker.frames_missing <= tracker.reacquire_after:
+            return None
+        # Grace period expired — fall through to re-acquire
+        tracker.locked_id = None
+
+    # Acquire: pick by closest centroid to frame centre, break ties by area
     fc_x, fc_y = frame_w / 2.0, frame_h / 2.0
 
     def key(b: BBox) -> tuple[float, int]:
         dist = ((b.cx - fc_x) ** 2 + (b.cy - fc_y) ** 2) ** 0.5
         return (dist, -b.area)
 
-    return min(boxes, key=key)
+    primary = min(boxes, key=key)
+    tracker.locked_id = primary.track_id
+    tracker.frames_missing = 0
+    return primary
 
 
 # ---------------------------------------------------------------------------
@@ -288,6 +334,7 @@ def process_frame(
     out_path: Path,
     model: YOLO,
     state: CropState,
+    tracker: SubjectTracker,
     aspect_w: int,
     aspect_h: int,
     alpha: float,
@@ -301,7 +348,7 @@ def process_frame(
 
     fh, fw = frame.shape[:2]
     boxes = detect_persons(frame, model, device)
-    primary = pick_primary(boxes, fw, fh)
+    primary = pick_primary(boxes, fw, fh, tracker)
 
     if primary is None:
         log.debug("No person detected in %s — holding crop position", frame_path.name)
@@ -380,12 +427,15 @@ def process_file(video_path: Path, args: argparse.Namespace, model: YOLO) -> boo
 
         raw_frames = sorted(raw_dir.glob("*.jpg"))
         state = CropState()
+        tracker = SubjectTracker(reacquire_after=args.reacquire)
+        # Reset ByteTrack state so IDs don't bleed across files
+        model.predictor = None
         t0 = time.monotonic()
 
         for i, fp in enumerate(raw_frames, start=1):
             try:
                 process_frame(
-                    fp, proc_dir / fp.name, model, state,
+                    fp, proc_dir / fp.name, model, state, tracker,
                     aspect_w, aspect_h, args.smooth, args.blur_strength, args.device,
                 )
             except Exception as exc:
