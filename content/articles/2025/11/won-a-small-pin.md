@@ -5,7 +5,7 @@ Category: Pinball
 Tags: 
 thumbnail: images/shortys-34-tournament-win.avif
 
-![Matchplay results](../media/images/shortys-34-tournament-win.avif){height=350px}
+![Matchplay results](/media/images/shortys-34-tournament-win.avif){height=350px}
 
 I was walking into Shorty's and I got bamboozled by Dwayne telling me
 it was 7 people and just about to start. I lost my first match to a complete

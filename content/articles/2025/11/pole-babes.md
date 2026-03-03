@@ -7,13 +7,13 @@ thumbnail: images/pso-stage.avif
 
 ## Pole for the Hole
 
-![The PSO stage](../media/images/pso-stage.avif)
+![The PSO stage](/media/images/pso-stage.avif)
 
 A bunch of our instructors were performing which was so cool to see. 
 It's like we only get little clues about how they might look when performing
 from their classes. I was too shy to talk to any of them though.
 
-![Us in the audience](../media/images/pole-babes.avif)
+![Us in the audience](/media/images/pole-babes.avif)
 
 We were way far back which made it a little difficult to see. Eventually 
 Catgirl and I moved up a single row which felt surprisingly better.
@@ -30,6 +30,6 @@ has been a really great environment for exploring that.
 
 I also got a new pole fit that Diane complimented how it shaped my boobs.
 
-![New pole fit](../media/images/new-pole-fit.avif)
+![New pole fit](/media/images/new-pole-fit.avif)
 
 Then we did superheroes in class and now my thighs are sore and gnarly looking 😿.

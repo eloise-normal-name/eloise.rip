@@ -5,7 +5,7 @@ Category: Art
 Tags: Plushie
 thumbnail: images/plush-piggie-and-friends.avif
 
-![Friends](../media/images/plush-piggie-and-friends.jpg)
+![Friends](/media/images/plush-piggie-and-friends.jpg)
 I made these a while ago, and just saw the sushi friend again. I gave it to my friend's kid at some point.
 They're missing the seaweed wrap ☹ but was assured it exists somewhere in their massive pile of stuffies.
 

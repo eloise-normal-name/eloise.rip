@@ -11,4 +11,4 @@ I'm feeling pretty good about heels movement from all the heels technique classe
 [[video:heels-badly-framed]]
 
 Bonus background Catgirl!
-![sneaky catgirl](../media/images/heels-background-catgirl.jpg)
+![sneaky catgirl](/media/images/heels-background-catgirl.jpg)

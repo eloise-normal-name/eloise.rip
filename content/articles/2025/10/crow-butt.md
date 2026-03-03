@@ -7,4 +7,4 @@ thumbnail: images/crow-butt.avif
 
 Such pretty tail feathers too
 
-![Crow Butt](../media/images/crow-butt.avif)
+![Crow Butt](/media/images/crow-butt.avif)

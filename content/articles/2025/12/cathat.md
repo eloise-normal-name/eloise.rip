@@ -6,8 +6,8 @@ Tags: Catgirl, Panther, Cathat, Merp, Berp
 thumbnail: images/panther-cathat.avif
 
 Catgirl and I were both blessed with a cathat!!!
-![Eloise cathat](../media/images/panther-cathat.avif)
-![Catgirl cathat](../media/images/catgirl-panther-cathat.avif)
+![Eloise cathat](/media/images/panther-cathat.avif)
+![Catgirl cathat](/media/images/catgirl-panther-cathat.avif)
 
 Even taking out the garbage is fun. Making mundane choores into something to look forward to with a friend is so special.
 [[video:panther-garbage]]
