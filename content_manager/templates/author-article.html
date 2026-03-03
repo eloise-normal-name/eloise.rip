@@ -118,7 +118,14 @@
             margin-bottom: 6px;
             font-size: 0.9rem;
         }
-        .media-item .name { flex: 1; }
+        .media-item .rename-input {
+            flex: 1;
+            min-width: 0;
+            font: inherit;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 5px 8px;
+        }
         .media-item .type-badge {
             font-size: 0.75rem;
             padding: 2px 8px;
@@ -128,6 +135,7 @@
         }
         .type-image { background: #dbeafe; color: #1d4ed8; }
         .type-video { background: #fef3c7; color: #92400e; }
+        .type-unknown { background: #e5e7eb; color: #374151; }
         .status-pending { color: var(--pending); }
         .status-processing { color: var(--processing); }
         .status-done { color: var(--success); }
@@ -214,6 +222,7 @@
         <div class="drop-zone" id="drop-zone">
             <p>Drag & drop images or videos here, or click to browse</p>
             <p style="font-size:0.85em;">Images (jpg, png, webp, ...) &rarr; AVIF &nbsp;|&nbsp; Videos (mp4, mov, ...) &rarr; HEVC MP4 + poster</p>
+            <p style="font-size:0.85em;">After selecting files, edit names in the queue and click Upload.</p>
             <input type="file" id="media-input" multiple accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp,.mp4,.mov,.mkv,.avi,.webm,.m4v,.gif">
         </div>
         <ul class="media-list" id="media-list"></ul>
@@ -279,7 +288,7 @@
     const draftIndicator = document.getElementById("draft-indicator");
 
     // State
-    let mediaUploads = [];  // {job_id, name, media_type, status, final_url, poster_url, error, el}
+    let mediaUploads = [];  // {job_id, file, name, media_type, status, final_url, poster_url, error, el}
     let draftId = null;
     let autoSaveTimer = null;
     let previewVisible = false;
@@ -311,17 +320,30 @@
 
     function handleFiles(files) {
         for (const file of files) {
-            uploadMedia(file);
+            queueMedia(file);
         }
     }
 
+    function inferMediaType(file) {
+        const mime = (file.type || "").toLowerCase();
+        if (mime.startsWith("image/")) return "image";
+        if (mime.startsWith("video/")) return "video";
+
+        const lowerName = (file.name || "").toLowerCase();
+        if (/\.(jpg|jpeg|png|bmp|tiff|tif|webp|gif|avif)$/.test(lowerName)) return "image";
+        if (/\.(mp4|mov|mkv|avi|webm|m4v)$/.test(lowerName)) return "video";
+        return null;
+    }
+
     // --- Media upload ---
-    async function uploadMedia(file) {
+    function queueMedia(file) {
+        const mediaType = inferMediaType(file);
         const entry = {
             job_id: null,
+            file,
             name: file.name.replace(/\.[^.]+$/, ""),
-            media_type: null,
-            status: "uploading",
+            media_type: mediaType,
+            status: "ready",
             final_url: null,
             poster_url: null,
             error: null,
@@ -330,9 +352,42 @@
         mediaUploads.push(entry);
         entry.el = renderMediaItem(entry);
         mediaListEl.appendChild(entry.el);
+    }
+
+    function buildRenamedFile(entry) {
+        const extension = entry.file.name.includes(".") ? entry.file.name.slice(entry.file.name.lastIndexOf(".")) : "";
+        const trimmedName = entry.name.trim();
+        if (!trimmedName) return null;
+        return new File([entry.file], `${trimmedName}${extension}`, { type: entry.file.type });
+    }
+
+    function sanitizeMediaName(name) {
+        return name
+            .trim()
+            .replace(/[\\/:*?"<>|]+/g, "-")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^[.-]+|[.-]+$/g, "");
+    }
+
+    async function uploadMedia(entry) {
+        const normalizedName = sanitizeMediaName(entry.name);
+        if (!normalizedName) {
+            entry.status = "error";
+            entry.error = "name required";
+            updateMediaItemUI(entry);
+            return;
+        }
+        entry.name = normalizedName;
+
+        const renamedFile = buildRenamedFile(entry);
+
+        entry.status = "uploading";
+        entry.error = null;
+        updateMediaItemUI(entry);
 
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", renamedFile);
 
         try {
             const res = await fetch("/api/media/upload", { method: "POST", body: formData });
@@ -385,13 +440,48 @@
     function renderMediaItem(entry) {
         const li = document.createElement("li");
         li.className = "media-item";
-        li.innerHTML = `
-            <span class="type-badge type-${entry.media_type || "image"}">${entry.media_type || "..."}</span>
-            <span class="name">${escapeHtml(entry.name)}</span>
-            <span class="status status-${entry.status}">${entry.status}</span>
-            <button class="delete-btn" title="Remove">&times;</button>
-        `;
-        li.querySelector(".delete-btn").addEventListener("click", () => {
+
+        const badge = document.createElement("span");
+        badge.className = `type-badge type-${entry.media_type || "unknown"}`;
+        badge.textContent = entry.media_type || "unknown";
+
+        const renameInput = document.createElement("input");
+        renameInput.className = "rename-input";
+        renameInput.type = "text";
+        renameInput.value = entry.name;
+        renameInput.setAttribute("aria-label", "Media name");
+
+        const status = document.createElement("span");
+        status.className = `status status-${entry.status}`;
+        status.textContent = entry.status;
+
+        const uploadBtn = document.createElement("button");
+        uploadBtn.className = "btn-secondary upload-btn";
+        uploadBtn.type = "button";
+        uploadBtn.title = "Upload";
+        uploadBtn.textContent = "Upload";
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.title = "Remove";
+        deleteBtn.textContent = "×";
+
+        li.append(badge, renameInput, status, uploadBtn, deleteBtn);
+
+        renameInput.addEventListener("input", (event) => {
+            entry.name = event.target.value;
+        });
+        renameInput.addEventListener("blur", () => {
+            if (entry.status === "ready" || entry.status === "error") {
+                entry.name = sanitizeMediaName(entry.name) || entry.name.trim();
+                updateMediaItemUI(entry);
+            }
+        });
+        uploadBtn.addEventListener("click", () => {
+            if (entry.status !== "ready" && entry.status !== "error") return;
+            uploadMedia(entry);
+        });
+        deleteBtn.addEventListener("click", () => {
             const idx = mediaUploads.indexOf(entry);
             if (idx !== -1) mediaUploads.splice(idx, 1);
             li.remove();
@@ -402,12 +492,16 @@
     function updateMediaItemUI(entry) {
         if (!entry.el) return;
         const badge = entry.el.querySelector(".type-badge");
-        const nameSpan = entry.el.querySelector(".name");
+        const renameInput = entry.el.querySelector(".rename-input");
         const statusSpan = entry.el.querySelector(".status");
+        const uploadBtn = entry.el.querySelector(".upload-btn");
 
-        badge.className = `type-badge type-${entry.media_type || "image"}`;
-        badge.textContent = entry.media_type || "...";
-        nameSpan.textContent = entry.name;
+        badge.className = `type-badge type-${entry.media_type || "unknown"}`;
+        badge.textContent = entry.media_type || "unknown";
+        renameInput.value = entry.name;
+        const lockName = entry.status !== "ready" && entry.status !== "error";
+        renameInput.disabled = lockName;
+        uploadBtn.disabled = lockName;
         statusSpan.className = `status status-${entry.status}`;
         statusSpan.textContent = entry.status === "error" ? `error: ${entry.error}` : entry.status;
     }
@@ -546,11 +640,13 @@
         }
     });
 
+
     function escapeHtml(str) {
         const div = document.createElement("div");
         div.textContent = str;
         return div.innerHTML;
     }
+
 })();
 </script>
 </body>
