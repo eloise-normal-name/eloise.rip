@@ -5,4 +5,4 @@ Category: Art
 Tags: Catgirl, Gooning, Comic
 thumbnail: images/xgiving-gooning-nook.avif
 
-![alt text](../media/images/xgiving-gooning-nook.avif)
+![alt text](/media/images/xgiving-gooning-nook.avif)

@@ -10,5 +10,5 @@ so Catgirl made these. It was an incredibly lovely day.
 Played pin and ate hotdogs and did L2 pole and watched anime
 and drank hot chocolate and other things too probably.
 
-![Catgirl and Goblin staring at fishes](../media/images/comic-aquarium-back.jpg "Catgirl and Goblin staring at fishes")
-![Catgirl and Goblin losing their minds](../media/images/comic-aquarium-front.jpg "Catgirl and Goblin losing their minds")
+![Catgirl and Goblin staring at fishes](/media/images/comic-aquarium-back.jpg "Catgirl and Goblin staring at fishes")
+![Catgirl and Goblin losing their minds](/media/images/comic-aquarium-front.jpg "Catgirl and Goblin losing their minds")

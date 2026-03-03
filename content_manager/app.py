@@ -154,13 +154,16 @@ def slugify(text: str) -> str:
     return text.strip("-")
 
 
-def unique_article_path(slug: str) -> Path:
-    path = ARTICLES_DIR / f"{slug}.md"
+def unique_article_path(slug: str, date_str: str) -> Path:
+    year, month = date_str[:4], date_str[5:7]
+    folder = ARTICLES_DIR / year / month
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"{slug}.md"
     if not path.exists():
         return path
     n = 2
     while True:
-        path = ARTICLES_DIR / f"{slug}-{n}.md"
+        path = folder / f"{slug}-{n}.md"
         if not path.exists():
             return path
         n += 1
@@ -518,7 +521,7 @@ def publish_article():
     # Build markdown
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     slug = slugify(title)
-    article_path = unique_article_path(slug)
+    article_path = unique_article_path(slug, date_str)
 
     lines = [
         f"Title: {title}",

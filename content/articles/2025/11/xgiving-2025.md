@@ -17,7 +17,7 @@ I didn't have enough time and abandoned that idea.
 It turned out that everyone was running late anyway, which is
 what I think happens every year but I always forget. 
 
-![Self Checkout](../media/images/xgiving-catgirl-goblin-self-checkout.avif)<br/>*At the Phair castle*
+![Self Checkout](/media/images/xgiving-catgirl-goblin-self-checkout.avif)<br/>*At the Phair castle*
 
 I got super drained of battery from being around kids. Julia
 started tackling me which was fun and cute but exhausting.
@@ -73,4 +73,4 @@ in the second video.
 
 ## I don't remember this context but it's cute
 We must have been moseying around in the moist for a bit?
-![Catgirl trying to share a brella](../media/images/xgiving-comic.avif)
+![Catgirl trying to share a brella](/media/images/xgiving-comic.avif)
