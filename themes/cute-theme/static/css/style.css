@@ -69,10 +69,6 @@ ol.voice-list audio {
   --card-radius: 20px;
 }
 
-html {
-  height: 100%;
-}
-
 body {
   font-family: var(--body-font);
   color: var(--text-color);
@@ -88,8 +84,7 @@ body {
 
 .carousel-scroller {
   display: flex;
-  /* gap: 1.25rem; */
-  padding: 0 0;
+  padding: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
@@ -302,8 +297,7 @@ figure.embedded-video video {
 }
 
 .article-title,
-.article-summary-title,
-.page-title {
+.article-summary-title {
   font-family: var(--heading-font);
   color: var(--primary-color);
   font-weight: 600;
@@ -315,7 +309,7 @@ figure.embedded-video video {
 .article-summary-title a {
   color: inherit;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: var(--transition-base);
 }
 
 .article-title a:hover,
@@ -436,7 +430,7 @@ figure.embedded-video video {
     var(--accent-color),
     var(--primary-color)
   );
-  color: #fff;
+  color: white;
   font-weight: 600;
   text-decoration: none;
   transition: var(--transition-base);
@@ -467,14 +461,11 @@ figure.embedded-video video {
 
 .article-summary-content {
   max-width: 500px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
 }
 
 .article-content img,
-.page-content img,
-.article-content picture img,
-.page-content picture img {
+.page-content img {
   max-height: clamp(320px, 70vh, 820px);
   object-fit: contain;
   display: block;
@@ -606,7 +597,6 @@ picture img,
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  aspect-ratio: var(--summary-media-ratio);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
@@ -729,7 +719,7 @@ picture img,
   text-align: center;
   padding: 1rem;
   border-top: 2px solid var(--border-color);
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--card-radius) var(--card-radius) 0 0;
   margin-top: auto;
   flex-shrink: 0;
 }
@@ -752,7 +742,6 @@ picture img,
   align-items: center;
   gap: 0.5rem;
   color: var(--text-light);
-  text-decoration: none;
   font-weight: 500;
   padding: 0.5rem 1rem;
   border-radius: 15px;
@@ -770,7 +759,6 @@ picture img,
 .social-links svg {
   width: 20px;
   height: 20px;
-  transition: color 0.3s ease;
 }
 
 /* Section and page titles */
@@ -778,12 +766,14 @@ picture img,
 .page-title {
   font-family: var(--heading-font);
   color: var(--primary-color);
-  font-size: 2rem;
   text-align: center;
   margin: 1rem;
 }
 
+.section-title { font-size: 2rem; }
+
 .page-title {
+  font-weight: 600;
   font-size: 2.5rem;
 }
 
