@@ -3,6 +3,7 @@ import re
 import subprocess
 import threading
 import uuid
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -448,6 +449,108 @@ def articles_hub():
 @app.get("/admin/articles/new")
 def new_article():
     return render_template("author-article.html")
+
+
+def _split_tags(tags_value: str) -> list[str]:
+    return [t.strip() for t in tags_value.split(",") if t.strip()]
+
+
+def _read_article_metadata(article_path: Path) -> dict:
+    date_value = None
+    tags_value = ""
+    try:
+        raw = article_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return {"date": None, "tags": []}
+
+    for line in raw.splitlines():
+        if not line.strip():
+            break
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip().lower()
+        value = value.strip()
+        if key == "date":
+            date_value = value
+        elif key == "tags":
+            tags_value = value
+
+    parsed_date = None
+    if date_value:
+        try:
+            parsed_date = datetime.strptime(date_value[:10], "%Y-%m-%d").date()
+        except ValueError:
+            parsed_date = None
+    return {"date": parsed_date, "tags": _split_tags(tags_value)}
+
+
+@app.get("/api/article/tags/suggestions")
+def suggested_tags():
+    max_recent = 6
+    max_common = 6
+
+    articles = []
+    for article_path in ARTICLES_DIR.rglob("*.md"):
+        meta = _read_article_metadata(article_path)
+        articles.append({
+            "date": meta["date"],
+            "tags": meta["tags"],
+        })
+
+    sorted_articles = sorted(
+        articles,
+        key=lambda a: a["date"] or datetime.min.date(),
+        reverse=True,
+    )
+
+    recent_tags = []
+    recent_keys = set()
+    for article in sorted_articles:
+        for tag in article["tags"]:
+            key = tag.lower()
+            if key in recent_keys:
+                continue
+            recent_tags.append(tag)
+            recent_keys.add(key)
+            if len(recent_tags) >= max_recent:
+                break
+        if len(recent_tags) >= max_recent:
+            break
+
+    counts = Counter()
+    last_used = {}
+    display = {}
+    for article in sorted_articles:
+        seen_in_article = set()
+        for tag in article["tags"]:
+            key = tag.lower()
+            if key in seen_in_article:
+                continue
+            seen_in_article.add(key)
+            counts[key] += 1
+            if key not in display:
+                display[key] = tag
+            if key not in last_used or (article["date"] and article["date"] > last_used[key]):
+                last_used[key] = article["date"]
+
+    common_candidates = sorted(
+        counts.keys(),
+        key=lambda key: (
+            -counts[key],
+            -(last_used.get(key) or datetime.min.date()).toordinal(),
+            key,
+        ),
+    )
+    common_tags = []
+    for key in common_candidates:
+        if key in recent_keys:
+            continue
+        common_tags.append(display[key])
+        if len(common_tags) >= max_common:
+            break
+
+    return jsonify({"recent": recent_tags, "common": common_tags})
 
 
 @app.post("/api/article/draft")

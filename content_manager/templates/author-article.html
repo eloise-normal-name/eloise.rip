@@ -89,6 +89,41 @@
         .btn-success { background: var(--success); }
         .btn-success:hover { background: #166534; }
         .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .suggested-tags {
+            margin-top: 8px;
+            display: grid;
+            gap: 8px;
+        }
+        .suggested-tags-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .suggested-tags-row .label {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-right: 2px;
+        }
+        .tag-chip {
+            border: 1px solid var(--border);
+            background: #f7f9fc;
+            color: var(--text);
+            border-radius: 999px;
+            padding: 3px 10px;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+        .tag-chip:hover {
+            background: #eef3ff;
+            border-color: #b9c7de;
+        }
+        .tag-chip.active {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1e3a8a;
+            font-weight: 600;
+        }
 
         /* Drop zone */
         .drop-zone {
@@ -212,6 +247,16 @@
             <div style="flex:1;">
                 <label for="tags">Tags <span class="hint">(comma-separated)</span></label>
                 <input type="text" id="tags" placeholder="Tag1, Tag2">
+                <div class="suggested-tags" id="suggested-tags" style="display:none;">
+                    <div class="suggested-tags-row">
+                        <span class="label">Recent:</span>
+                        <div id="recent-tags"></div>
+                    </div>
+                    <div class="suggested-tags-row">
+                        <span class="label">Common:</span>
+                        <div id="common-tags"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -286,6 +331,9 @@
     const previewPane = document.getElementById("preview-pane");
     const togglePreviewBtn = document.getElementById("toggle-preview");
     const draftIndicator = document.getElementById("draft-indicator");
+    const suggestedTagsEl = document.getElementById("suggested-tags");
+    const recentTagsEl = document.getElementById("recent-tags");
+    const commonTagsEl = document.getElementById("common-tags");
 
     // State
     let mediaUploads = [];  // {job_id, file, name, media_type, status, final_url, poster_url, error, el}
@@ -506,6 +554,80 @@
         statusSpan.textContent = entry.status === "error" ? `error: ${entry.error}` : entry.status;
     }
 
+    function parseCurrentTags() {
+        const tags = tagsEl.value
+            .split(",")
+            .map(t => t.trim())
+            .filter(Boolean);
+        const deduped = [];
+        const seen = new Set();
+        for (const tag of tags) {
+            const key = tag.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            deduped.push(tag);
+        }
+        return deduped;
+    }
+
+    function setCurrentTags(tags) {
+        tagsEl.value = tags.join(", ");
+    }
+
+    function updateTagChipStates() {
+        const current = new Set(parseCurrentTags().map(t => t.toLowerCase()));
+        document.querySelectorAll(".tag-chip[data-tag]").forEach(chip => {
+            const chipTag = (chip.dataset.tag || "").toLowerCase();
+            chip.classList.toggle("active", current.has(chipTag));
+        });
+    }
+
+    function toggleSuggestedTag(tag) {
+        const currentTags = parseCurrentTags();
+        const key = tag.toLowerCase();
+        const idx = currentTags.findIndex(t => t.toLowerCase() === key);
+        if (idx >= 0) {
+            currentTags.splice(idx, 1);
+        } else {
+            currentTags.push(tag);
+        }
+        setCurrentTags(currentTags);
+        updateTagChipStates();
+        schedulAutoSave();
+    }
+
+    function renderTagChips(container, tags) {
+        container.innerHTML = "";
+        for (const tag of tags) {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "tag-chip";
+            chip.textContent = tag;
+            chip.dataset.tag = tag;
+            chip.addEventListener("click", () => toggleSuggestedTag(tag));
+            container.appendChild(chip);
+        }
+    }
+
+    async function loadSuggestedTags() {
+        try {
+            const res = await fetch("/api/article/tags/suggestions");
+            const data = await res.json();
+            if (!res.ok) return;
+
+            const recent = Array.isArray(data.recent) ? data.recent : [];
+            const common = Array.isArray(data.common) ? data.common : [];
+            if (recent.length === 0 && common.length === 0) return;
+
+            renderTagChips(recentTagsEl, recent);
+            renderTagChips(commonTagsEl, common);
+            suggestedTagsEl.style.display = "grid";
+            updateTagChipStates();
+        } catch {
+            // Keep authoring page functional even if suggestions fail.
+        }
+    }
+
     // --- Draft auto-save ---
     function schedulAutoSave() {
         clearTimeout(autoSaveTimer);
@@ -515,6 +637,7 @@
     [titleEl, summaryEl, categoryEl, tagsEl, thumbnailEl, contentEl].forEach(el => {
         el.addEventListener("input", schedulAutoSave);
     });
+    tagsEl.addEventListener("input", updateTagChipStates);
 
     async function saveDraft() {
         const body = {
@@ -646,6 +769,8 @@
         div.textContent = str;
         return div.innerHTML;
     }
+
+    loadSuggestedTags();
 
 })();
 </script>
