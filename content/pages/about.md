@@ -217,7 +217,9 @@ Template: character-stats
 				<li>Merp, Berp</li>
 				<li>Groof, Groofriend</li>
 				<li>Longlegs, Fussy</li>
-				<li>Green Bandit</li>
+				<li>Boogie, Woogie</li>
+				<li>Green Bandit (GB)</li>
+				<li>Little bandit (LB)</li>
 			</ul>
 		</div>
 		<div class="friends-card">
