@@ -1,0 +1,77 @@
+name: Audio Transcode & Publish
+
+on:
+  push:
+    branches: [audio-source]
+    paths: ['voice/**']
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Re-transcode all files (overwrite existing M4A)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audio-transcode
+  cancel-in-progress: true
+
+jobs:
+  transcode:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout audio-source
+        uses: actions/checkout@v4
+        with:
+          ref: audio-source
+
+      - name: Checkout main (publish target)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-checkout
+
+      - name: Install ffmpeg
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -q
+            sudo apt-get install -y -q ffmpeg
+          fi
+          ffmpeg -version | head -1
+
+      - name: Transcode audio files
+        env:
+          FORCE: ${{ inputs.force || 'false' }}
+        run: |
+          mkdir -p main-checkout/content/media/voice
+          shopt -s nullglob
+          count=0
+          for src in voice/*.{wav,flac,mp3,m4a,ogg,wma,aiff,aif}; do
+            [ -f "$src" ] || continue
+            base="${src##*/}"
+            base="${base%.*}"
+            dest="main-checkout/content/media/voice/${base}.m4a"
+            if [ "$FORCE" = "true" ] || [ ! -f "$dest" ]; then
+              echo "[TRANSCODE] $src → $dest"
+              ffmpeg -y -i "$src" -vn -c:a aac -b:a 128k "$dest"
+              count=$((count + 1))
+            else
+              echo "[SKIP] $dest already exists"
+            fi
+          done
+          echo "Transcoded $count file(s)."
+
+      - name: Commit and push to main
+        run: |
+          cd main-checkout
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add content/media/voice/
+          if git diff --cached --quiet; then
+            echo "No new audio files — nothing to commit."
+          else
+            git commit -m "chore(voice): transcode audio from audio-source"
+            git push origin main
+          fi
