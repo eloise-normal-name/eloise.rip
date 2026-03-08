@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Archives — {{ SITENAME }}{% endblock %}
+
+{% block content %}
+<div class="content-wrap">
+    <div class="listing-card">
+        <h1 class="listing-title">Posts</h1>
+
+        {% for year, year_group in dates|groupby('date.year')|reverse %}
+        <div class="year-group">
+            <h2 class="year-label">{{ year }}</h2>
+
+            {% for month, month_group in year_group|groupby('date.month')|reverse %}
+            <div class="month-group">
+                <p class="month-label">{{ month_group[0].date.strftime('%B') }}</p>
+                <ul class="articles-list">
+                    {% for article in month_group %}
+                    <li class="article-item">
+                        <time class="article-date" datetime="{{ article.date.isoformat() }}">
+                            {{ article.date.strftime('%d') }}
+                        </time>
+                        <a href="{{ SITEURL }}/{{ article.url }}" class="article-link">{{ article.title }}</a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
