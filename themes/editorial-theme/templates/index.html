@@ -76,4 +76,17 @@
     </div>
 
 </div>
+
+<script>
+(function () {
+    var sidebar = document.querySelector('.sidebar-list');
+    if (!sidebar) return;
+    sidebar.addEventListener('click', function (e) {
+        var link = e.target.closest('.sidebar-link');
+        if (!link) return;
+        sidebar.querySelectorAll('.sidebar-link').forEach(function (l) { l.classList.remove('is-active'); });
+        link.classList.add('is-active');
+    });
+}());
+</script>
 {% endblock %}
