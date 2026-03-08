@@ -6,7 +6,17 @@ https://eloise.rip/preview/index.html.
 
 The existing site (pelicanconf.py → output/) is unaffected.
 """
+import os
+import sys
 from pathlib import Path
+
+# Pelican loads settings via importlib.util.spec_from_file_location, which
+# does not add the file's directory to sys.path.  Ensure the project root is
+# on the path so that `from pelicanconf import *` works when pelican is
+# invoked as a console-script entry point (e.g. in CI).
+_here = os.path.dirname(os.path.abspath(__file__))
+if _here not in sys.path:
+    sys.path.insert(0, _here)
 
 # Inherit all base settings
 from pelicanconf import *  # noqa: F401, F403
