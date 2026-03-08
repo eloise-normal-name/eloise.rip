@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block header %}{% endblock %}
+
 {% block content %}
 <div class="home-layout">
 
@@ -17,7 +19,7 @@
                 <li class="sidebar-item">
                     <a href="{{ SITEURL }}/{{ article.url }}"
                        class="sidebar-link{% if loop.first %} is-active{% endif %}"
-                       data-article-url="{{ SITEURL }}/{{ article.url }}">
+                       target="article-frame">
 
                         {% if thumbnail %}
                             <div class="sidebar-thumb">
@@ -60,6 +62,7 @@
     <div class="article-viewer" aria-label="Article viewer" aria-live="polite">
         {% if articles_page.object_list %}
             <iframe id="article-frame"
+                    name="article-frame"
                     class="article-frame"
                     src="{{ SITEURL }}/{{ articles_page.object_list[0].url }}"
                     title="Article content"
@@ -76,26 +79,13 @@
 
 <script>
 (function () {
-    'use strict';
     var sidebar = document.querySelector('.sidebar-list');
-    var frame = document.getElementById('article-frame');
-    if (!sidebar || !frame) return;
-
+    if (!sidebar) return;
     sidebar.addEventListener('click', function (e) {
         var link = e.target.closest('.sidebar-link');
         if (!link) return;
-        e.preventDefault();
-
-        // Update active state
-        var links = sidebar.querySelectorAll('.sidebar-link');
-        for (var i = 0; i < links.length; i++) {
-            links[i].classList.remove('is-active');
-        }
+        sidebar.querySelectorAll('.sidebar-link').forEach(function (l) { l.classList.remove('is-active'); });
         link.classList.add('is-active');
-
-        // Load in iframe
-        var url = link.dataset.articleUrl || link.getAttribute('href');
-        frame.src = url;
     });
 }());
 </script>
