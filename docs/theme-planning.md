@@ -6,6 +6,18 @@
 
 ---
 
+## Mockup
+
+`docs/theme-mockup.html` — open directly in a browser, no build step.
+
+**Desktop (1280×800)**
+![desktop mockup](theme-mockup-desktop.png)
+
+**Mobile (390×844)**
+![mobile mockup](theme-mockup-mobile.png)
+
+---
+
 ## Overview
 
 Redesign of `cute-theme` toward a **soft, minimal editorial aesthetic** — warm off-white surfaces, dusty mauve accents, serif body text, monospace headings, and a split-pane homepage that behaves like an RSS reader. Personality comes from typography and proportion, not color noise or animation.
