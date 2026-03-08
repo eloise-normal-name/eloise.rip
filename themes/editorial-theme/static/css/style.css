@@ -338,11 +338,6 @@ picture {
 
 /* ── Split-pane homepage ────────────────────────────────── */
 
-/* Hide top header on preview index; sidebar + article header are sufficient */
-body:has(.home-layout) .site-header {
-  display: none;
-}
-
 .home-layout {
   flex: 1;
   display: flex;
