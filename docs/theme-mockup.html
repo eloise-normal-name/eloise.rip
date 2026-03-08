@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eloise.rip — theme mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@500;600&family=Lora:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+/* ── tokens ── */
+:root {
+  --color-bg:             #f8f5f0;
+  --color-surface:        #fffdfb;
+  --color-surface-raised: #ffffff;
+  --color-border:         #e8e2d9;
+  --color-border-subtle:  #f0ece5;
+
+  --color-text:           #2a2520;
+  --color-text-muted:     #7a6e68;
+  --color-text-faint:     #a89e97;
+  --color-text-on-accent: #ffffff;
+
+  --color-link:           #9a6478;
+  --color-link-hover:     #b07a8f;
+
+  --color-accent-1:       #b07a8f;
+  --color-accent-2:       #d4a5b5;
+  --color-accent-3:       #ede0e5;
+  --color-accent-dark:    #7d4f61;
+
+  --color-success:        #6a9e70;
+  --color-warning:        #b07a4a;
+
+  --font-body:   'Lora', Georgia, serif;
+  --font-ui:     'DM Sans', system-ui, sans-serif;
+  --font-mono:   'JetBrains Mono', 'Fira Code', monospace;
+
+  --radius-card: 8px;
+  --radius-img:  6px;
+  --radius-pill: 999px;
+
+  --shadow-card:       0 2px 12px rgba(42,37,32,.07);
+  --shadow-card-hover: 0 4px 20px rgba(42,37,32,.11);
+
+  --transition: 150ms ease-out;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg:             #1c1916;
+    --color-surface:        #242018;
+    --color-surface-raised: #2e2a25;
+    --color-border:         #3a342c;
+    --color-border-subtle:  #302b25;
+    --color-text:           #d8d0c8;
+    --color-text-muted:     #8c837a;
+    --color-text-faint:     #5a524c;
+    --color-link:           #c49aaa;
+    --color-link-hover:     #d4b0be;
+    --color-accent-3:       #2e2228;
+  }
+}
+
+/* ── reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+/* ── split pane shell ── */
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── left pane ── */
+.pane-list {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.pane-header {
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.site-name {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.pane-nav {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pane-nav a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+.pane-nav a:hover { color: var(--color-link-hover); }
+
+.voice-link {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: color var(--transition);
+}
+.voice-link:hover { color: var(--color-accent-1); }
+
+.voice-bar {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+}
+.voice-bar-fill {
+  display: inline-block;
+  width: 52px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  position: relative;
+  overflow: hidden;
+}
+.voice-bar-fill::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 64%;
+  background: var(--color-accent-1);
+  border-radius: 2px;
+}
+.voice-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent-1);
+}
+.voice-date {
+  color: var(--color-text-faint);
+}
+
+/* ── article list ── */
+.article-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 6px 0;
+}
+
+.article-list::-webkit-scrollbar { width: 4px; }
+.article-list::-webkit-scrollbar-track { background: transparent; }
+.article-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+.article-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 18px;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: background var(--transition), border-color var(--transition);
+  text-decoration: none;
+  color: inherit;
+}
+.article-row:hover { background: var(--color-accent-3); }
+.article-row.active {
+  border-left-color: var(--color-accent-1);
+  background: var(--color-accent-3);
+}
+
+.article-thumb {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--color-border);
+  display: block;
+}
+.article-thumb.portrait { height: 86px; }
+
+/* placeholder thumb gradients for mockup */
+.thumb-a { background: linear-gradient(135deg, #d4c4c8 0%, #c4b0b8 100%); }
+.thumb-b { background: linear-gradient(135deg, #c8d0c4 0%, #b0c4b8 100%); }
+.thumb-c { background: linear-gradient(135deg, #c4c8d4 0%, #b0b8c8 100%); }
+.thumb-d { background: linear-gradient(135deg, #d4ccc4 0%, #c0b4a8 100%); }
+.thumb-e { background: linear-gradient(135deg, #ccc4d4 0%, #b8b0c8 100%); }
+.thumb-f { background: linear-gradient(135deg, #c4d4cc 0%, #b0c4b8 100%); }
+
+.article-info { flex: 1; min-width: 0; }
+
+.article-title {
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 3px;
+}
+
+.article-date {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+}
+
+/* ── right pane ── */
+.pane-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+/* top nav bar (for standalone pages; shown here as context) */
+.top-nav {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  gap: 20px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.top-nav-label {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-text-faint);
+  margin-right: auto;
+  letter-spacing: 0.02em;
+}
+
+/* article content area */
+.article-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 48px 24px 64px;
+}
+.article-content::-webkit-scrollbar { width: 4px; }
+.article-content::-webkit-scrollbar-track { background: transparent; }
+.article-content::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+.article-inner {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* article meta */
+.article-meta {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.meta-sep { color: var(--color-border); }
+
+/* headings */
+h1, h2, h3, h4 {
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-weight: 600;
+}
+h1 { font-size: 2rem; line-height: 1.2; margin-bottom: 12px; }
+h2 { font-size: 1.6rem; line-height: 1.3; margin: 2.5rem 0 0.75rem; font-weight: 500; }
+h3 { font-size: 1.28rem; line-height: 1.3; margin: 2rem 0 0.5rem; font-weight: 500; }
+
+/* body text */
+p { margin-bottom: 1.25rem; }
+
+/* links */
+a { color: var(--color-link); transition: color var(--transition); }
+a:hover { color: var(--color-link-hover); }
+
+/* tags */
+.tag-list { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 2rem; }
+.tag {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-accent-2);
+  color: var(--color-accent-dark);
+  text-decoration: none;
+  transition: background var(--transition), border-color var(--transition);
+}
+.tag:hover { background: var(--color-accent-3); color: var(--color-accent-dark); }
+
+/* images */
+.article-inner img, .article-img {
+  width: 100%;
+  border-radius: var(--radius-img);
+  display: block;
+  margin: 1.5rem 0 0.5rem;
+  background: var(--color-border);
+  aspect-ratio: 16/9;
+}
+figcaption {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--color-text-faint);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* blockquote */
+blockquote {
+  border-left: 3px solid var(--color-accent-2);
+  padding: 0 0 0 18px;
+  margin: 1.5rem 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* inline code */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* code block */
+pre {
+  background: #1e1a17;
+  color: #d8cfc4;
+  border-radius: var(--radius-card);
+  padding: 18px 20px;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+}
+pre code { background: none; border: none; padding: 0; font-size: inherit; color: inherit; }
+
+/* ── color swatches section ── */
+.swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+}
+.swatch {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  position: relative;
+}
+.swatch-label {
+  position: absolute;
+  bottom: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-faint);
+  white-space: nowrap;
+}
+
+/* ── responsive ── */
+@media (max-width: 768px) {
+  .shell { flex-direction: column; }
+  .pane-content {
+    order: -1;
+    flex: 1;
+    min-height: 0;
+  }
+  .pane-list {
+    width: 100%;
+    max-height: 42vh;
+    border-right: none;
+    border-top: 1px solid var(--color-border);
+    border-bottom: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── LEFT PANE ── -->
+  <aside class="pane-list">
+
+    <div class="pane-header">
+      <a class="site-name" href="#">eloise.rip</a>
+      <nav class="pane-nav">
+        <a href="#">archives</a>
+        <a href="#">about</a>
+      </nav>
+      <a class="voice-link" href="#">
+        <!-- phosphor microphone icon inline -->
+        <svg width="14" height="14" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M128 176a48 48 0 0 0 48-48V80a48 48 0 0 0-96 0v48a48 48 0 0 0 48 48z" fill="var(--color-accent-2)" opacity=".5"/>
+          <path d="M176 128a48 48 0 0 1-96 0" stroke="var(--color-accent-1)" stroke-width="16" stroke-linecap="round" fill="none"/>
+          <line x1="128" y1="176" x2="128" y2="208" stroke="var(--color-accent-1)" stroke-width="16" stroke-linecap="round"/>
+          <line x1="96" y1="208" x2="160" y2="208" stroke="var(--color-accent-1)" stroke-width="16" stroke-linecap="round"/>
+        </svg>
+        <span>voice</span>
+        <span class="voice-bar"><span class="voice-bar-fill"></span></span>
+        <span class="voice-pct">64%</span>
+        <span class="voice-date">· Mar 6</span>
+      </a>
+    </div>
+
+    <div class="article-list">
+
+      <a class="article-row active" href="#">
+        <div class="article-thumb thumb-a"></div>
+        <div class="article-info">
+          <div class="article-title">getting comfortable with chest resonance after six months</div>
+          <div class="article-date">Mar 6, 2026</div>
+        </div>
+      </a>
+
+      <a class="article-row" href="#">
+        <div class="article-thumb portrait thumb-b"></div>
+        <div class="article-info">
+          <div class="article-title">photos from the ceramics workshop</div>
+          <div class="article-date">Feb 28, 2026</div>
+        </div>
+      </a>
+
+      <a class="article-row" href="#">
+        <div class="article-thumb thumb-c"></div>
+        <div class="article-info">
+          <div class="article-title">on keeping a sketchbook without pressure</div>
+          <div class="article-date">Feb 19, 2026</div>
+        </div>
+      </a>
+
+      <a class="article-row" href="#">
+        <div class="article-thumb thumb-d"></div>
+        <div class="article-info">
+          <div class="article-title">rewatching Haibane Renmei in winter</div>
+          <div class="article-date">Feb 11, 2026</div>
+        </div>
+      </a>
+
+      <a class="article-row" href="#">
+        <!-- video badge example -->
+        <div style="position:relative;flex-shrink:0;">
+          <div class="article-thumb thumb-e"></div>
+          <span style="position:absolute;bottom:3px;right:3px;background:var(--color-accent-1);color:#fff;font-family:var(--font-ui);font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;line-height:1.6;">▶</span>
+        </div>
+        <div class="article-info">
+          <div class="article-title">morning routine, filmed</div>
+          <div class="article-date">Jan 30, 2026</div>
+        </div>
+      </a>
+
+      <a class="article-row" href="#">
+        <div class="article-thumb thumb-f"></div>
+        <div class="article-info">
+          <div class="article-title">notes on embroidery and patience</div>
+          <div class="article-date">Jan 22, 2026</div>
+        </div>
+      </a>
+
+      <a class="article-row" href="#">
+        <div class="article-thumb thumb-a"></div>
+        <div class="article-info">
+          <div class="article-title">the problem with productivity frameworks</div>
+          <div class="article-date">Jan 14, 2026</div>
+        </div>
+      </a>
+
+      <a class="article-row" href="#">
+        <div class="article-thumb thumb-c"></div>
+        <div class="article-info">
+          <div class="article-title">january, quietly</div>
+          <div class="article-date">Jan 3, 2026</div>
+        </div>
+      </a>
+
+    </div>
+  </aside>
+
+  <!-- ── RIGHT PANE ── -->
+  <main class="pane-content">
+
+    <!-- label bar (shows in mockup to note this is the "iframe" area) -->
+    <div class="top-nav">
+      <span class="top-nav-label">article pane · in production this is an &lt;iframe&gt;</span>
+      <a href="#" style="font-family:var(--font-ui);font-size:13px;color:var(--color-text-muted);text-decoration:none;">archives</a>
+      <a href="#" style="font-family:var(--font-ui);font-size:13px;color:var(--color-text-muted);text-decoration:none;">about</a>
+    </div>
+
+    <div class="article-content">
+      <div class="article-inner">
+
+        <div class="article-meta">
+          <span>Mar 6, 2026</span>
+          <span class="meta-sep">·</span>
+          <span>voice</span>
+          <span class="meta-sep">·</span>
+          <span>8 min read</span>
+        </div>
+
+        <h1>getting comfortable with chest resonance after six months</h1>
+
+        <div class="tag-list">
+          <a class="tag" href="#">voice</a>
+          <a class="tag" href="#">practice</a>
+          <a class="tag" href="#">transition</a>
+        </div>
+
+        <div class="article-img thumb-a" role="img" aria-label="article image placeholder"></div>
+        <figcaption>waveform from a recent session — progress visible in the low end</figcaption>
+
+        <p>Six months ago I couldn't reliably hit the same note twice. Now I wake up and the first thing I do is hum, just to check in — to feel where my voice is sitting. It's become a small ritual, like checking the weather.</p>
+
+        <p>The thing nobody tells you about voice training is that the goal isn't a destination. You're not working toward a fixed target. You're building a relationship with something that changes day to day based on sleep, hydration, stress, the humidity in the room. What you're actually practicing is <em>attention</em>.</p>
+
+        <blockquote>
+          The voice you hear in a recording is never quite the voice you remember making. Learning to close that gap takes longer than any exercise.
+        </blockquote>
+
+        <h2>what actually helped</h2>
+
+        <p>Consistency mattered more than duration. Fifteen minutes every morning was more effective than an hour twice a week. The muscle memory seems to consolidate overnight — I'd go to sleep frustrated and wake up having quietly improved.</p>
+
+        <p>Recording everything, even when I didn't want to listen back. The record button is the most honest mirror.</p>
+
+        <pre><code># rough session log format I've been using
+date: 2026-03-06
+duration: 18min
+exercises: glide, sustained /a/, reading aloud
+notes: chest register felt accessible earlier than usual
+resonance: 7/10</code></pre>
+
+        <h2>palette preview</h2>
+
+        <p style="margin-bottom:2.5rem;">Color tokens from the spec, rendered:</p>
+
+        <div class="swatches" style="margin-bottom:3rem;">
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#f8f5f0;"></div>
+            <div class="swatch-label">bg</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#fffdfb;"></div>
+            <div class="swatch-label">surface</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#e8e2d9;"></div>
+            <div class="swatch-label">border</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#2a2520;"></div>
+            <div class="swatch-label">text</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#7a6e68;"></div>
+            <div class="swatch-label">muted</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#b07a8f;"></div>
+            <div class="swatch-label">accent-1</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#d4a5b5;"></div>
+            <div class="swatch-label">accent-2</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#ede0e5;"></div>
+            <div class="swatch-label">accent-3</div>
+          </div>
+          <div style="position:relative;display:inline-block;">
+            <div class="swatch" style="background:#7d4f61;"></div>
+            <div class="swatch-label">acc-dark</div>
+          </div>
+        </div>
+
+        <h2>tag and button components</h2>
+
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:2rem;">
+          <a class="tag" href="#">voice</a>
+          <a class="tag" href="#">practice</a>
+          <a class="tag" href="#">transition</a>
+          <a class="tag" href="#">journal</a>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:2rem;">
+          <button style="font-family:var(--font-ui);font-size:14px;font-weight:500;padding:8px 18px;border-radius:6px;border:none;background:var(--color-accent-1);color:var(--color-text-on-accent);cursor:pointer;">primary</button>
+          <button style="font-family:var(--font-ui);font-size:14px;font-weight:500;padding:8px 18px;border-radius:6px;border:1px solid var(--color-border);background:transparent;color:var(--color-text);cursor:pointer;">ghost</button>
+        </div>
+
+        <p>Inline <code>code looks like this</code> — warm surface, soft border, monospace.</p>
+
+        <p style="font-family:var(--font-ui);font-size:13px;color:var(--color-text-faint);border-top:1px solid var(--color-border-subtle);padding-top:24px;margin-top:3rem;">
+          © eloise 2026
+        </p>
+
+      </div>
+    </div>
+  </main>
+
+</div>
+
+</body>
+</html>
