@@ -3,7 +3,7 @@ Template: character-stats
 
 <section class="overview">
 	<span class="section-title">Character Stats</span><span class="hero-name">Eloise</span>
-    <img class="hero" src="media/images/cross-eyed-goblin.avif"/>
+    <img class="hero" src="/media/images/cross-eyed-goblin.avif"/>
 	<blockquote class="tagline">Hello! It's me, Eloise</blockquote>
 	<div class="jobs">Goblin • Bungler</div>
 	<ul>

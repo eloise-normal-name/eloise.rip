@@ -73,7 +73,7 @@ Template: page
 <h3 id="H{{ set_num }}"><a href="https://harvardsentences.com/#h{{ set_num }}-harvard-sentences">H{{ set_num }} Harvard Sentences</a></h3>
 <ol class="voice-list" start="{{ i + 1 }}">
 {% for file in voice_files[i:i+10] %}
-  <li><audio src="media/voice/{{ file.name }}" controls></audio></li>
+  <li><audio src="/media/voice/{{ file.name }}" controls></audio></li>
 {% endfor %}
 </ol>
 {% endfor %}
