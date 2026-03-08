@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="home-layout">
+
+    <!-- Left sidebar: article list -->
+    <aside class="article-sidebar" aria-label="Article list">
+        <div class="sidebar-header">
+            <span class="sidebar-label">Recent Posts</span>
+        </div>
+
+        <ul class="sidebar-list" role="list">
+            {% for article in articles_page.object_list %}
+                {% set metadata = article.metadata|default({}) %}
+                {% set thumbnail = metadata.get('thumbnail') or metadata.get('image') or article.thumbnail or article.image %}
+
+                <li class="sidebar-item">
+                    <a href="{{ SITEURL }}/{{ article.url }}"
+                       class="sidebar-link{% if loop.first %} is-active{% endif %}"
+                       data-article-url="{{ SITEURL }}/{{ article.url }}">
+
+                        {% if thumbnail %}
+                            <div class="sidebar-thumb">
+                                {% if '://' in thumbnail %}
+                                    <img src="{{ thumbnail }}" alt="" loading="lazy" aria-hidden="true">
+                                {% else %}
+                                    <img src="/media/{{ thumbnail }}" alt="" loading="lazy" aria-hidden="true">
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="sidebar-meta">
+                            <span class="sidebar-title">{{ article.title|striptags }}</span>
+                            <time class="sidebar-date" datetime="{{ article.date.isoformat() }}">
+                                {{ article.date.strftime('%b %-d, %Y') }}
+                            </time>
+                            {% if article.category %}
+                                <span class="sidebar-category">{{ article.category }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        {% if articles_page.has_other_pages() %}
+        <nav class="sidebar-pagination" aria-label="Page navigation">
+            {% if articles_page.has_previous() %}
+                <a href="{{ SITEURL }}/{{ articles_previous_page.url }}" class="pg-btn">&#8592; Newer</a>
+            {% endif %}
+            <span class="pg-info">{{ articles_page.number }}/{{ articles_paginator.num_pages }}</span>
+            {% if articles_page.has_next() %}
+                <a href="{{ SITEURL }}/{{ articles_next_page.url }}" class="pg-btn">Older &#8594;</a>
+            {% endif %}
+        </nav>
+        {% endif %}
+    </aside>
+
+    <!-- Right pane: article iframe viewer -->
+    <div class="article-viewer" aria-label="Article viewer" aria-live="polite">
+        {% if articles_page.object_list %}
+            <iframe id="article-frame"
+                    class="article-frame"
+                    src="{{ SITEURL }}/{{ articles_page.object_list[0].url }}"
+                    title="Article content"
+                    loading="eager"
+                    aria-label="Selected article"></iframe>
+        {% else %}
+            <div class="viewer-empty">
+                <p>No posts yet.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+(function () {
+    'use strict';
+    var sidebar = document.querySelector('.sidebar-list');
+    var frame = document.getElementById('article-frame');
+    if (!sidebar || !frame) return;
+
+    sidebar.addEventListener('click', function (e) {
+        var link = e.target.closest('.sidebar-link');
+        if (!link) return;
+        e.preventDefault();
+
+        // Update active state
+        var links = sidebar.querySelectorAll('.sidebar-link');
+        for (var i = 0; i < links.length; i++) {
+            links[i].classList.remove('is-active');
+        }
+        link.classList.add('is-active');
+
+        // Load in iframe
+        var url = link.dataset.articleUrl || link.getAttribute('href');
+        frame.src = url;
+    });
+}());
+</script>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tag }} — {{ SITENAME }}{% endblock %}
+
+{% block content %}
+<div class="content-wrap">
+    <div class="listing-card">
+        <h1 class="listing-title">{{ tag }}</h1>
+        <ul class="articles-list">
+            {% for article in articles %}
+            <li class="article-item">
+                <time class="article-date" datetime="{{ article.date.isoformat() }}">
+                    {{ article.date.strftime('%Y-%m-%d') }}
+                </time>
+                <a href="{{ SITEURL }}/{{ article.url }}" class="article-link">{{ article.title }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}
