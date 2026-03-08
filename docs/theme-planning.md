@@ -207,8 +207,8 @@ The homepage is a two-column split pane inspired by RSS reader UIs (Reeder, NetN
 
 - **Breakpoints**: 768px (pane switch), 480px (further text scaling)
 - **Navigation on mobile**: At ≤768px, the split pane collapses:
-  - Left pane (article list) stacks on top, height `auto` (shows ~3–4 items before scroll)
-  - Right pane (iframe) below, `height: 60vh` minimum
+  - Right pane (iframe / content) on top via `order: -1`, takes `flex: 1`
+  - Left pane (article list) below, `max-height: 42vh`, scrollable; `border-top` separator
   - No hamburger menu needed — nav links remain visible in left pane header
 - **Article card on mobile**: same thumbnail + title layout, thumbnail stays 64×64px
 - **Font size scaling**: no `vw`-based scaling. Base 16px stays; headings step down one size at 480px (H1: 1.6rem).
@@ -344,7 +344,7 @@ No social link icons unless social URLs are added to config. No theme toggle ico
 | 2026-03-08 | Surface | Barely-there shadow | No border; cards float softly |
 | 2026-03-08 | Homepage layout | Split pane (list + iframe) | RSS reader UX; list left, article right |
 | 2026-03-08 | URL behavior | No pushState | Homepage stays `/`; articles have own pages |
-| 2026-03-08 | Mobile layout | Stacked (list top, iframe bottom) | Both panes visible, vertically arranged |
+| 2026-03-08 | Mobile layout | Stacked (content top, list bottom) | Content visible immediately; list scrolls below |
 | 2026-03-08 | Card aspect-adapt | Landscape/portrait thumbnail rows | Card height adapts to image aspect ratio |
 | 2026-03-08 | Icons | Phosphor (duotone + regular) | Expressive but minimal; duotone adds depth |
 | 2026-03-08 | Motion | Very subtle — 150ms opacity/translate | Matches minimal aesthetic; near-invisible |
