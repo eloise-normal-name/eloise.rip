@@ -62,6 +62,7 @@
     <div class="article-viewer" aria-label="Article viewer" aria-live="polite">
         {% if articles_page.object_list %}
             <iframe id="article-frame"
+                    name="article-frame"
                     class="article-frame"
                     src="{{ SITEURL }}/{{ articles_page.object_list[0].url }}"
                     title="Article content"
