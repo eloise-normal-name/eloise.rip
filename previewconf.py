@@ -34,11 +34,10 @@ SITEURL = 'https://eloise.rip/preview'
 RELATIVE_URLS = False
 
 # ── Static files ───────────────────────────────────────────────────────────
-# Media and favicons are served from the root (/media/, /favicon.ico, etc.)
-# rather than being duplicated under /preview/.  The editorial theme templates
-# use root-relative /media/... paths so no copying is needed here.
-STATIC_PATHS = []
-EXTRA_PATH_METADATA = {}
+# Keep shared media at the site root to avoid duplicating the larger asset
+# tree, but still publish the small favicon/CNAME extras under /preview/ so the
+# alternate theme works when previewed as a standalone subsite.
+STATIC_PATHS = ['extra']
 
 # ── Feeds ──────────────────────────────────────────────────────────────────
 # Feeds are already provided by the main site; suppress duplicates.
@@ -46,3 +45,11 @@ FEED_ALL_ATOM = None
 FEED_ALL_RSS = None
 CATEGORY_FEED_ATOM = None
 CATEGORY_FEED_RSS = None
+
+# ── Navigation ──────────────────────────────────────────────────────────────
+# Preserve the main-site menu structure, but make manual menu items stay
+# within /preview/ instead of jumping back to the root site.
+MENUITEMS = tuple(
+    (title, link if '://' in link else f'{SITEURL}/{link.lstrip("/")}')
+    for title, link in MENUITEMS
+)
