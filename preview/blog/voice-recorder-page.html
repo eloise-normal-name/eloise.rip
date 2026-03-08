@@ -6,6 +6,9 @@
     <title>Voice Recorder Page — eloise.rip</title>
     <meta name="description" content="making a voice recorder app">
 
+    <!-- Detect iframe context before render to avoid flash -->
+    <script>if (window.self !== window.top) { document.documentElement.classList.add('in-iframe'); }</script>
+
     <!-- CSS (includes font imports) -->
     <link rel="stylesheet" type="text/css" href="https://eloise.rip/preview/theme/css/style.css">
 

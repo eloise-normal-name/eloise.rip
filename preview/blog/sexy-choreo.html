@@ -6,6 +6,9 @@
     <title>Sexy Choreo — eloise.rip</title>
     <meta name="description" content="It&#39;s just the name of the class, but I did try to make it sexy.">
 
+    <!-- Detect iframe context before render to avoid flash -->
+    <script>if (window.self !== window.top) { document.documentElement.classList.add('in-iframe'); }</script>
+
     <!-- CSS (includes font imports) -->
     <link rel="stylesheet" type="text/css" href="https://eloise.rip/preview/theme/css/style.css">
 

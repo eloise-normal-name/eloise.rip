@@ -6,6 +6,9 @@
     <title>eloise.rip</title>
     <meta name="description" content="">
 
+    <!-- Detect iframe context before render to avoid flash -->
+    <script>if (window.self !== window.top) { document.documentElement.classList.add('in-iframe'); }</script>
+
     <!-- CSS (includes font imports) -->
     <link rel="stylesheet" type="text/css" href="https://eloise.rip/preview/theme/css/style.css">
 
@@ -21,22 +24,6 @@
 
 <body>
     <header class="site-header">
-        <div class="header-inner">
-            <a class="site-brand" href="https://eloise.rip/preview/">eloise.rip</a>
-            <nav class="main-nav" aria-label="Site navigation">
-                <ul>
-                        <li><a href="https://eloise.rip/preview/archives.html">Archives</a></li>
-                            <li><a href="https://eloise.rip/preview/about.html">About</a></li>
-                            <li><a href="https://eloise.rip/preview/voice-practice.html">Voice Practice</a></li>
-                            <li><a href="https://eloise.rip/preview/category/art.html">Art</a></li>
-                            <li><a href="https://eloise.rip/preview/category/cats.html">Cats</a></li>
-                            <li><a href="https://eloise.rip/preview/category/crows.html">crows</a></li>
-                            <li><a href="https://eloise.rip/preview/category/pinball.html">Pinball</a></li>
-                            <li><a href="https://eloise.rip/preview/category/pole-dance.html">Pole Dance</a></li>
-                            <li><a href="https://eloise.rip/preview/category/self.html">Self</a></li>
-                </ul>
-            </nav>
-        </div>
     </header>
 
     <main class="site-main">
@@ -53,7 +40,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/swooped-by-longlegs.html"
                        class="sidebar-link is-active"
-                       data-article-url="https://eloise.rip/preview/blog/swooped-by-longlegs.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/video/longlegs-swoop.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -72,7 +59,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/12b-on-gz-planet-x-qualified.html"
                        class="sidebar-link"
-                       data-article-url="https://eloise.rip/preview/blog/12b-on-gz-planet-x-qualified.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/video/gz-gc-jupiter.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -91,7 +78,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/cat-coin-purse.html"
                        class="sidebar-link"
-                       data-article-url="https://eloise.rip/preview/blog/cat-coin-purse.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/images/cat-purse-with-book.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -110,7 +97,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/the-merp-dump.html"
                        class="sidebar-link"
-                       data-article-url="https://eloise.rip/preview/blog/the-merp-dump.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/video/merp-dump.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -129,7 +116,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/the-three-peanut-problem.html"
                        class="sidebar-link"
-                       data-article-url="https://eloise.rip/preview/blog/the-three-peanut-problem.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/video/three-peanut-problem.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -148,7 +135,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/leg-hang-workshop.html"
                        class="sidebar-link"
-                       data-article-url="https://eloise.rip/preview/blog/leg-hang-workshop.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/video/leg-hang-switch.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -167,7 +154,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/grabby-groof.html"
                        class="sidebar-link"
-                       data-article-url="https://eloise.rip/preview/blog/grabby-groof.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/video/groof-grab.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -186,7 +173,7 @@
                 <li class="sidebar-item">
                     <a href="https://eloise.rip/preview/blog/groof-greeting.html"
                        class="sidebar-link"
-                       data-article-url="https://eloise.rip/preview/blog/groof-greeting.html">
+                       target="article-frame">
 
                             <div class="sidebar-thumb">
                                     <img src="/media/video/groof-greeting.jpg" alt="" loading="lazy" aria-hidden="true">
@@ -213,6 +200,7 @@
     <!-- Right pane: article iframe viewer -->
     <div class="article-viewer" aria-label="Article viewer" aria-live="polite">
             <iframe id="article-frame"
+                    name="article-frame"
                     class="article-frame"
                     src="https://eloise.rip/preview/blog/swooped-by-longlegs.html"
                     title="Article content"
@@ -224,26 +212,13 @@
 
 <script>
 (function () {
-    'use strict';
     var sidebar = document.querySelector('.sidebar-list');
-    var frame = document.getElementById('article-frame');
-    if (!sidebar || !frame) return;
-
+    if (!sidebar) return;
     sidebar.addEventListener('click', function (e) {
         var link = e.target.closest('.sidebar-link');
         if (!link) return;
-        e.preventDefault();
-
-        // Update active state
-        var links = sidebar.querySelectorAll('.sidebar-link');
-        for (var i = 0; i < links.length; i++) {
-            links[i].classList.remove('is-active');
-        }
+        sidebar.querySelectorAll('.sidebar-link').forEach(function (l) { l.classList.remove('is-active'); });
         link.classList.add('is-active');
-
-        // Load in iframe
-        var url = link.dataset.articleUrl || link.getAttribute('href');
-        frame.src = url;
     });
 }());
 </script>

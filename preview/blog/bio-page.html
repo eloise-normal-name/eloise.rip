@@ -6,6 +6,9 @@
     <title>Bio Page — eloise.rip</title>
     <meta name="description" content="I added a bio page (the about link). It&#39;s fun to make, and doesn&#39;t really explain why I&#39;m making this blog or anything but maybe I&#39;ll add that too.">
 
+    <!-- Detect iframe context before render to avoid flash -->
+    <script>if (window.self !== window.top) { document.documentElement.classList.add('in-iframe'); }</script>
+
     <!-- CSS (includes font imports) -->
     <link rel="stylesheet" type="text/css" href="https://eloise.rip/preview/theme/css/style.css">
 

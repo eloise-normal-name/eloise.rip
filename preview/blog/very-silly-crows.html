@@ -6,6 +6,9 @@
     <title>Very Silly Crows — eloise.rip</title>
     <meta name="description" content="Groof and Longlegs hamming it up">
 
+    <!-- Detect iframe context before render to avoid flash -->
+    <script>if (window.self !== window.top) { document.documentElement.classList.add('in-iframe'); }</script>
+
     <!-- CSS (includes font imports) -->
     <link rel="stylesheet" type="text/css" href="https://eloise.rip/preview/theme/css/style.css">
 
