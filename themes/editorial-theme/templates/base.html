@@ -7,6 +7,9 @@
     <title>{% block title %}{{ SITENAME }}{% endblock title %}</title>
     <meta name="description" content="{% block description %}{{ SITEDESCRIPTION }}{% endblock description %}">
 
+    <!-- Detect iframe context before render to avoid flash -->
+    <script>if (window.self !== window.top) { document.documentElement.classList.add('in-iframe'); }</script>
+
     <!-- CSS (includes font imports) -->
     <link rel="stylesheet" type="text/css" href="{{ SITEURL }}/theme/css/style.css">
 

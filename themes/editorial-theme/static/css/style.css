@@ -280,6 +280,7 @@ picture {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* allow flex children to shrink below content size */
 }
 
 /* ── Footer ─────────────────────────────────────────────── */
@@ -919,16 +920,15 @@ audio {
   accent-color: var(--accent);
 }
 
-/* ── Article iframe (used within iframes) ─────────────── */
+/* ── In-iframe: hide site chrome when rendered inside the preview pane ── */
 
-.article-iframe {
-  min-height: clamp(22rem, 65vh, 36rem);
-  display: block;
-  border: none;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: transparent;
-  box-shadow: none;
+.in-iframe .site-header,
+.in-iframe .site-footer {
+  display: none;
+}
+
+.in-iframe .content-wrap {
+  margin-top: 1.5rem;
 }
 
 /* ── Section / page title helpers ───────────────────────── */
@@ -956,7 +956,7 @@ audio {
     width: 100%;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    max-height: 40vh;
+    height: 40vh; /* definite height so sidebar-list flex: 1 can scroll */
     overflow: hidden;
   }
 
