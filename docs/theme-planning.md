@@ -351,6 +351,12 @@ No social link icons unless social URLs are added to config. No theme toggle ico
 | 2026-03-08 | Gradients | None | Explicitly dropped from old theme |
 | 2026-03-08 | Border-radius | 8px cards, 6px images, 999px pills | Much less rounded than old 20px default |
 | 2026-03-08 | Voice practice link | % complete + last date in left pane header | Persistent visibility; tracks practice habit at a glance |
+| 2026-03-08 | Iframe targeting | `name="article-frame"` on iframe, `target="article-frame"` on links | `target` requires `name` attribute, not `id` |
+| 2026-03-08 | Active state JS | Small inline click handler for `.is-active` class only | iframe loading is JS-free via `target`; active highlighting still needs JS |
+| 2026-03-08 | Index header | Override `{% block header %}` empty in index.html | Sidebar + article header sufficient; no need for a second top bar |
+| 2026-03-08 | Iframe chrome | Inline script adds `.in-iframe` to `<html>` before paint | CSS hides header/footer when article rendered inside iframe; avoids flash |
+| 2026-03-08 | Flex height chain | `min-height: 0` on `.site-main` | Allows split-pane to fill viewport; required for flex shrink to work correctly |
+| 2026-03-08 | Mobile sidebar scroll | `height: 40vh` (not `max-height`) on `.article-sidebar` | Definite height lets flex child `.sidebar-list` scroll with `overflow-y: auto` |
 
 ---
 
