@@ -28,8 +28,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Build site
+      - name: Build main site
         run: pelican content -o output -s pelicanconf.py
+
+      - name: Build preview subsite (editorial theme)
+        run: pelican content -s previewconf.py
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title|striptags }} — {{ SITENAME }}{% endblock %}
+
+{% block description %}{{ article.summary|striptags|escape }}{% endblock %}
+
+{% block content %}
+<div class="content-wrap">
+    <article class="article-card">
+
+        <header class="article-header">
+            <h1 class="article-title">
+                <a href="{{ SITEURL }}/{{ article.url }}" rel="bookmark"
+                   title="Permalink to {{ article.title|striptags }}">{{ article.title }}</a>
+            </h1>
+
+            <div class="article-meta">
+                <time class="meta-date" datetime="{{ article.date.isoformat() }}">
+                    {{ article.date.strftime('%B %-d, %Y') }}
+                </time>
+                {% if article.category %}
+                    <span class="meta-sep" aria-hidden="true">·</span>
+                    <span class="meta-category">
+                        <a href="{{ SITEURL }}/{{ article.category.url }}">{{ article.category }}</a>
+                    </span>
+                {% endif %}
+            </div>
+
+            {% if article.tags %}
+            <div class="tags-row" aria-label="Tags">
+                {% for tag in article.tags %}
+                    <a href="{{ SITEURL }}/{{ tag.url }}" class="tag">{{ tag }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </header>
+
+        <div class="article-content">
+            {{ article.content }}
+        </div>
+
+        {% if article.translations %}
+        <div class="article-translations">
+            <p>Available in:
+                {% for translation in article.translations %}
+                    <a href="{{ SITEURL }}/{{ translation.url }}">{{ translation.lang }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </p>
+        </div>
+        {% endif %}
+
+    </article>
+</div>
+{% endblock %}
