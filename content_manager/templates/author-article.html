@@ -273,8 +273,10 @@
         <ul class="media-list" id="media-list"></ul>
 
         <div class="field" style="margin-top:12px;">
-            <label for="thumbnail">Thumbnail <span class="hint">(relative to /media/, e.g. images/thumb.avif or video/clip.jpg)</span></label>
-            <input type="text" id="thumbnail" placeholder="images/thumb.avif">
+            <label for="thumbnail">Thumbnail <span class="hint">(choose from completed uploaded media)</span></label>
+            <select id="thumbnail">
+                <option value="">No thumbnail selected</option>
+            </select>
         </div>
     </div>
 
@@ -372,6 +374,58 @@
         }
     }
 
+    function toRelativeMediaPath(url) {
+        return (url || "").replace(/^\/media\//, "");
+    }
+
+    function getThumbnailOptions() {
+        const options = [];
+        for (const entry of mediaUploads) {
+            if (entry.status !== "done") continue;
+            if (entry.media_type === "image" && entry.final_url) {
+                options.push({
+                    value: toRelativeMediaPath(entry.final_url),
+                    label: toRelativeMediaPath(entry.final_url),
+                });
+            } else if (entry.media_type === "video" && entry.poster_url) {
+                options.push({
+                    value: toRelativeMediaPath(entry.poster_url),
+                    label: `${toRelativeMediaPath(entry.poster_url)} (poster)`,
+                });
+            }
+        }
+
+        const seen = new Set();
+        return options.filter((option) => {
+            if (!option.value || seen.has(option.value)) return false;
+            seen.add(option.value);
+            return true;
+        });
+    }
+
+    function refreshThumbnailOptions(preferredValue = null) {
+        const currentValue = preferredValue !== null ? preferredValue : thumbnailEl.value;
+        const options = getThumbnailOptions();
+
+        thumbnailEl.innerHTML = "";
+
+        const emptyOption = document.createElement("option");
+        emptyOption.value = "";
+        emptyOption.textContent = options.length ? "No thumbnail selected" : "Upload media to choose a thumbnail";
+        thumbnailEl.appendChild(emptyOption);
+
+        for (const option of options) {
+            const el = document.createElement("option");
+            el.value = option.value;
+            el.textContent = option.label;
+            thumbnailEl.appendChild(el);
+        }
+
+        const hasCurrentValue = options.some((option) => option.value === currentValue);
+        thumbnailEl.value = hasCurrentValue ? currentValue : "";
+        thumbnailEl.disabled = options.length === 0;
+    }
+
     function inferMediaType(file) {
         const mime = (file.type || "").toLowerCase();
         if (mime.startsWith("image/")) return "image";
@@ -400,6 +454,7 @@
         mediaUploads.push(entry);
         entry.el = renderMediaItem(entry);
         mediaListEl.appendChild(entry.el);
+        refreshThumbnailOptions();
     }
 
     function buildRenamedFile(entry) {
@@ -472,10 +527,16 @@
                 updateMediaItemUI(entry);
 
                 if (data.status === "done" || data.status === "error") {
-                    // Auto-set thumbnail if it's the first image and thumbnail is empty
-                    if (data.status === "done" && entry.media_type === "image" && !thumbnailEl.value) {
-                        // Strip leading /media/ — theme prepends it automatically
-                        thumbnailEl.value = data.final_url.replace(/^\/media\//, "");
+                    if (data.status === "done") {
+                        let suggestedThumbnail = "";
+                        if (entry.media_type === "image" && data.final_url) {
+                            suggestedThumbnail = toRelativeMediaPath(data.final_url);
+                        } else if (entry.media_type === "video" && data.poster_url) {
+                            suggestedThumbnail = toRelativeMediaPath(data.poster_url);
+                        }
+                        refreshThumbnailOptions(!thumbnailEl.value ? suggestedThumbnail : null);
+                    } else {
+                        refreshThumbnailOptions();
                     }
                     return;
                 }
@@ -533,6 +594,7 @@
             const idx = mediaUploads.indexOf(entry);
             if (idx !== -1) mediaUploads.splice(idx, 1);
             li.remove();
+            refreshThumbnailOptions();
         });
         return li;
     }
@@ -637,6 +699,7 @@
     [titleEl, summaryEl, categoryEl, tagsEl, thumbnailEl, contentEl].forEach(el => {
         el.addEventListener("input", schedulAutoSave);
     });
+    thumbnailEl.addEventListener("change", schedulAutoSave);
     tagsEl.addEventListener("input", updateTagChipStates);
 
     async function saveDraft() {
@@ -720,7 +783,7 @@
             return;
         }
 
-        if (!thumbnailEl.value && mediaUploads.some(m => m.media_type === "image")) {
+        if (!thumbnailEl.value && getThumbnailOptions().length > 0) {
             // Warn but allow
         }
 
@@ -771,6 +834,7 @@
     }
 
     loadSuggestedTags();
+    refreshThumbnailOptions();
 
 })();
 </script>
