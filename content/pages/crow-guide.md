@@ -6,6 +6,32 @@ This is a guide I've been meaning to write for a while. I've been feeding crows 
 
 ---
 
+## The Roster
+
+These are the crows I've gotten to know by name. Identifying individual crows takes time — you mostly go by size, beak shape, behavior quirks, and which other crows they hang around with. Names come after.
+
+### Merp & Berp
+
+Merp is one of the first crows I really got to know individually. Their signature move is the "merp-dump" — grabbing a treat bag by the bottom and shaking everything out of it — which is partly how I recognize them. Very clever, very motivated, will actively seek me out rather than waiting to be found. Berp is usually nearby to pick up whatever Merp drops or misses. A good team.
+
+### Groof & Groofriend
+
+Groof is the larger one with a noticeably rounder beak. Bold, instigating, a little chaotic — Groof will grab a bag out of Groofriend's beak and has been known to set up a toll situation where both crows land directly in my path so I can't leave without giving them more treats. The "cute groof look" is a specific expression Groof does when asking for food that is extremely effective. Groofriend is slightly smaller and a bit more cautious but will absolutely snip back at Groof when pushed.
+
+### Longlegs & Fussy
+
+A mated pair with very different personalities. Longlegs is a dedicated stasher — they'll take treat after treat and cache them all, and have a foot issue that makes grabbing whole eggs tricky (I've learned to smoosh the egg a little so they can carry it). Fussy is picky about what they'll eat and makes spectacular messes doing it — just absolute chaos with an egg — but only their favorite things. Longlegs seems happy to receive an indefinite number of treats; Fussy has opinions.
+
+### Boogie & Woogie
+
+The balcony crows, named by Catgirl. They're very silly together. Mostly I know them from balcony visits and doing goofy things with nuts. Good vibes only from these two.
+
+### Green Bandit
+
+A crow with a green research band from UW, so presumably part of a study. I see them maybe once a month. Green Bandit is unusually relaxed and friendly, which might be a product of being around researchers a lot. Can carry two peanuts but not three, and will call a friend over to help with the third one rather than just leaving it. Their friend showed up once and immediately heisted an egg, which tracks.
+
+---
+
 ## How to Befriend Crows
 
 The most important thing is consistency. Crows are cautious, suspicious birds. They're not going to run up and eat out of your hand on day one. But if you show up at the same time, in the same spot, and reliably have food, they will notice you — and they will remember you specifically.
