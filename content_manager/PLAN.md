@@ -14,7 +14,7 @@ This better reflects the expanded scope (articles + voice uploads + general cont
 
 **Update references:**
 - Any scripts in `scripts/` that start the voice uploader
-- Documentation mentions (AGENTS.md, CLAUDE.md, README if any)
+- Documentation mentions (AGENTS.md, README if any)
 - Keep backward compatibility: redirect `/admin/upload` → `/admin/upload/voice` or make voice upload a tab in the new interface
 
 ---
@@ -229,7 +229,7 @@ thumbnail: {thumbnail_path}  # e.g., media/video/poster.jpg or media/images/thum
    - Test video embed and carousel rendering
 
 8. **Documentation**
-   - Update AGENTS.md and CLAUDE.md with new content-manager usage
+   - Update AGENTS.md with new content-manager usage
    - Add README in content-manager/ with API docs and env vars
    - Update any deployment notes
 

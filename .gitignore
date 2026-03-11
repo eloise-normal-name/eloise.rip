@@ -30,6 +30,3 @@ tools/
 *.pid
 *.out.log
 *.err.log
-
-# Claude local settings
-.claude/settings.local.json
