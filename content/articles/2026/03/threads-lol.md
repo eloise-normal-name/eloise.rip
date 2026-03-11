@@ -17,4 +17,4 @@ We both posted "Off to drain some balls". It's not the first time, but Threads s
 
 I got mostly gross boys and some incredibly putrid boys. Catgirl deleted her post which made me worried something happened, but she didn't mention anything specific yet. I'm gonna make her some gruel and a pole video now because idk what else to do ☹️
 
-[threads post](https://www.threads.com/@eloise_normal_name/post/DVunhggEdIt?xmt=AQF0-4A9rjJiE3OLpAbHOf5uNaVPAW2R7Oe5vtssYmbTiw)
+[threads post](https://www.threads.com/@eloise_normal_name/post/DVsCJgYjUO-?xmt=AQF0oQDkID2kqhgRcSpqlkqDnGxc48cMqDGRc2epoLd-pg)
