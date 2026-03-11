@@ -2,7 +2,7 @@
 
 This document is the canonical reference for the local admin app exposed at `admin.eloise.rip`.
 
-Last updated: March 9, 2026
+Last updated: March 11, 2026
 
 ## Overview
 
@@ -41,7 +41,7 @@ Key local ports:
 Key tunnel details:
 - Tunnel name: `audio-app`
 - Tunnel ID: `3c11812a-c895-4274-b17a-c32a7605e9c3`
-- Repo config: [cloudflared/config.yml](/C:/Users/Admin/eloise.rip/eloise.rip/cloudflared/config.yml)
+- Repo config: [cloudflared/config.yml](../../cloudflared/config.yml)
 
 ## Upload Page
 
@@ -64,30 +64,29 @@ Intentional constraints:
 ## App Files
 
 Primary implementation:
-- [content_manager/app.py](/C:/Users/Admin/eloise.rip/eloise.rip/content_manager/app.py)
-- [content_manager/templates/admin-upload.html](/C:/Users/Admin/eloise.rip/eloise.rip/content_manager/templates/admin-upload.html)
-- [content_manager/templates/author-article.html](/C:/Users/Admin/eloise.rip/eloise.rip/content_manager/templates/author-article.html)
+- [content_manager/app.py](../../content_manager/app.py)
+- [content_manager/templates/admin-upload.html](../../content_manager/templates/admin-upload.html)
+- [content_manager/templates/author-article.html](../../content_manager/templates/author-article.html)
 
 Related infrastructure files:
-- [nginx/audio-app.conf](/C:/Users/Admin/eloise.rip/eloise.rip/nginx/audio-app.conf)
-- [scripts/start-content-manager.ps1](/C:/Users/Admin/eloise.rip/eloise.rip/scripts/start-content-manager.ps1)
-- [scripts/restart-content-manager.ps1](/C:/Users/Admin/eloise.rip/eloise.rip/scripts/restart-content-manager.ps1)
+- [nginx/audio-app.conf](../../nginx/audio-app.conf)
+- [scripts/start-content-manager.sh](../../scripts/start-content-manager.sh)
+- [scripts/restart-content-manager.sh](../../scripts/restart-content-manager.sh)
 
 ## Setup And Operations
 
+### WSL assumptions
+
+- Run the repo inside the Linux filesystem, not from `/mnt/c/...`.
+- Activate the repo venv with `source .venv/bin/activate` before Pelican or Waitress commands.
+- Keep `cloudflared`, `nginx`, `curl`, and `ss` available on `PATH`.
+
 ### cloudflared
 
-Install:
+Install `cloudflared` with your WSL distro package manager or the official Cloudflare Linux package instructions, then confirm:
 
-```powershell
-winget install --id Cloudflare.cloudflared -e
-```
-
-If the winget package lags the latest upstream release on this machine, install the standalone binary into the user bin directory:
-
-```powershell
-curl.exe -L --fail --output C:\Users\Admin\.local\bin\cloudflared.exe `
-  https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe
+```bash
+command -v cloudflared
 ```
 
 Current shell-resolved version:
@@ -95,7 +94,7 @@ Current shell-resolved version:
 
 Create and route the tunnel:
 
-```powershell
+```bash
 cloudflared tunnel login
 cloudflared tunnel create audio-app
 cloudflared tunnel route dns audio-app admin.eloise.rip
@@ -103,65 +102,52 @@ cloudflared tunnel route dns audio-app admin.eloise.rip
 
 Run with the repo config:
 
-```powershell
-cloudflared tunnel --config C:\Users\Admin\eloise.rip\eloise.rip\cloudflared\config.yml run audio-app
+```bash
+cloudflared tunnel --config "$PWD/cloudflared/config.yml" run audio-app
 ```
 
 ### nginx
 
-Install:
+Install `nginx` with your distro package manager, then confirm:
 
-```powershell
-winget install --id nginxinc.nginx -e
+```bash
+command -v nginx
 ```
 
-The installed `nginx.conf` must include:
+The repo startup script renders a self-contained config from [nginx/audio-app.conf](../../nginx/audio-app.conf), so you do not need to edit a global Windows `nginx.conf`.
 
-```nginx
-include       C:/Users/Admin/eloise.rip/eloise.rip/nginx/audio-app.conf;
-```
+Manual validation after the startup script renders `.run/content-manager/nginx.conf`:
 
-Without that include, `nginx` starts with its default config and `cloudflared` cannot reach `localhost:5000`.
-
-Validate:
-
-```powershell
-nginx -t -p C:\Users\Admin\AppData\Local\Microsoft\WinGet\Packages\nginxinc.nginx_Microsoft.Winget.Source_8wekyb3d8bbwe\nginx-1.29.5 -c conf/nginx.conf
-```
-
-Start or reload:
-
-```powershell
-nginx
-nginx -s reload
+```bash
+nginx -t -c "$PWD/.run/content-manager/nginx.conf"
 ```
 
 ### Waitress / Flask
 
 Development:
 
-```powershell
+```bash
 python -m content_manager.app
 ```
 
 Production-style local run:
 
-```powershell
-waitress-serve --listen=127.0.0.1:8000 content_manager.app:app
+```bash
+python -m waitress --listen=127.0.0.1:8000 content_manager.app:app
 ```
 
 ### One-command startup
 
 Start the local stack:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\start-content-manager.ps1 -TunnelName audio-app
+```bash
+./scripts/start-content-manager.sh --tunnel-name audio-app
 ```
 
 Fast app restart only:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\restart-content-manager.ps1
+```bash
+./scripts/restart-content-manager.sh
 ```
 
 Runtime artifacts:
@@ -175,9 +161,9 @@ Runtime artifacts:
 
 Useful checks:
 
-```powershell
-Invoke-WebRequest http://127.0.0.1:8000/health -UseBasicParsing
-Invoke-WebRequest http://127.0.0.1:5000/admin/upload -UseBasicParsing
+```bash
+curl -fsS http://127.0.0.1:8000/health
+curl -I http://127.0.0.1:5000/admin/upload
 cloudflared tunnel info audio-app
 ```
 

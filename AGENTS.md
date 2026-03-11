@@ -8,6 +8,8 @@
 - Prefer minimal, targeted changes over broad refactors.
 - Keep edits consistent with existing file structure and naming.
 - Do not introduce new build tools unless explicitly requested.
+- Prefer clean, native fixes over wrapper or stopgap scripts; use workaround scripts only when explicitly requested or when no practical native option exists.
+- For system-level setup changes in WSL/Ubuntu, give the explicit `sudo` command and ask before attempting nonstandard no-sudo workarounds.
 
 ## Advice for Future Projects
 - Keep environment/setup guidance generic unless the tooling is guaranteed across all repos.
@@ -20,9 +22,13 @@
 - Generated site output is written to `output/`.
 
 ## Common Commands
+- Activate venv in WSL: `source .venv/bin/activate`
+- Upgrade Python on Ubuntu 20.04 WSL: `sudo apt update && sudo apt install -y software-properties-common && sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt update && sudo apt install -y python3.13 python3.13-venv python3.13-dev`
 - Local build: `pelican content -o output -s pelicanconf.py`
 - Validate output: `python validate_output.py`
 - Style analysis: `python analyze_styles.py`
+- Publish `gh-pages`: `./publish.sh`
+- Start content manager stack in WSL: `./scripts/start-content-manager.sh --tunnel-name audio-app`
 
 ## Pull Request Expectations
 - Explain what changed and why.
@@ -73,7 +79,8 @@ This creates an audit trail for reviewers and prevents outdated comments from be
 - Article authoring: `/admin/articles/new`
 - Media upload API: `/api/media/upload` (images → AVIF, videos → HEVC MP4 + poster)
 - Article publish API: `/api/article/publish` (writes markdown to `content/articles/`)
-- Start: `python -m waitress --listen=127.0.0.1:8000 content_manager.app:app`
+- App only: `python -m waitress --listen=127.0.0.1:8000 content_manager.app:app`
+- Full local stack in WSL: `./scripts/start-content-manager.sh --tunnel-name audio-app`
 
 ## Voice Recorder
 - Reference doc: docs/voice-recorder.md

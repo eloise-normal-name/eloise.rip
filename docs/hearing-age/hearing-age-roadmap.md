@@ -28,9 +28,9 @@ Reference postmortem: `docs/hearing-age-postmortem.md`.
 - **QA:** "Add a lightweight scriptable test that sanity-checks the sweep progress math (0-100%) and the age estimator interpolation edges."
 
 ## Codex VS Code extension note
-These shell command conventions are for the Codex agent running in the VS Code extension (PowerShell):
+These shell command conventions are for the Codex agent running in the VS Code extension under WSL/bash:
 
-- Do not use `&&` in PowerShell command strings; use `;` or separate commands.
+- Use `&&` for dependent commands.
 - Prefer single-quoted search patterns, e.g. `rg -n 'ageDetail|lastHeardValue' content/pages/hearing-age`.
 - Use `--fixed-strings` for literal text containing quotes/symbols, e.g. `rg -n --fixed-strings 'class="notes"' content/pages/hearing-age/hearing-age.md`.
 - When quoting gets complex, assign pattern text to a variable first, then pass the variable to `rg`.

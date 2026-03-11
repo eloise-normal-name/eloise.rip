@@ -51,6 +51,7 @@ If your model is not in the list above, add yourself to this file with a feminin
 
 - Before making file edits, confirm the patch/edit tool is enabled.
 - Switching between Plan/Agent mode (or reconnecting) may disable editing tools without notification; if an edit tool call fails, ask the user to re-enable it and retry.
+- If a task requires system-level setup in WSL/Ubuntu, provide the explicit `sudo` command first and ask before attempting no-sudo workarounds.
 # eloise.rip - Personal Blog Codebase Guide
 
 ## Project Architecture
@@ -66,20 +67,19 @@ This is a **Pelican static site generator** project for a personal blog at [eloi
 
 ## Critical Workflows
 
-pip install -r requirements.txt
 ### Environment Setup
 ```bash
-# Windows
-.venv\Scripts\activate
+# WSL / Linux
+sudo apt update && sudo apt install -y software-properties-common && sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt update && sudo apt install -y python3.13 python3.13-venv python3.13-dev
 
-# Linux/Mac
+python3.13 -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
 #### Troubleshooting: Pelican Not Found
-If you see an error like `pelican : The term 'pelican' is not recognized as the name of a cmdlet...`, it means:
+If you see an error like `pelican: command not found`, it means:
 - The virtual environment is not activated, or
 - Pelican is not installed in the environment, or
 - The shell session does not recognize the environment activation.
@@ -94,7 +94,7 @@ The Pelican command was run before activating the virtual environment, so Pelica
 
 ### Building the Site
 ```bash
-pelican content -ds pelicanconf.py  # Generate site to output/
+pelican content -o output -s pelicanconf.py
 ```
 
 ### Local Preview
@@ -116,7 +116,13 @@ python validate_output.py --check-external # Include external link validation (s
 
 ### Deployment
 ```bash
-publish.bat  # Uses ghp-import to push output/ to gh-pages branch
+./publish.sh  # Uses ghp-import to push output/ to gh-pages branch
+```
+
+### Content Manager Stack
+```bash
+./scripts/start-content-manager.sh --tunnel-name audio-app
+./scripts/restart-content-manager.sh
 ```
 
 ## Python Code Conventions
@@ -168,8 +174,8 @@ thumbnail: images/preview.avif
 
 ## Development Notes
 
-- **Virtual environment**: Use `.venv/` - activate before running any commands (`source .venv/bin/activate` or `.venv\Scripts\activate` on Windows)
-- **Dependencies**: [requirements.txt](../requirements.txt) - Pelican 4.10.1, Pillow 11.1.0, pillow-heif for HEIC support, beautifulsoup4 and requests for validation
+- **Virtual environment**: Use `.venv/` - activate before running any commands with `source .venv/bin/activate`
+- **Dependencies**: [requirements.txt](../requirements.txt) - Pelican 4.10.1, Pillow 11.1.0, Flask 3.1+, pillow-heif for HEIC support, beautifulsoup4 and requests for validation
 - **Media transcoding** requires `ffmpeg` on PATH
 - **CSS analysis**: [analyze_styles.py](../analyze_styles.py) generates reports matching HTML elements to CSS rules
 - **Link validation**: [validate_output.py](../validate_output.py) - post-build checker for broken links and missing media

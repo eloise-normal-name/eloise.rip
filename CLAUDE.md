@@ -13,14 +13,19 @@ Claude Sonnet 4.6 → **Sable [cs46]**
 ## Environment Setup
 
 ```bash
-# Activate virtual environment (required before any Pelican commands)
-.venv\Scripts\activate          # Windows
-source .venv/bin/activate       # Linux/Mac
+# Ubuntu 20.04 WSL: install the latest Python version supported cleanly by apt
+sudo apt update && sudo apt install -y software-properties-common && sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt update && sudo apt install -y python3.13 python3.13-venv python3.13-dev
+
+# Create and activate the virtual environment in WSL
+python3.13 -m venv .venv
+source .venv/bin/activate
 
 pip install -r requirements.txt
 ```
 
 If `pelican` is not found, the virtual environment is not activated.
+
+If a task requires system packages in WSL, provide the `sudo` command and ask before trying no-sudo workarounds.
 
 ## Common Commands
 
@@ -35,9 +40,16 @@ pelican -l
 python validate_output.py
 python validate_output.py --check-external   # include external links (slow)
 
+# Publish GitHub Pages output
+./publish.sh
+
 # Media transcoding (requires ffmpeg on PATH)
 make transcode          # incremental
 make transcode-force    # re-encode all
+
+# Content manager full local stack (Waitress + nginx + cloudflared)
+./scripts/start-content-manager.sh --tunnel-name audio-app
+./scripts/restart-content-manager.sh
 
 ```
 
@@ -81,7 +93,9 @@ Flask-based admin tool for content management, accessible at `admin.eloise.rip`:
 - **Media API** (`/api/media/upload`, `/api/media/jobs/<id>`, `/api/media/list`): Upload images/videos with background transcoding
 - **Article API** (`/api/article/draft`, `/api/article/publish`, `/api/article/preview`): Draft saving and article publishing
 
-Start with: `python -m waitress --listen=127.0.0.1:8000 content_manager.app:app`
+Start app only with: `python -m waitress --listen=127.0.0.1:8000 content_manager.app:app`
+
+Start the full WSL stack with: `./scripts/start-content-manager.sh --tunnel-name audio-app`
 
 Env vars: `SECRET_KEY`, `MAX_UPLOAD_MB`, `UPLOAD_DIR`, `OUTPUT_DIR`, `AUTO_COMMIT`, `GIT_REMOTE`, `GIT_BRANCH`
 
