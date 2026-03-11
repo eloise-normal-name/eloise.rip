@@ -51,7 +51,7 @@ if [[ ! -x "$PYTHON_EXE" ]]; then
   exit 1
 fi
 
-for cmd in curl ss; do
+for cmd in curl setsid ss; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Required command not found in PATH: $cmd" >&2
     exit 1
@@ -101,7 +101,7 @@ wait_for_http_200() {
   local url="$1"
   local deadline=$((SECONDS + 20))
   while (( SECONDS < deadline )); do
-    if curl --silent --show-error --fail --output /dev/null "$url"; then
+    if curl --silent --fail --output /dev/null "$url" 2>/dev/null; then
       return 0
     fi
     sleep 0.5
@@ -116,7 +116,7 @@ stop_waitress_by_port
 echo "Starting Waitress..."
 (
   cd "$PROJECT_ROOT"
-  nohup "$PYTHON_EXE" -m waitress "--listen=$LISTEN_HOST:$APP_PORT" content_manager.app:app \
+  setsid "$PYTHON_EXE" -m waitress "--listen=$LISTEN_HOST:$APP_PORT" content_manager.app:app \
     >"$OUT_LOG" 2>"$ERR_LOG" < /dev/null &
   echo $! >"$PID_FILE"
 )

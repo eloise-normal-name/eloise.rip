@@ -146,7 +146,7 @@ wait_for_http_200() {
   local timeout="${2:-20}"
   local deadline=$((SECONDS + timeout))
   while (( SECONDS < deadline )); do
-    if curl --silent --show-error --fail --output /dev/null "$url"; then
+    if curl --silent --fail --output /dev/null "$url" 2>/dev/null; then
       return 0
     fi
     sleep 0.5
@@ -162,13 +162,19 @@ start_background_process() {
   local err_log="$RUN_DIR/$name.err.log"
   (
     cd "$workdir"
-    nohup "$@" >"$out_log" 2>"$err_log" < /dev/null &
+    setsid "$@" >"$out_log" 2>"$err_log" < /dev/null &
     echo $! >"$(pid_file "$name")"
   )
 }
 
 render_nginx_configs() {
   sed "s|__PROJECT_ROOT__|$PROJECT_ROOT|g" "$PROJECT_ROOT/nginx/audio-app.conf" >"$RENDERED_SERVER_CONF"
+  mkdir -p \
+    "$NGINX_RUNTIME_DIR/client_body_temp" \
+    "$NGINX_RUNTIME_DIR/proxy_temp" \
+    "$NGINX_RUNTIME_DIR/fastcgi_temp" \
+    "$NGINX_RUNTIME_DIR/uwsgi_temp" \
+    "$NGINX_RUNTIME_DIR/scgi_temp"
 
   local mime_types="/etc/nginx/mime.types"
   if [[ ! -f "$mime_types" ]]; then
@@ -193,6 +199,11 @@ http {
     default_type application/octet-stream;
     sendfile on;
     access_log $RUN_DIR/nginx.master.out.log;
+    client_body_temp_path $NGINX_RUNTIME_DIR/client_body_temp;
+    proxy_temp_path $NGINX_RUNTIME_DIR/proxy_temp;
+    fastcgi_temp_path $NGINX_RUNTIME_DIR/fastcgi_temp;
+    uwsgi_temp_path $NGINX_RUNTIME_DIR/uwsgi_temp;
+    scgi_temp_path $NGINX_RUNTIME_DIR/scgi_temp;
     include $RENDERED_SERVER_CONF;
 }
 EOF
@@ -205,12 +216,18 @@ if [[ ! -f "$CLOUDFLARED_CONFIG" ]]; then
   exit 1
 fi
 
+CLOUDFLARED_CREDENTIALS_FILE="$(awk -F': ' '$1 == "credentials-file" {print $2}' "$CLOUDFLARED_CONFIG" | tail -n 1)"
+if [[ -n "$CLOUDFLARED_CREDENTIALS_FILE" && ! -f "$CLOUDFLARED_CREDENTIALS_FILE" ]]; then
+  echo "cloudflared credentials file not found: $CLOUDFLARED_CREDENTIALS_FILE" >&2
+  exit 1
+fi
+
 if [[ ! -x "$PYTHON_EXE" ]]; then
   echo "Python venv executable not found: $PYTHON_EXE" >&2
   exit 1
 fi
 
-for cmd in cloudflared nginx curl ss; do
+for cmd in cloudflared nginx curl setsid ss; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
     echo "Required command not found in PATH: $cmd" >&2
     exit 1

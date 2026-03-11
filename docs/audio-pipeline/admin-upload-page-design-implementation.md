@@ -81,6 +81,22 @@ Related infrastructure files:
 - Activate the repo venv with `source .venv/bin/activate` before Pelican or Waitress commands.
 - Keep `cloudflared`, `nginx`, `curl`, and `ss` available on `PATH`.
 
+### Issues Encountered On WSL
+
+Resolved during the March 11, 2026 WSL migration:
+
+- `content_manager/app.py` imported successfully on newer Python, but Python 3.8 failed on `list[str]` and similar annotations at import time. The app now uses postponed annotation evaluation so Waitress can start cleanly on the host interpreter.
+- `nohup`-based background startup was unreliable in this shell environment and left stale PID files. The startup scripts now use `setsid`, and the health-check polling no longer prints noisy transient `curl: (7)` messages during normal boot.
+- Ubuntu `nginx` attempted to write temp files under system-owned defaults such as `/var/lib/nginx/body`, which caused the public `502` from Cloudflare. The rendered runtime config now writes temp files under `.run/content-manager/nginx/`.
+- `cloudflared` needs both the package on `PATH` and the tunnel credentials JSON referenced by [cloudflared/config.yml](../../cloudflared/config.yml). The startup script now fails early with a specific missing-credentials error instead of continuing to a vague tunnel failure.
+
+Still worth checking first when the admin page is down:
+
+- `curl -fsS http://127.0.0.1:8000/health`
+- `curl -I http://127.0.0.1:5000/admin/upload/voice`
+- `tail -n 50 .run/content-manager/nginx.err.log`
+- `tail -n 50 .run/content-manager/cloudflared.err.log`
+
 ### cloudflared
 
 Install `cloudflared` with your WSL distro package manager or the official Cloudflare Linux package instructions, then confirm:
