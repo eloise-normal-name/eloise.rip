@@ -30,3 +30,4 @@ tools/
 *.pid
 *.out.log
 *.err.log
+worktrees/
