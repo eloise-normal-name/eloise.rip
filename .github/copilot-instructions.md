@@ -120,9 +120,9 @@ python validate_output.py --check-external # Include external link validation (s
 ```
 
 ### Content Manager Stack
-```bash
-./scripts/start-content-manager.sh --tunnel-name audio-app
-./scripts/restart-content-manager.sh
+```powershell
+.\scripts\start-content-manager.ps1 -TunnelName audio-app
+.\scripts\restart-content-manager.ps1
 ```
 
 ## Python Code Conventions

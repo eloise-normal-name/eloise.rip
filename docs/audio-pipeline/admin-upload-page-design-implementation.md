@@ -2,7 +2,7 @@
 
 This document is the canonical reference for the local admin app exposed at `admin.eloise.rip`.
 
-Last updated: March 11, 2026
+Last updated: March 15, 2026
 
 ## Overview
 
@@ -10,14 +10,14 @@ The admin tool is a locally run Flask/Waitress app in `content_manager/`. It is 
 
 Current verified state:
 - `http://127.0.0.1:8000/health` returned `200`
-- `http://127.0.0.1:5000/admin/upload` returned `200`
+- `http://127.0.0.1:5000/admin/articles/new` returned `200`
 - `cloudflared tunnel info audio-app` showed active connectors
 - `https://admin.eloise.rip` returned the Cloudflare Access sign-in page
 
 ## What It Does
 
 Current admin capabilities include:
-- Voice upload at `/admin/upload`
+- Voice upload at `/admin/upload/voice`
 - Article authoring at `/admin/articles/new`
 - Media upload API at `/api/media/upload`
 - Article publish API at `/api/article/publish`
@@ -46,7 +46,10 @@ Key tunnel details:
 ## Upload Page
 
 Route:
-- `GET /admin/upload`
+- `GET /admin/upload/voice`
+
+Backward-compatible redirect:
+- `GET /admin/upload` -> `/admin/upload/voice`
 
 Current simplified upload behavior:
 - Accepts one `.qta` file
@@ -70,39 +73,35 @@ Primary implementation:
 
 Related infrastructure files:
 - [nginx/audio-app.conf](../../nginx/audio-app.conf)
-- [scripts/start-content-manager.sh](../../scripts/start-content-manager.sh)
-- [scripts/restart-content-manager.sh](../../scripts/restart-content-manager.sh)
+- [scripts/start-content-manager.ps1](../../scripts/start-content-manager.ps1)
+- [scripts/restart-content-manager.ps1](../../scripts/restart-content-manager.ps1)
 
 ## Setup And Operations
 
-### WSL assumptions
+### PowerShell assumptions
 
-- Run the repo inside the Linux filesystem, not from `/mnt/c/...`.
-- Activate the repo venv with `source .venv/bin/activate` before Pelican or Waitress commands.
-- Keep `cloudflared`, `nginx`, `curl`, and `ss` available on `PATH`.
+- Run the repo from Windows PowerShell.
+- Keep `cloudflared` and `nginx` available on `PATH`.
+- Keep the repo venv available at `.venv\Scripts\python.exe`.
+- Keep `cloudflared/config.yml` pointed at the Windows credentials file path, not a WSL path like `/home/...`.
 
-### Issues Encountered On WSL
-
-Resolved during the March 11, 2026 WSL migration:
-
-- `content_manager/app.py` imported successfully on newer Python, but Python 3.8 failed on `list[str]` and similar annotations at import time. The app now uses postponed annotation evaluation so Waitress can start cleanly on the host interpreter.
-- `nohup`-based background startup was unreliable in this shell environment and left stale PID files. The startup scripts now use `setsid`, and the health-check polling no longer prints noisy transient `curl: (7)` messages during normal boot.
-- Ubuntu `nginx` attempted to write temp files under system-owned defaults such as `/var/lib/nginx/body`, which caused the public `502` from Cloudflare. The rendered runtime config now writes temp files under `.run/content-manager/nginx/`.
-- `cloudflared` needs both the package on `PATH` and the tunnel credentials JSON referenced by [cloudflared/config.yml](../../cloudflared/config.yml). The startup script now fails early with a specific missing-credentials error instead of continuing to a vague tunnel failure.
+The PowerShell scripts intentionally halt immediately when either of these WSL leftovers are detected:
+- `.venv\Scripts\python.exe` is missing but `.venv\bin\python` exists
+- `cloudflared/config.yml` references `/home/...` or `/mnt/...`
 
 Still worth checking first when the admin page is down:
 
-- `curl -fsS http://127.0.0.1:8000/health`
-- `curl -I http://127.0.0.1:5000/admin/upload/voice`
-- `tail -n 50 .run/content-manager/nginx.err.log`
-- `tail -n 50 .run/content-manager/cloudflared.err.log`
+- `Invoke-WebRequest http://127.0.0.1:8000/health -UseBasicParsing`
+- `Invoke-WebRequest http://127.0.0.1:5000/admin/articles/new -UseBasicParsing`
+- `Get-Content .run\content-manager\nginx.err.log -Tail 50`
+- `Get-Content .run\content-manager\cloudflared.err.log -Tail 50`
 
 ### cloudflared
 
-Install `cloudflared` with your WSL distro package manager or the official Cloudflare Linux package instructions, then confirm:
+Install `cloudflared` on Windows and confirm:
 
-```bash
-command -v cloudflared
+```powershell
+Get-Command cloudflared
 ```
 
 Current shell-resolved version:
@@ -110,7 +109,7 @@ Current shell-resolved version:
 
 Create and route the tunnel:
 
-```bash
+```powershell
 cloudflared tunnel login
 cloudflared tunnel create audio-app
 cloudflared tunnel route dns audio-app admin.eloise.rip
@@ -118,37 +117,31 @@ cloudflared tunnel route dns audio-app admin.eloise.rip
 
 Run with the repo config:
 
-```bash
-cloudflared tunnel --config "$PWD/cloudflared/config.yml" run audio-app
+```powershell
+cloudflared tunnel --config "$PWD\cloudflared\config.yml" run audio-app
 ```
 
 ### nginx
 
-Install `nginx` with your distro package manager, then confirm:
+Install `nginx` on Windows and confirm:
 
-```bash
-command -v nginx
+```powershell
+Get-Command nginx
 ```
 
-The repo startup script renders a self-contained config from [nginx/audio-app.conf](../../nginx/audio-app.conf), so you do not need to edit a global Windows `nginx.conf`.
-
-Manual validation after the startup script renders `.run/content-manager/nginx.conf`:
-
-```bash
-nginx -t -c "$PWD/.run/content-manager/nginx.conf"
-```
+The PowerShell startup script renders a repo-managed nginx config into `.run\content-manager\nginx.conf`, so the local stack uses the repo template instead of a hand-edited global config.
 
 ### Waitress / Flask
 
 Development:
 
-```bash
+```powershell
 python -m content_manager.app
 ```
 
 Production-style local run:
 
-```bash
+```powershell
 python -m waitress --listen=127.0.0.1:8000 content_manager.app:app
 ```
 
@@ -156,20 +149,22 @@ python -m waitress --listen=127.0.0.1:8000 content_manager.app:app
 
 Start the local stack:
 
-```bash
-./scripts/start-content-manager.sh --tunnel-name audio-app
+```powershell
+.\scripts\start-content-manager.ps1 -TunnelName audio-app
 ```
 
 Fast app restart only:
 
-```bash
-./scripts/restart-content-manager.sh
+```powershell
+.\scripts\restart-content-manager.ps1
 ```
 
 Runtime artifacts:
 - `.run/content-manager/waitress.pid`
 - `.run/content-manager/nginx.pid`
 - `.run/content-manager/cloudflared.pid`
+- `.run/content-manager/audio-app.conf`
+- `.run/content-manager/nginx.conf`
 - `.run/content-manager/*.out.log`
 - `.run/content-manager/*.err.log`
 
@@ -177,9 +172,9 @@ Runtime artifacts:
 
 Useful checks:
 
-```bash
-curl -fsS http://127.0.0.1:8000/health
-curl -I http://127.0.0.1:5000/admin/upload
+```powershell
+Invoke-WebRequest http://127.0.0.1:8000/health -UseBasicParsing
+Invoke-WebRequest http://127.0.0.1:5000/admin/articles/new -UseBasicParsing
 cloudflared tunnel info audio-app
 ```
 

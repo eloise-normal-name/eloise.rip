@@ -28,7 +28,7 @@
 - Validate output: `python validate_output.py`
 - Style analysis: `python analyze_styles.py`
 - Publish `gh-pages`: `./publish.sh`
-- Start content manager stack in WSL: `./scripts/start-content-manager.sh --tunnel-name audio-app`
+- Start content manager stack in PowerShell: `.\scripts\start-content-manager.ps1 -TunnelName audio-app`
 
 ## Pull Request Expectations
 - Explain what changed and why.
@@ -80,7 +80,7 @@ This creates an audit trail for reviewers and prevents outdated comments from be
 - Media upload API: `/api/media/upload` (images → AVIF, videos → HEVC MP4 + poster)
 - Article publish API: `/api/article/publish` (writes markdown to `content/articles/`)
 - App only: `python -m waitress --listen=127.0.0.1:8000 content_manager.app:app`
-- Full local stack in WSL: `./scripts/start-content-manager.sh --tunnel-name audio-app`
+- Full local stack in PowerShell: `.\scripts\start-content-manager.ps1 -TunnelName audio-app`
 
 ## Voice Recorder
 - Reference doc: docs/voice-recorder.md

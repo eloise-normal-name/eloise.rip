@@ -1,5 +1,5 @@
 tunnel: 3c11812a-c895-4274-b17a-c32a7605e9c3
-credentials-file: /home/stanlo/.cloudflared/3c11812a-c895-4274-b17a-c32a7605e9c3.json
+credentials-file: C:/Users/Admin/.cloudflared/3c11812a-c895-4274-b17a-c32a7605e9c3.json
 
 ingress:
   - hostname: admin.eloise.rip
