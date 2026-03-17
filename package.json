@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "scripts": {
+    "cf:pages:list": "wrangler pages project list",
+    "cf:pages:download-config": "wrangler pages download config eloise-rip",
+    "cf:pages:deploy": "wrangler pages deploy output --project-name=eloise-rip",
+    "cf:pages:tail": "wrangler pages deployment tail --project-name=eloise-rip"
+  },
   "directories": {
     "doc": "docs"
   },
@@ -17,5 +23,9 @@
   "bugs": {
     "url": "https://github.com/eloise-normal-name/eloise.rip/issues"
   },
-  "homepage": "https://github.com/eloise-normal-name/eloise.rip#readme"
+  "homepage": "https://github.com/eloise-normal-name/eloise.rip#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "wrangler": "^4.74.0"
+  }
 }

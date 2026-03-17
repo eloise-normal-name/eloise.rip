@@ -22,7 +22,7 @@ Current admin capabilities include:
 - Media upload API at `/api/media/upload`
 - Article publish API at `/api/article/publish`
 
-The public site at `www.eloise.rip` stays completely separate. It is static and deployed through GitHub Pages.
+The public site at `eloise.rip` stays completely separate. It is static and hosted on Cloudflare Pages.
 
 ## Runtime Architecture
 

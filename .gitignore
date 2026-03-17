@@ -24,6 +24,7 @@ node_modules/
 test-results/
 playwright-report/
 tools/
+.wrangler/
 
 # Local runtime artifacts
 .run/

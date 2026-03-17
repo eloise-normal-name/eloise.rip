@@ -1,20 +1,21 @@
-name: Publish site
+name: Build site
 
 on:
   push:
     branches:
       - main
+  pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: publish-site
   cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  build-and-validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -28,14 +29,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Clean output directory
+        run: rm -rf output
+
       - name: Build main site
         run: pelican content -o output -s pelicanconf.py
 
-      - name: Build preview subsite (editorial theme)
-        run: pelican content -s previewconf.py
+      - name: Validate generated output
+        run: python validate_output.py
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload site artifact
+        uses: actions/upload-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: output
+          name: site-output
+          path: output

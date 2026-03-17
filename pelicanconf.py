@@ -63,7 +63,6 @@ RSS_FEED_SUMMARY_ONLY = False  # include full article content in RSS feeds
 EXTRA_PATH_METADATA = {
     f"extra/{name}": {"path": name}
     for name in (
-        "CNAME",
         "android-chrome-192x192.png",
         "android-chrome-512x512.png",
         "apple-touch-icon.png",

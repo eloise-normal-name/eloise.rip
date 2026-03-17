@@ -56,7 +56,7 @@ If your model is not in the list above, add yourself to this file with a feminin
 
 ## Project Architecture
 
-This is a **Pelican static site generator** project for a personal blog at [eloise.rip](https://eloise.rip). Content is authored in Markdown with custom media embedding and deployed to GitHub Pages.
+This is a **Pelican static site generator** project for a personal blog at [eloise.rip](https://eloise.rip). Content is authored in Markdown with custom media embedding and hosted on Cloudflare Pages.
 
 ### Key Components
 
@@ -116,7 +116,7 @@ python validate_output.py --check-external # Include external link validation (s
 
 ### Deployment
 ```bash
-./publish.sh  # Uses ghp-import to push output/ to gh-pages branch
+npm run cf:pages:deploy  # Optional manual Cloudflare Pages deployment of output/
 ```
 
 ### Content Manager Stack
@@ -170,7 +170,7 @@ thumbnail: images/preview.avif
 - **Pelican config**: [pelicanconf.py](../pelicanconf.py) - sets paths, theme, plugins, markdown extensions
 - **Pagination**: 8 posts per page (`DEFAULT_PAGINATION = 8`)
 - **URL structure**: Articles → `/blog/{slug}.html`, Pages → `/{slug}.html`
-- **Static files**: `content/extra/` files (CNAME, favicons) copied to output root via `EXTRA_PATH_METADATA`
+- **Static files**: `content/extra/` favicons copied to output root via `EXTRA_PATH_METADATA`
 
 ## Development Notes
 
