@@ -27,7 +27,7 @@
 - Local build: `pelican`
 - Validate output: `python validate_output.py`
 - Style analysis: `python analyze_styles.py`
-- Cloudflare Pages deploy: `npm run cf:pages:deploy`
+- Cloudflare Pages deploy: `wrangler pages deploy output --project-name=eloise-rip`
 - Start content manager stack in PowerShell: `.\scripts\start-content-manager.ps1 -TunnelName audio-app`
 
 ## Pull Request Expectations

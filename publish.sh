@@ -5,8 +5,8 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 cd "$PROJECT_ROOT"
 
-if ! command -v npm >/dev/null 2>&1; then
-  echo "npm is required on PATH." >&2
+if ! command -v wrangler >/dev/null 2>&1; then
+  echo "wrangler is required on PATH." >&2
   exit 1
 fi
 
@@ -18,4 +18,4 @@ fi
 rm -rf output
 pelican
 python validate_output.py
-npm run cf:pages:deploy
+wrangler pages deploy output --project-name=eloise-rip

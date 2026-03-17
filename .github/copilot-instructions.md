@@ -116,7 +116,7 @@ python validate_output.py --check-external # Include external link validation (s
 
 ### Deployment
 ```bash
-npm run cf:pages:deploy  # Optional manual Cloudflare Pages deployment of output/
+wrangler pages deploy output --project-name=eloise-rip  # Optional manual Cloudflare Pages deployment of output/
 ```
 
 ### Content Manager Stack

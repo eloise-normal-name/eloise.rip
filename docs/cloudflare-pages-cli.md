@@ -4,8 +4,7 @@ Use Wrangler for agent-driven Cloudflare Pages work so site changes can be deplo
 
 ## Prerequisites
 
-- Node.js 20+ available on PATH
-- Local install: `npm install`
+- Wrangler available on PATH
 - Cloudflare Pages project name: `eloise-rip`
 - Repo-tracked Pages config: `wrangler.toml`
 - Cloudflare account credentials available as environment variables:
@@ -18,30 +17,30 @@ Recommended token scope:
 - `Cloudflare Pages:Edit`
 - Add zone/DNS permissions only if agents also need to manage `eloise.rip` DNS
 
-## Repo Commands
+## Local Commands
 
 List Pages projects:
 
 ```powershell
-npm run cf:pages:list
+wrangler pages project list
 ```
 
 Download the Pages dashboard config for `eloise-rip`:
 
 ```powershell
-npm run cf:pages:download-config
+wrangler pages download config eloise-rip
 ```
 
 Deploy the generated static site in `output/` directly to Cloudflare Pages:
 
 ```powershell
-npm run cf:pages:deploy
+wrangler pages deploy output --project-name=eloise-rip
 ```
 
 Tail the active Pages deployment:
 
 ```powershell
-npm run cf:pages:tail
+wrangler pages deployment tail --project-name=eloise-rip
 ```
 
 ## Typical Agent Flow
@@ -61,12 +60,12 @@ python validate_output.py
 3. Deploy to Cloudflare Pages:
 
 ```powershell
-npm run cf:pages:deploy
+wrangler pages deploy output --project-name=eloise-rip
 ```
 
 ## Notes
 
 - The default Cloudflare preview domain for this project is expected to stay on `*.eloise-rip.pages.dev`
 - These commands do not replace the existing `admin.eloise.rip` tunnel workflow
-- If the Pages project name changes, update the `cf:pages:*` scripts in `package.json`
+- If the Pages project name changes, update the direct `wrangler` commands in this doc and in `publish.sh`
 - `wrangler.toml` should be kept aligned with the live Cloudflare Pages project settings
