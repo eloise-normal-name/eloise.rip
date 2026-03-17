@@ -94,7 +94,7 @@ The Pelican command was run before activating the virtual environment, so Pelica
 
 ### Building the Site
 ```bash
-pelican content -o output -s pelicanconf.py
+pelican
 ```
 
 ### Local Preview

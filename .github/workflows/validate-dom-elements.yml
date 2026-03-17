@@ -111,7 +111,7 @@ jobs:
 
       - name: Build site
         if: success()
-        run: pelican content -o output -s pelicanconf.py
+        run: pelican
 
       - name: Check for JavaScript errors in output
         if: success()

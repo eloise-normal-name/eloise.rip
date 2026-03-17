@@ -16,6 +16,6 @@ if ! command -v pelican >/dev/null 2>&1; then
 fi
 
 rm -rf output
-pelican content -o output -s pelicanconf.py
+pelican
 python validate_output.py
 npm run cf:pages:deploy

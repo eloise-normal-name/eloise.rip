@@ -137,7 +137,7 @@ Run manual test scenarios before releases: [voice-recorder-test-scenarios.md](vo
 
 ```bash
 # Build site
-pelican content -o output -s pelicanconf.py
+pelican
 
 # Validate links and media
 python validate_output.py

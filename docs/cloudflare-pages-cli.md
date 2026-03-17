@@ -7,9 +7,11 @@ Use Wrangler for agent-driven Cloudflare Pages work so site changes can be deplo
 - Node.js 20+ available on PATH
 - Local install: `npm install`
 - Cloudflare Pages project name: `eloise-rip`
+- Repo-tracked Pages config: `wrangler.toml`
 - Cloudflare account credentials available as environment variables:
   - `CLOUDFLARE_API_TOKEN`
   - `CLOUDFLARE_ACCOUNT_ID`
+- Cloudflare Pages build settings should stay as simple as possible and rely on the standard Pelican setup unless a specific override is needed
 
 Recommended token scope:
 
@@ -47,7 +49,7 @@ npm run cf:pages:tail
 1. Build the site:
 
 ```powershell
-pelican content -o output -s pelicanconf.py
+pelican
 ```
 
 2. Validate the generated output:
@@ -67,3 +69,4 @@ npm run cf:pages:deploy
 - The default Cloudflare preview domain for this project is expected to stay on `*.eloise-rip.pages.dev`
 - These commands do not replace the existing `admin.eloise.rip` tunnel workflow
 - If the Pages project name changes, update the `cf:pages:*` scripts in `package.json`
+- `wrangler.toml` should be kept aligned with the live Cloudflare Pages project settings

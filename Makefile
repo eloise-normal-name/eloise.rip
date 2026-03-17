@@ -261,7 +261,7 @@ transcode-force: FORCE=1
 transcode-force: transcode
 
 validate:
-	@pelican content -o output -s pelicanconf.py
+	@pelican
 	@$(PYTHON_BIN) validate_output.py
 
 parity-verify:

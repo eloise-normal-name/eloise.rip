@@ -1,0 +1,5 @@
+# Generated from the live Cloudflare Pages project and tracked so Pages
+# settings do not live only in the dashboard.
+name = "eloise-rip"
+pages_build_output_dir = "output"
+compatibility_date = "2026-03-16"

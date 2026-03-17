@@ -24,7 +24,7 @@
 ## Common Commands
 - Activate venv in WSL: `source .venv/bin/activate`
 - Upgrade Python on Ubuntu 20.04 WSL: `sudo apt update && sudo apt install -y software-properties-common && sudo add-apt-repository -y ppa:deadsnakes/ppa && sudo apt update && sudo apt install -y python3.13 python3.13-venv python3.13-dev`
-- Local build: `pelican content -o output -s pelicanconf.py`
+- Local build: `pelican`
 - Validate output: `python validate_output.py`
 - Style analysis: `python analyze_styles.py`
 - Cloudflare Pages deploy: `npm run cf:pages:deploy`
