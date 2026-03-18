@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Drafts - Content Manager</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f8f9fc;
+            --text: #17202a;
+            --muted: #586174;
+            --card: #ffffff;
+            --border: #d8dee9;
+            --primary: #0a63d8;
+            --primary-strong: #084fb0;
+            --warning: #a16207;
+            --success: #15803d;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, sans-serif;
+            background: linear-gradient(180deg, #eef2ff 0%, var(--bg) 40%);
+            color: var(--text);
+        }
+        .wrap { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+        nav { display: flex; gap: 16px; margin-bottom: 20px; font-size: 0.95rem; }
+        nav a { color: var(--primary); text-decoration: none; }
+        nav a:hover { text-decoration: underline; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 6px 18px rgba(19, 34, 63, 0.06);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .btn:hover { background: var(--primary-strong); }
+        .draft-list { display: grid; gap: 12px; }
+        .draft {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+        .draft h2 { margin: 0 0 6px; font-size: 1.05rem; }
+        .meta { color: var(--muted); font-size: 0.9rem; }
+        .status { font-size: 0.85rem; margin-top: 8px; }
+        .status.ready { color: var(--success); }
+        .status.blocked { color: var(--warning); }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <nav>
+        <a href="/admin/articles/new">New Article</a>
+        <a href="/admin/articles">Drafts</a>
+        <a href="/admin/upload/voice">Voice Upload</a>
+    </nav>
+
+    <div class="card">
+        <div class="header">
+            <div>
+                <h1 style="margin:0 0 6px;">Saved Drafts</h1>
+                <div class="meta">Resume editing with metadata and generation state recomputed on load.</div>
+            </div>
+            <a class="btn" href="/admin/articles/new">New Draft</a>
+        </div>
+
+        {% if drafts %}
+        <div class="draft-list">
+            {% for draft in drafts %}
+            <div class="draft">
+                <div>
+                    <h2>{{ draft.title }}</h2>
+                    <div class="meta">Updated {{ draft.updated_at }}</div>
+                    {% if draft.generation_eligible %}
+                    <div class="status ready">Generation eligible</div>
+                    {% else %}
+                    <div class="status blocked">
+                        Generation blocked{% if draft.blocking_reasons %}: {{ draft.blocking_reasons|join(", ") }}{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <a class="btn" href="/admin/articles/new?draft_id={{ draft.draft_id }}">Resume</a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="meta">No drafts saved yet.</p>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>

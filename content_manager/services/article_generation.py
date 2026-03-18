@@ -18,6 +18,12 @@ class GenerationRequest:
     allowed_categories: list[str]
     allowed_tags: list[str]
     likely_named_locations: list[str]
+    draft_title: str = ""
+    draft_summary: str = ""
+    draft_category: str = ""
+    draft_tags: list[str] | None = None
+    draft_content: str = ""
+    related_articles: list[dict] | None = None
 
 
 class ArticleGenerator:
@@ -52,7 +58,7 @@ class ArticleGenerator:
         canonical_job = request.canonical_job
         prompt = (
             "Create a draft pack for a personal blog article. "
-            "Use only the visible content in the uploaded media and the extracted metadata.\n"
+            "Use the visible content in the uploaded media and the extracted metadata as the primary factual grounding.\n"
             f"Canonical location: {canonical_job['location_name']}\n"
             f"Canonical capture time: {canonical_job['captured_at']}\n"
             f"Derived time of day: {canonical_job['time_of_day']}\n"
@@ -68,23 +74,60 @@ class ArticleGenerator:
             "content_markdown must be 2 to 5 short paragraphs.\n"
             "Write like a personal site post, not a generic explainer.\n"
             "Avoid broad introductions about the subject as a whole.\n"
+            "Preserve useful details from the current draft when they do not conflict with visible media or extracted metadata.\n"
+            "Use related published posts for style, pacing, and tone only, not as factual evidence for the new article.\n"
             "Do not invent exact venue names, dates, or hidden facts beyond likely named locations."
         )
         content = [{"type": "input_text", "text": prompt}]
-        for item in request.media_context:
+        if (
+            request.draft_title
+            or request.draft_summary
+            or request.draft_category
+            or request.draft_tags
+            or request.draft_content
+        ):
             content.append({
                 "type": "input_text",
                 "text": (
-                    f"Media file {item['name']} ({item['media_type']}), "
-                    f"location={item.get('location_name') or 'n/a'}, "
-                    f"captured_at={item.get('captured_at') or 'n/a'}, "
-                    f"time_of_day={item.get('time_of_day') or 'n/a'}."
+                    "Current draft context to refine and continue:\n"
+                    f"Title: {request.draft_title or 'n/a'}\n"
+                    f"Summary: {request.draft_summary or 'n/a'}\n"
+                    f"Category: {request.draft_category or 'n/a'}\n"
+                    f"Tags: {request.draft_tags or ['none']}\n"
+                    f"Draft content:\n{request.draft_content or 'n/a'}"
                 ),
             })
+        for article in request.related_articles or []:
             content.append({
-                "type": "input_image",
-                "image_url": data_url_for_path(item["model_image_path"]),
+                "type": "input_text",
+                "text": (
+                    "Related published post for style only:\n"
+                    f"Title: {article.get('title') or 'n/a'}\n"
+                    f"Category: {article.get('category') or 'n/a'}\n"
+                    f"Tags: {article.get('tags') or []}\n"
+                    f"Summary: {article.get('summary') or 'n/a'}\n"
+                    f"Excerpt: {article.get('excerpt') or 'n/a'}"
+                ),
             })
+        for item in request.media_context:
+            media_summary = (
+                f"Media file {item['name']} ({item['media_type']}), "
+                f"location={item.get('location_name') or 'n/a'}, "
+                f"captured_at={item.get('captured_at') or 'n/a'}, "
+                f"time_of_day={item.get('time_of_day') or 'n/a'}."
+            )
+            if item["media_type"] == "video":
+                frame_count = len(item.get("model_input_paths") or [])
+                media_summary += f" The following images are sampled frames from this video ({frame_count} frames)."
+            content.append({
+                "type": "input_text",
+                "text": media_summary,
+            })
+            for path in item.get("model_input_paths") or []:
+                content.append({
+                    "type": "input_image",
+                    "image_url": data_url_for_path(path),
+                })
 
         return {
             "model": self.model,

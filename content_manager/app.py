@@ -12,6 +12,17 @@ from flask import Flask, abort, jsonify, redirect, render_template, request, sen
 from werkzeug.utils import secure_filename
 
 from content_manager.config import load_config
+from content_manager.services.article_authoring import (
+    build_media_prefix as authoring_build_media_prefix,
+    list_drafts,
+    load_draft,
+    publish_article as authoring_publish_article,
+    resolve_in_progress_draft,
+    save_draft,
+    slugify as authoring_slugify,
+    unique_article_path as authoring_unique_article_path,
+    validate_publish_request,
+)
 from content_manager.services.article_generation import ArticleGenerator
 from content_manager.services.generation_workflow import generate_article_from_sources, resolve_library_media_path
 from content_manager.services.media_metadata import (
@@ -202,25 +213,11 @@ def git_push_article(article_path: Path, media_paths: list[Path]) -> str | None:
 
 
 def slugify(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"[^\w\s-]", "", text)
-    text = re.sub(r"[\s_]+", "-", text)
-    text = re.sub(r"-+", "-", text)
-    return text.strip("-")
+    return authoring_slugify(text)
 
 
 def unique_article_path(slug: str, date_str: str) -> Path:
-    folder = config.articles_dir / date_str[:4] / date_str[5:7]
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{slug}.md"
-    if not path.exists():
-        return path
-    suffix = 2
-    while True:
-        candidate = folder / f"{slug}-{suffix}.md"
-        if not candidate.exists():
-            return candidate
-        suffix += 1
+    return authoring_unique_article_path(config, slug, date_str)
 
 
 def build_output_filename(input_name: str) -> str | None:
@@ -303,32 +300,7 @@ def _library_media_context(media_paths: list[str]) -> list[dict]:
 
 
 def _build_media_prefix(media_job_ids: list[str], title: str, media_paths: list[str] | None = None) -> str:
-    videos = []
-    images = []
-    with state.jobs_lock:
-        for job_id in media_job_ids:
-            job = state.media_jobs.get(job_id)
-            if not job or job["status"] != "done":
-                continue
-            if job["media_type"] == "video":
-                videos.append(job["name"])
-            elif job["media_type"] == "image":
-                images.append(job)
-    for item in _library_media_context(media_paths or []):
-        if item["media_type"] == "video":
-            videos.append(item["name"])
-        elif item["media_type"] == "image":
-            images.append(item)
-
-    parts = [f"[[video:{name}]]" for name in videos]
-    if len(images) == 1:
-        url = images[0]["final_url"].lstrip("/")
-        parts.append(f"![]({url})")
-    elif len(images) > 1:
-        label = f"{title} Gallery"
-        items = ";\n".join(image["final_url"].lstrip("/") for image in images)
-        parts.append(f"[[carousel:label={label};\n{items}]]")
-    return "\n\n".join(parts)
+    return authoring_build_media_prefix(config, state, media_job_ids, title, media_paths)
 
 
 def _read_article_metadata(article_path: Path) -> dict:
@@ -528,7 +500,7 @@ def list_media():
 
 @app.get("/admin/articles")
 def articles_hub():
-    return redirect("/admin/articles/new", code=302)
+    return render_template("article-drafts.html", drafts=[draft.to_dict() for draft in list_drafts(state, config)])
 
 
 @app.get("/admin/articles/new")
@@ -587,29 +559,37 @@ def save_draft():
     data = request.get_json(silent=True)
     if not data:
         return _json_error("invalid JSON body")
-    draft_id = data.get("draft_id") or str(uuid.uuid4())
-    with state.jobs_lock:
-        state.drafts[draft_id] = {
-            "title": data.get("title", ""),
-            "summary": data.get("summary", ""),
-            "category": data.get("category", ""),
-            "tags": data.get("tags", ""),
-            "thumbnail": data.get("thumbnail", ""),
-            "existing_media_paths": data.get("existing_media_paths", ""),
-            "content": data.get("content", ""),
-            "media_jobs": data.get("media_jobs", []),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
-    return jsonify({"draft_id": draft_id, "status": "saved"})
+    try:
+        draft = save_draft(state, config, data)
+    except ValueError as err:
+        return _json_error(str(err))
+    return jsonify({"draft_id": draft.draft_id, "status": "saved", "metadata": draft.metadata.to_dict()})
+
+
+@app.get("/api/article/drafts")
+def get_drafts():
+    drafts = [draft.to_dict() for draft in list_drafts(state, config)]
+    return jsonify({"drafts": drafts})
+
+
+@app.post("/api/article/draft/state")
+def get_draft_state():
+    data = request.get_json(silent=True)
+    if not data:
+        return _json_error("invalid JSON body")
+    try:
+        metadata = resolve_in_progress_draft(state, config, data)
+    except ValueError as err:
+        return _json_error(str(err))
+    return jsonify({"metadata": metadata.to_dict()})
 
 
 @app.get("/api/article/draft/<draft_id>")
 def get_draft(draft_id: str):
-    with state.jobs_lock:
-        draft = state.drafts.get(draft_id)
+    draft = load_draft(state, config, draft_id)
     if not draft:
         return jsonify({"error": "draft not found"}), 404
-    return jsonify({"draft_id": draft_id, **draft})
+    return jsonify(draft.to_dict())
 
 
 @app.post("/api/article/generate")
@@ -621,12 +601,22 @@ def generate_article():
     media_paths = data.get("media_paths", []) or []
     if not isinstance(media_job_ids, list) or not isinstance(media_paths, list):
         return _json_error("media_jobs and media_paths must be arrays")
+    draft_tags_value = data.get("tags", "")
+    if isinstance(draft_tags_value, list):
+        draft_tags = [str(item).strip() for item in draft_tags_value if str(item).strip()]
+    else:
+        draft_tags = [item.strip() for item in str(draft_tags_value or "").split(",") if item.strip()]
     try:
         generated = generate_article_from_sources(
             config=config,
             generator=generator,
             media_job_ids=media_job_ids,
             media_paths=media_paths,
+            draft_title=str(data.get("title") or "").strip(),
+            draft_summary=str(data.get("summary") or "").strip(),
+            draft_category=str(data.get("category") or "").strip(),
+            draft_tags=draft_tags,
+            draft_content=str(data.get("content") or "").strip(),
             state=state,
         )
     except ValueError as err:
@@ -643,58 +633,12 @@ def publish_article():
     data = request.get_json(silent=True)
     if not data:
         return _json_error("invalid JSON body")
-    title = (data.get("title") or "").strip()
-    content = (data.get("content") or "").strip()
-    if not title:
-        return _json_error("title is required")
-    if not content:
-        return _json_error("content is required")
-
-    media_job_ids = data.get("media_jobs", [])
-    existing_media_paths = data.get("media_paths", []) or []
-    if not isinstance(media_job_ids, list) or not isinstance(existing_media_paths, list):
-        return _json_error("media_jobs and media_paths must be arrays")
-    media_paths = []
-    with state.jobs_lock:
-        for job_id in media_job_ids:
-            job = state.media_jobs.get(job_id)
-            if not job:
-                return _json_error(f"unknown media job: {job_id}")
-            if job["status"] != "done":
-                return _json_error(f"media job {job_id} not complete (status: {job['status']})")
-            if job.get("output_path"):
-                media_paths.append(Path(job["output_path"]))
-            if job.get("poster_path"):
-                media_paths.append(Path(job["poster_path"]))
-
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    article_path = unique_article_path(slugify(title), date_str)
-    lines = [f"Title: {title}", f"Date: {date_str}"]
-    for key, field in (("Summary", "summary"), ("Category", "category"), ("Tags", "tags")):
-        value = (data.get(field) or "").strip()
-        if value:
-            lines.append(f"{key}: {value}")
-    thumbnail = (data.get("thumbnail") or "").strip()
-    if thumbnail:
-        lines.append(f"thumbnail: {thumbnail}")
-    lines.append("")
     try:
-        media_prefix = _build_media_prefix(media_job_ids, title, existing_media_paths)
+        command = validate_publish_request(data)
+        result = authoring_publish_article(config, state, command, git_push_article)
     except ValueError as err:
         return _json_error(str(err))
-    if media_prefix:
-        lines.append(media_prefix)
-        lines.append("")
-    lines.append(content)
-    lines.append("")
-    article_path.write_text("\n".join(lines), encoding="utf-8")
-    push_error = git_push_article(article_path, media_paths)
-    return jsonify({
-        "status": "published",
-        "slug": article_path.stem,
-        "path": str(article_path.relative_to(config.repo_root)),
-        "push_error": push_error,
-    })
+    return jsonify(result)
 
 
 @app.post("/api/article/preview")

@@ -273,6 +273,7 @@
 <div class="wrap">
     <nav>
         <a href="/admin/articles/new">New Article</a>
+        <a href="/admin/articles">Drafts</a>
         <a href="/admin/upload/voice">Voice Upload</a>
     </nav>
 
@@ -334,10 +335,10 @@
         </div>
         <div class="metadata-panel" id="generation-metadata">
             <div class="metadata-grid">
-                <div><strong>Location</strong><span id="metadata-location">Waiting for media metadata.</span></div>
-                <div><strong>Capture Time</strong><span id="metadata-captured-at">Waiting for media metadata.</span></div>
-                <div><strong>Time Of Day</strong><span id="metadata-time-of-day">Waiting for media metadata.</span></div>
-                <div><strong>Source Media</strong><span id="metadata-source-media">None yet.</span></div>
+                <div><strong>Location Summary</strong><span id="metadata-location">Waiting for media metadata.</span></div>
+                <div><strong>Time Summary</strong><span id="metadata-captured-at">Waiting for media metadata.</span></div>
+                <div><strong>Draft State</strong><span id="metadata-time-of-day">Waiting for media metadata.</span></div>
+                <div><strong>Media Summary</strong><span id="metadata-source-media">None yet.</span></div>
             </div>
             <div class="status-banner" id="generation-status"></div>
         </div>
@@ -420,6 +421,8 @@
     let draftId = null;
     let autoSaveTimer = null;
     let previewVisible = false;
+    let draftStateTimer = null;
+    const initialDraftId = new URLSearchParams(window.location.search).get("draft_id");
 
     // --- Status banner ---
     function showPublishStatus(html, type) {
@@ -457,10 +460,42 @@
             metadataSourceMediaEl.textContent = "None yet.";
             return;
         }
-        metadataLocationEl.textContent = payload.location || "No location metadata detected yet.";
-        metadataCapturedAtEl.textContent = formatDateTime(payload.captured_at);
-        metadataTimeOfDayEl.textContent = payload.time_of_day || "No time-of-day detected yet.";
-        metadataSourceMediaEl.textContent = payload.source_media || "No source media selected.";
+        metadataLocationEl.textContent = payload.location_summary || payload.location || "No location metadata detected yet.";
+        metadataCapturedAtEl.textContent = payload.time_summary || formatDateTime(payload.captured_at);
+        metadataTimeOfDayEl.textContent = payload.draft_state || payload.time_of_day || "No draft state yet.";
+        metadataSourceMediaEl.textContent = payload.media_summary || payload.source_media || "No source media selected.";
+    }
+
+    function applyDraftMetadata(metadata) {
+        if (!metadata) {
+            refreshMetadataFromUploads();
+            return;
+        }
+        updateMetadataPanel({
+            location: metadata.location || null,
+            captured_at: metadata.captured_at || null,
+            time_of_day: metadata.time_of_day || null,
+            source_media: formatSourceMediaList(metadata.source_media || []),
+            media_summary: metadata.media_summary || "",
+            location_summary: metadata.location_summary || "",
+            time_summary: metadata.time_summary || "",
+            draft_state: metadata.generation_eligible
+                ? "Generation eligible from current draft state."
+                : (Array.isArray(metadata.blocking_reasons) && metadata.blocking_reasons[0]) || "Generation blocked.",
+        });
+        if (Array.isArray(metadata.blocking_reasons) && metadata.blocking_reasons.length > 0) {
+            showGenerationStatus(
+                `Generation currently blocked:<br>${metadata.blocking_reasons.map(escapeHtml).join("<br>")}`,
+                "warning"
+            );
+        } else if (Array.isArray(metadata.warnings) && metadata.warnings.length > 0) {
+            showGenerationStatus(
+                `Metadata warnings:<br>${metadata.warnings.map(escapeHtml).join("<br>")}`,
+                "warning"
+            );
+        } else {
+            clearGenerationStatus();
+        }
     }
 
     function refreshMetadataFromUploads() {
@@ -471,6 +506,8 @@
                 captured_at: null,
                 time_of_day: null,
                 source_media: mediaUploads.filter(entry => entry.status === "done").map(entry => entry.name).join(", "),
+                media_summary: `${mediaUploads.length} uploaded item(s) in current draft.`,
+                draft_state: mediaUploads.length ? "Waiting on draft metadata refresh." : "No media attached yet.",
             });
             return;
         }
@@ -479,7 +516,45 @@
             captured_at: complete.captured_at,
             time_of_day: complete.time_of_day,
             source_media: mediaUploads.filter(entry => entry.status === "done").map(entry => entry.name).join(", "),
+            media_summary: `${mediaUploads.length} uploaded item(s) in current draft.`,
+            location_summary: complete.location_name,
+            time_summary: `${complete.time_of_day || "time unknown"} at ${formatDateTime(complete.captured_at)}`,
+            draft_state: "Waiting on draft metadata refresh.",
         });
+    }
+
+    function buildCurrentDraftStatePayload() {
+        return {
+            draft_id: draftId,
+            title: titleEl.value,
+            summary: summaryEl.value,
+            category: categoryEl.value,
+            tags: tagsEl.value,
+            thumbnail: thumbnailEl.value,
+            existing_media_paths: existingMediaPathsEl.value,
+            content: contentEl.value,
+            media_jobs: mediaUploads.filter(m => m.job_id).map(m => m.job_id),
+        };
+    }
+
+    async function refreshDraftState() {
+        try {
+            const res = await fetch("/api/article/draft/state", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(buildCurrentDraftStatePayload()),
+            });
+            const data = await res.json();
+            if (!res.ok) return;
+            applyDraftMetadata(data.metadata);
+        } catch {
+            // Keep editing usable even if local metadata refresh fails.
+        }
+    }
+
+    function scheduleDraftStateRefresh() {
+        clearTimeout(draftStateTimer);
+        draftStateTimer = setTimeout(refreshDraftState, 500);
     }
 
     function renderTitleIdeas(titles) {
@@ -627,6 +702,37 @@
         entry.el = renderMediaItem(entry);
         mediaListEl.appendChild(entry.el);
         refreshThumbnailOptions();
+        scheduleDraftStateRefresh();
+    }
+
+    function restoreUploadedMediaFromDraft(items) {
+        mediaUploads = [];
+        mediaListEl.innerHTML = "";
+        for (const item of items || []) {
+            if (item.source_kind !== "uploaded_job") continue;
+            const entry = {
+                job_id: item.source_id,
+                file: { name: item.label || item.name || item.source_id, type: "" },
+                name: item.name || item.label || item.source_id,
+                media_type: item.media_type,
+                status: item.status === "missing" ? "error" : item.status,
+                final_url: item.final_url,
+                poster_url: item.poster_url,
+                location_name: item.location_name,
+                captured_at: item.captured_at,
+                time_of_day: item.time_of_day,
+                warnings: Array.isArray(item.warnings) ? item.warnings : [],
+                error: item.status === "missing" ? (item.warnings || ["uploaded media job is no longer available"]).join("; ") : null,
+                el: null,
+            };
+            mediaUploads.push(entry);
+            entry.el = renderMediaItem(entry);
+            mediaListEl.appendChild(entry.el);
+            updateMediaItemUI(entry);
+        }
+        refreshThumbnailOptions();
+        refreshMetadataFromUploads();
+        scheduleDraftStateRefresh();
     }
 
     function buildRenamedFile(entry) {
@@ -682,11 +788,13 @@
             entry.warnings = Array.isArray(data.warnings) ? data.warnings : [];
             entry.status = "pending";
             updateMediaItemUI(entry);
+            scheduleDraftStateRefresh();
             pollMediaJob(entry);
         } catch (err) {
             entry.status = "error";
             entry.error = err.message;
             updateMediaItemUI(entry);
+            scheduleDraftStateRefresh();
         }
     }
 
@@ -719,6 +827,7 @@
                         refreshThumbnailOptions();
                     }
                     refreshMetadataFromUploads();
+                    scheduleDraftStateRefresh();
                     return;
                 }
             } catch {
@@ -780,6 +889,7 @@
             li.remove();
             refreshThumbnailOptions();
             refreshMetadataFromUploads();
+            scheduleDraftStateRefresh();
         });
         return li;
     }
@@ -884,9 +994,15 @@
     }
 
     [titleEl, summaryEl, categoryEl, tagsEl, thumbnailEl, existingMediaPathsEl, contentEl].forEach(el => {
-        el.addEventListener("input", schedulAutoSave);
+        el.addEventListener("input", () => {
+            schedulAutoSave();
+            scheduleDraftStateRefresh();
+        });
     });
-    thumbnailEl.addEventListener("change", schedulAutoSave);
+    thumbnailEl.addEventListener("change", () => {
+        schedulAutoSave();
+        scheduleDraftStateRefresh();
+    });
     tagsEl.addEventListener("input", updateTagChipStates);
 
     async function saveDraft() {
@@ -911,8 +1027,36 @@
             if (res.ok) {
                 draftId = data.draft_id;
                 draftIndicator.textContent = `Saved at ${new Date().toLocaleTimeString()}`;
+                applyDraftMetadata(data.metadata);
             }
         } catch { /* silent */ }
+    }
+
+    async function loadDraftById(id) {
+        try {
+            const res = await fetch(`/api/article/draft/${encodeURIComponent(id)}`);
+            const data = await res.json();
+            if (!res.ok) {
+                showPublishStatus(`Could not load draft: ${data.error || "unknown error"}`, "error");
+                return;
+            }
+            draftId = data.draft_id;
+            titleEl.value = data.title || "";
+            summaryEl.value = data.summary || "";
+            categoryEl.value = data.category || "";
+            tagsEl.value = data.tags || "";
+            thumbnailEl.value = data.thumbnail || "";
+            contentEl.value = data.content || "";
+            existingMediaPathsEl.value = data.existing_media_paths || "";
+            restoreUploadedMediaFromDraft((data.metadata || {}).items || []);
+            refreshThumbnailOptions(data.thumbnail || "");
+            updateTagChipStates();
+            applyDraftMetadata(data.metadata);
+            draftIndicator.textContent = `Loaded draft updated at ${new Date(data.updated_at).toLocaleString()}`;
+            scheduleDraftStateRefresh();
+        } catch (err) {
+            showPublishStatus(`Could not load draft: ${err.message}`, "error");
+        }
     }
 
     saveDraftBtn.addEventListener("click", async () => {
@@ -938,6 +1082,11 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    title: titleEl.value,
+                    summary: summaryEl.value,
+                    category: categoryEl.value,
+                    tags: tagsEl.value,
+                    content: contentEl.value,
                     media_jobs: readyMedia.map(m => m.job_id),
                     media_paths: existingMediaPaths,
                 }),
@@ -980,6 +1129,7 @@
             }
             schedulAutoSave();
             if (previewVisible) refreshPreview();
+            scheduleDraftStateRefresh();
         } catch (err) {
             showGenerationStatus(`Network error: ${err.message}`, "error");
         } finally {
@@ -1091,6 +1241,10 @@
     loadSuggestedTags();
     refreshThumbnailOptions();
     refreshMetadataFromUploads();
+    scheduleDraftStateRefresh();
+    if (initialDraftId) {
+        loadDraftById(initialDraftId);
+    }
 
 })();
 </script>
