@@ -72,6 +72,8 @@
 - Style analysis: `python analyze_styles.py`
 - Cloudflare Pages deploy: `wrangler pages deploy output --project-name=eloise-rip`
 - Start content manager stack in PowerShell: `.\scripts\start-content-manager.ps1 -TunnelName audio-app`
+- Start content manager stack on Linux: `bash scripts/start-content-manager.sh`
+- Restart content manager (Waitress only) on Linux: `bash scripts/restart-content-manager.sh`
 
 ## Pull Request Expectations
 - Explain what changed and why.
