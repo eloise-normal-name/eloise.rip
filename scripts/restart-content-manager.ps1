@@ -52,18 +52,37 @@ function Stop-WaitressFromPidFile {
 }
 
 function Stop-WaitressByPort {
-    $listener = Get-NetTCPConnection -State Listen -LocalAddress $ListenHost -LocalPort $AppPort -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $listener) {
+    $listeners = Get-NetTCPConnection -State Listen -LocalAddress $ListenHost -LocalPort $AppPort -ErrorAction SilentlyContinue
+    if (-not $listeners) {
         return
     }
 
-    $targetPid = [int]$listener.OwningProcess
-    if ($targetPid -eq $PID) {
-        Write-Host "Refusing to stop current shell process PID $targetPid."
-        return
+    foreach ($listener in $listeners) {
+        $targetPid = [int]$listener.OwningProcess
+        if ($targetPid -eq $PID) {
+            Write-Host "Refusing to stop current shell process PID $targetPid."
+            continue
+        }
+        Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
     }
+}
 
-    Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
+# Intentional for now: aggressively clear stale Waitress launches for this app
+# because pid-file and port-only cleanup have missed orphaned processes here.
+function Stop-ExtraWaitressProcesses {
+    $targets = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.CommandLine -like "*-m waitress*" -and
+            $_.CommandLine -like "*content_manager.app:app*"
+        }
+    foreach ($proc in $targets) {
+        $targetPid = [int]$proc.ProcessId
+        if ($targetPid -eq $PID) {
+            Write-Host "Refusing to stop current shell process PID $targetPid."
+            continue
+        }
+        Stop-Process -Id $targetPid -Force -ErrorAction SilentlyContinue
+    }
 }
 
 function Wait-ForHttp200([string]$Url, [int]$TimeoutSeconds = 20) {
@@ -84,6 +103,7 @@ function Wait-ForHttp200([string]$Url, [int]$TimeoutSeconds = 20) {
 Write-Host "Stopping existing Waitress (if running)..."
 Stop-WaitressFromPidFile
 Stop-WaitressByPort
+Stop-ExtraWaitressProcesses
 
 Write-Host "Starting Waitress..."
 $proc = Start-Process `

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 import threading
@@ -12,202 +11,104 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, redirect, render_template, request, send_file
 from werkzeug.utils import secure_filename
 
+from content_manager.config import load_config
+from content_manager.services.article_generation import ArticleGenerator
+from content_manager.services.generation_workflow import generate_article_from_sources, resolve_library_media_path
+from content_manager.services.media_metadata import (
+    extract_media_metadata,
+    extract_video_tags,
+    normalize_media_basename,
+)
+from content_manager.state import AppState
+
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "dev-only-change-me")
-app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_UPLOAD_MB", "200")) * 1024 * 1024
+config = load_config()
+state = AppState()
+generator = ArticleGenerator(
+    api_key=config.openai_api_key,
+    model=config.openai_model,
+)
+
+app.secret_key = config.secret_key
+app.config["MAX_CONTENT_LENGTH"] = config.max_upload_mb * 1024 * 1024
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
-REPO_ROOT = Path(subprocess.run(
-    ["git", "rev-parse", "--show-toplevel"],
-    capture_output=True, text=True, check=True,
-).stdout.strip())
-UPLOAD_DIR = REPO_ROOT / os.getenv("UPLOAD_DIR", "media-source")
-VOICE_DIR = REPO_ROOT / os.getenv("OUTPUT_DIR", "content/media/voice")
-IMAGES_DIR = REPO_ROOT / "content" / "media" / "images"
-VIDEO_DIR = REPO_ROOT / "content" / "media" / "video"
-ARTICLES_DIR = REPO_ROOT / "content" / "articles"
-OUTPUT_FORMAT = "m4a"
-CLIP_ID_PATTERN = re.compile(r"(\d{2}-\d{2})")
-
-AUTO_COMMIT = os.getenv("AUTO_COMMIT", "false").lower() == "true"
-GIT_REMOTE = os.getenv("GIT_REMOTE", "origin")
-GIT_BRANCH = os.getenv("GIT_BRANCH", "main")
-
-MAX_DIMENSION = 1080
-CRF_AVIF = 32
-CRF_HEVC = 28
-HEVC_PRESET = "slow"
-HEVC_AUDIO_BITRATE = "160k"
-POSTER_TIME = "0.5"
-
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp", ".avif"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".gif"}
 
-for d in (UPLOAD_DIR, VOICE_DIR, IMAGES_DIR, VIDEO_DIR, ARTICLES_DIR):
-    d.mkdir(parents=True, exist_ok=True)
 
-# --- Job tracking ---
-
-jobs_lock = threading.Lock()
-jobs = {}          # voice upload jobs
-media_jobs = {}    # media transcoding jobs
-drafts = {}        # article drafts
-
-
-def _set_job(store: dict, job_id: str, **updates) -> None:
-    with jobs_lock:
-        if job_id in store:
-            store[job_id].update(updates)
-
-
-def set_job(job_id: str, **updates) -> None:
-    _set_job(jobs, job_id, **updates)
-
-
-def set_media_job(job_id: str, **updates) -> None:
-    _set_job(media_jobs, job_id, **updates)
-
-
-# --- FFmpeg helpers ---
-
-def _scale_filter() -> str:
-    d = MAX_DIMENSION
-    return f"scale='if(gt(iw,ih),min({d},iw),-2)':'if(gt(ih,iw),min({d},ih),-2)'"
+def _json_error(message: str, status: int = 400):
+    return jsonify({"error": message}), status
 
 
 def _run_ffmpeg(args: list[str]) -> str:
-    result = subprocess.run(
-        ["ffmpeg", *args],
-        capture_output=True, text=True,
-    )
+    result = subprocess.run(["ffmpeg", *args], capture_output=True, text=True)
     if result.returncode != 0:
         raise RuntimeError((result.stderr or "ffmpeg failed")[-1200:])
     return result.stdout
 
 
-def transcode_image(input_path: Path, output_path: Path) -> None:
-    _run_ffmpeg([
-        "-y", "-i", str(input_path),
-        "-vf", _scale_filter(),
-        "-c:v", "libaom-av1", "-crf", str(CRF_AVIF), "-b:v", "0",
-        str(output_path),
-    ])
-
-
-def transcode_video(input_path: Path, mp4_path: Path, poster_path: Path) -> None:
-    _run_ffmpeg([
-        "-y", "-i", str(input_path),
-        "-vf", _scale_filter(),
-        "-c:v", "libx265", "-preset", HEVC_PRESET, "-crf", str(CRF_HEVC),
-        "-pix_fmt", "yuv420p", "-tag:v", "hvc1", "-movflags", "+faststart",
-        "-c:a", "aac", "-b:a", HEVC_AUDIO_BITRATE,
-        str(mp4_path),
-    ])
-    _run_ffmpeg([
-        "-y", "-i", str(input_path),
-        "-ss", POSTER_TIME, "-vframes", "1",
-        "-vf", _scale_filter(),
-        str(poster_path),
-    ])
-
-
-# --- Git helpers ---
-
-def git_run(cmd: list[str]) -> None:
-    subprocess.run(cmd, capture_output=True, text=True, check=True, cwd=REPO_ROOT)
-
-
-def git_push_transcoded(output_path: Path) -> str | None:
-    """Stage, commit, and push one transcoded file. Returns an error string or None."""
+def _copy_image_metadata_exiftool(input_path: Path, output_path: Path) -> None:
     try:
-        git_run(["git", "add", str(output_path)])
-        git_run(["git", "commit", "-m", f"audio: add {output_path.name}"])
-        git_run(["git", "push", GIT_REMOTE, GIT_BRANCH])
-        return None
-    except FileNotFoundError:
-        return "git not found in PATH"
-    except subprocess.CalledProcessError as err:
-        return (err.stderr or err.stdout or "git command failed")[-800:]
-
-
-def git_push_article(article_path: Path, media_paths: list[Path]) -> str | None:
-    """Stage, commit, and push article + media files. Returns error string or None."""
-    if not AUTO_COMMIT:
-        return None
-    try:
-        paths = [str(article_path)] + [str(p) for p in media_paths]
-        git_run(["git", "add", *paths])
-        title = article_path.stem.replace("-", " ")
-        git_run(["git", "commit", "-m", f"article: {title}"])
-        git_run(["git", "push", GIT_REMOTE, GIT_BRANCH])
-        return None
-    except FileNotFoundError:
-        return "git not found in PATH"
-    except subprocess.CalledProcessError as err:
-        return (err.stderr or err.stdout or "git command failed")[-800:]
-
-
-# --- Slug generation ---
-
-def slugify(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"[^\w\s-]", "", text)
-    text = re.sub(r"[\s_]+", "-", text)
-    text = re.sub(r"-+", "-", text)
-    return text.strip("-")
-
-
-def unique_article_path(slug: str, date_str: str) -> Path:
-    year, month = date_str[:4], date_str[5:7]
-    folder = ARTICLES_DIR / year / month
-    folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"{slug}.md"
-    if not path.exists():
-        return path
-    n = 2
-    while True:
-        path = folder / f"{slug}-{n}.md"
-        if not path.exists():
-            return path
-        n += 1
-
-
-# --- Voice upload (existing functionality) ---
-
-def build_output_filename(input_name: str) -> str | None:
-    match = CLIP_ID_PATTERN.search(Path(input_name).stem)
-    return f"{match.group(1)}.{OUTPUT_FORMAT}" if match else None
-
-
-def transcode_audio(job_id: str, input_path: Path, output_filename: str) -> None:
-    set_job(job_id, status="processing")
-    output_file = VOICE_DIR / output_filename
-
-    command = [
-        "ffmpeg", "-y", "-i", str(input_path),
-        "-vn", "-c:a", "aac", "-b:a", "128k",
-        "-movflags", "+faststart",
-        str(output_file),
-    ]
-
-    try:
-        subprocess.run(command, capture_output=True, text=True, check=True)
-        push_error = git_push_transcoded(output_file)
-        set_job(
-            job_id,
-            status="done",
-            output_path=str(output_file),
-            output_filename=output_filename,
-            completed_at=datetime.now(timezone.utc).isoformat(),
-            push_error=push_error,
+        result = subprocess.run(
+            [
+                "exiftool",
+                "-overwrite_original",
+                "-TagsFromFile",
+                str(input_path),
+                "-EXIF:all",
+                "-XMP:all",
+                "-IPTC:all",
+                str(output_path),
+            ],
+            capture_output=True,
+            text=True,
         )
-    except FileNotFoundError:
-        set_job(job_id, status="error", error="ffmpeg not found in PATH")
-    except subprocess.CalledProcessError as err:
-        set_job(job_id, status="error", error=(err.stderr or "ffmpeg failed")[-1200:])
+    except FileNotFoundError as err:
+        raise RuntimeError("exiftool not found in PATH; required for image metadata preservation") from err
+    if result.returncode != 0:
+        raise RuntimeError((result.stderr or result.stdout or "exiftool failed")[-1200:])
 
 
-# --- Media transcoding (new: images + videos) ---
+def _ffprobe_json(input_path: Path) -> dict:
+    result = subprocess.run(
+        ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", str(input_path)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    import json
+    return json.loads(result.stdout or "{}")
+
+
+def _scale_filter() -> str:
+    d = config.max_dimension
+    return f"scale='if(gt(iw,ih),min({d},iw),-2)':'if(gt(ih,iw),min({d},ih),-2)'"
+
+
+def _video_metadata_ffmpeg_args(input_path: Path) -> list[str]:
+    try:
+        tags = extract_video_tags(_ffprobe_json(input_path))
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return ["-movflags", "+faststart"]
+
+    metadata_args = ["-map_metadata", "0", "-movflags", "use_metadata_tags+faststart"]
+    for source_key, output_key in (
+        ("creation_time", "creation_time"),
+        ("date", "date"),
+        ("location", "location"),
+        ("com.apple.quicktime.location.iso6709", "com.apple.quicktime.location.ISO6709"),
+        ("com.apple.quicktime.creationdate", "com.apple.quicktime.creationdate"),
+        ("com.apple.quicktime.make", "com.apple.quicktime.make"),
+        ("com.apple.quicktime.model", "com.apple.quicktime.model"),
+        ("com.apple.quicktime.software", "com.apple.quicktime.software"),
+        ("com.android.capture.fusedgps", "com.android.capture.fusedgps"),
+    ):
+        value = tags.get(source_key)
+        if value:
+            metadata_args.extend(["-metadata", f"{output_key}={value}"])
+    return metadata_args
+
 
 def _classify_media(filename: str) -> str | None:
     ext = Path(filename).suffix.lower()
@@ -218,24 +119,158 @@ def _classify_media(filename: str) -> str | None:
     return None
 
 
+def _published_media_paths(name: str, media_type: str) -> list[Path]:
+    if media_type == "image":
+        return [config.images_dir / f"{name}.avif"]
+    if media_type == "video":
+        return [
+            config.video_dir / f"{name}.mp4",
+            config.video_dir / f"{name}.jpg",
+        ]
+    return []
+
+
+def _media_name_in_use(name: str, media_type: str) -> bool:
+    if any(path.exists() for path in _published_media_paths(name, media_type)):
+        return True
+    with state.jobs_lock:
+        for job in state.media_jobs.values():
+            if job.get("media_type") != media_type:
+                continue
+            if job.get("name") == name and job.get("status") != "error":
+                return True
+    return False
+
+
+def transcode_image(input_path: Path, output_path: Path) -> None:
+    _run_ffmpeg([
+        "-y", "-i", str(input_path),
+        "-vf", _scale_filter(),
+        "-c:v", "libaom-av1", "-crf", str(config.crf_avif), "-b:v", "0",
+        str(output_path),
+    ])
+    # Intentional for now: fail the job if metadata cannot be preserved on the published AVIF.
+    _copy_image_metadata_exiftool(input_path, output_path)
+
+
+def transcode_video(input_path: Path, mp4_path: Path, poster_path: Path) -> None:
+    _run_ffmpeg([
+        "-y", "-i", str(input_path),
+        "-vf", _scale_filter(),
+        "-c:v", "libx265", "-preset", config.hevc_preset, "-crf", str(config.crf_hevc),
+        "-pix_fmt", "yuv420p", "-tag:v", "hvc1",
+        "-c:a", "aac", "-b:a", config.hevc_audio_bitrate,
+        *_video_metadata_ffmpeg_args(input_path),
+        str(mp4_path),
+    ])
+    _run_ffmpeg([
+        "-y", "-i", str(input_path),
+        "-ss", config.poster_time, "-vframes", "1",
+        "-vf", _scale_filter(),
+        str(poster_path),
+    ])
+
+
+def git_run(cmd: list[str]) -> None:
+    subprocess.run(cmd, capture_output=True, text=True, check=True, cwd=config.repo_root)
+
+
+def git_push_transcoded(output_path: Path) -> str | None:
+    try:
+        git_run(["git", "add", str(output_path)])
+        git_run(["git", "commit", "-m", f"audio: add {output_path.name}"])
+        git_run(["git", "push", config.git_remote, config.git_branch])
+        return None
+    except FileNotFoundError:
+        return "git not found in PATH"
+    except subprocess.CalledProcessError as err:
+        return (err.stderr or err.stdout or "git command failed")[-800:]
+
+
+def git_push_article(article_path: Path, media_paths: list[Path]) -> str | None:
+    if not config.auto_commit:
+        return None
+    try:
+        git_run(["git", "add", str(article_path), *[str(path) for path in media_paths]])
+        git_run(["git", "commit", "-m", f"article: {article_path.stem.replace('-', ' ')}"])
+        git_run(["git", "push", config.git_remote, config.git_branch])
+        return None
+    except FileNotFoundError:
+        return "git not found in PATH"
+    except subprocess.CalledProcessError as err:
+        return (err.stderr or err.stdout or "git command failed")[-800:]
+
+
+def slugify(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[\s_]+", "-", text)
+    text = re.sub(r"-+", "-", text)
+    return text.strip("-")
+
+
+def unique_article_path(slug: str, date_str: str) -> Path:
+    folder = config.articles_dir / date_str[:4] / date_str[5:7]
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"{slug}.md"
+    if not path.exists():
+        return path
+    suffix = 2
+    while True:
+        candidate = folder / f"{slug}-{suffix}.md"
+        if not candidate.exists():
+            return candidate
+        suffix += 1
+
+
+def build_output_filename(input_name: str) -> str | None:
+    match = config.clip_id_pattern.search(Path(input_name).stem)
+    return f"{match.group(1)}.{config.output_format}" if match else None
+
+
+def transcode_audio(job_id: str, input_path: Path, output_filename: str) -> None:
+    state.set_job(job_id, status="processing")
+    output_file = config.voice_dir / output_filename
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(input_path), "-vn", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", str(output_file)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        push_error = git_push_transcoded(output_file)
+        state.set_job(
+            job_id,
+            status="done",
+            output_path=str(output_file),
+            output_filename=output_filename,
+            completed_at=datetime.now(timezone.utc).isoformat(),
+            push_error=push_error,
+        )
+    except FileNotFoundError:
+        state.set_job(job_id, status="error", error="ffmpeg not found in PATH")
+    except subprocess.CalledProcessError as err:
+        state.set_job(job_id, status="error", error=(err.stderr or "ffmpeg failed")[-1200:])
+
+
 def transcode_media_job(job_id: str, input_path: Path, media_type: str, name: str) -> None:
-    set_media_job(job_id, status="processing")
+    state.set_media_job(job_id, status="processing")
     try:
         if media_type == "image":
-            output_path = IMAGES_DIR / f"{name}.avif"
+            output_path = config.images_dir / f"{name}.avif"
             transcode_image(input_path, output_path)
-            set_media_job(
+            state.set_media_job(
                 job_id,
                 status="done",
                 output_path=str(output_path),
                 final_url=f"/media/images/{name}.avif",
                 completed_at=datetime.now(timezone.utc).isoformat(),
             )
-        elif media_type == "video":
-            mp4_path = VIDEO_DIR / f"{name}.mp4"
-            poster_path = VIDEO_DIR / f"{name}.jpg"
+        else:
+            mp4_path = config.video_dir / f"{name}.mp4"
+            poster_path = config.video_dir / f"{name}.jpg"
             transcode_video(input_path, mp4_path, poster_path)
-            set_media_job(
+            state.set_media_job(
                 job_id,
                 status="done",
                 output_path=str(mp4_path),
@@ -245,14 +280,85 @@ def transcode_media_job(job_id: str, input_path: Path, media_type: str, name: st
                 completed_at=datetime.now(timezone.utc).isoformat(),
             )
     except FileNotFoundError:
-        set_media_job(job_id, status="error", error="ffmpeg not found in PATH")
+        state.set_media_job(job_id, status="error", error="ffmpeg not found in PATH")
     except RuntimeError as err:
-        set_media_job(job_id, status="error", error=str(err)[-1200:])
+        state.set_media_job(job_id, status="error", error=str(err)[-1200:])
 
 
-# ============================================================
-# Routes
-# ============================================================
+def _library_media_context(media_paths: list[str]) -> list[dict]:
+    items = []
+    for raw_path in media_paths:
+        relative, full_path = resolve_library_media_path(config, raw_path)
+        if not full_path.exists():
+            raise ValueError(f"media file not found: media/{relative.as_posix()}")
+        media_type = _classify_media(full_path.name)
+        if not media_type:
+            raise ValueError(f"unsupported media type: {relative.name}")
+        items.append({
+            "media_type": media_type,
+            "name": full_path.stem,
+            "final_url": f"/media/{relative.as_posix()}",
+        })
+    return items
+
+
+def _build_media_prefix(media_job_ids: list[str], title: str, media_paths: list[str] | None = None) -> str:
+    videos = []
+    images = []
+    with state.jobs_lock:
+        for job_id in media_job_ids:
+            job = state.media_jobs.get(job_id)
+            if not job or job["status"] != "done":
+                continue
+            if job["media_type"] == "video":
+                videos.append(job["name"])
+            elif job["media_type"] == "image":
+                images.append(job)
+    for item in _library_media_context(media_paths or []):
+        if item["media_type"] == "video":
+            videos.append(item["name"])
+        elif item["media_type"] == "image":
+            images.append(item)
+
+    parts = [f"[[video:{name}]]" for name in videos]
+    if len(images) == 1:
+        url = images[0]["final_url"].lstrip("/")
+        parts.append(f"![]({url})")
+    elif len(images) > 1:
+        label = f"{title} Gallery"
+        items = ";\n".join(image["final_url"].lstrip("/") for image in images)
+        parts.append(f"[[carousel:label={label};\n{items}]]")
+    return "\n\n".join(parts)
+
+
+def _read_article_metadata(article_path: Path) -> dict:
+    try:
+        raw = article_path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return {"date": None, "tags": []}
+    date_value = None
+    tags_value = ""
+    for line in raw.splitlines():
+        if not line.strip():
+            break
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        key = key.strip().lower()
+        value = value.strip()
+        if key == "date":
+            date_value = value
+        elif key == "tags":
+            tags_value = value
+    parsed_date = None
+    if date_value:
+        try:
+            parsed_date = datetime.strptime(date_value[:10], "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    tags = [tag.strip() for tag in tags_value.split(",") if tag.strip()]
+    return {"date": parsed_date, "tags": tags}
+
 
 @app.get("/health")
 def health():
@@ -263,8 +369,6 @@ def health():
 def index():
     return redirect("/admin/articles/new", code=302)
 
-
-# --- Voice upload routes (backward-compatible) ---
 
 @app.get("/admin/upload")
 def admin_upload_redirect():
@@ -280,50 +384,38 @@ def admin_upload_voice():
 def upload_audio():
     file = request.files.get("file")
     if not file or not file.filename:
-        return jsonify({"error": "no file uploaded"}), 400
-
+        return _json_error("no file uploaded")
     safe_name = secure_filename(file.filename)
     if not safe_name.lower().endswith(".qta"):
-        return jsonify({"error": "unsupported input file type; only .qta is accepted"}), 400
-
+        return _json_error("unsupported input file type; only .qta is accepted")
     output_filename = build_output_filename(safe_name)
     if not output_filename:
-        return jsonify({"error": "invalid filename; must include clip id in ##-## format (example: guid_02-10.qta)"}), 400
-
+        return _json_error("invalid filename; must include clip id in ##-## format (example: guid_02-10.qta)")
     job_id = str(uuid.uuid4())
-    input_path = UPLOAD_DIR / f"{job_id}_{safe_name}"
+    input_path = config.upload_dir / f"{job_id}_{safe_name}"
     file.save(input_path)
-
-    created_at = datetime.now(timezone.utc).isoformat()
-    with jobs_lock:
-        jobs[job_id] = {
+    with state.jobs_lock:
+        state.jobs[job_id] = {
             "status": "pending",
             "input_filename": safe_name,
-            "output_format": OUTPUT_FORMAT,
+            "output_format": config.output_format,
             "output_filename": output_filename,
             "output_path": None,
             "error": None,
             "push_error": None,
-            "created_at": created_at,
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "completed_at": None,
         }
-
-    threading.Thread(
-        target=transcode_audio,
-        args=(job_id, input_path, output_filename),
-        daemon=True,
-    ).start()
-
+    threading.Thread(target=transcode_audio, args=(job_id, input_path, output_filename), daemon=True).start()
     return jsonify({"job_id": job_id, "status_url": f"/api/jobs/{job_id}"})
 
 
 @app.get("/api/jobs/<job_id>")
 def job_status(job_id: str):
-    with jobs_lock:
-        job = jobs.get(job_id)
+    with state.jobs_lock:
+        job = state.jobs.get(job_id)
     if not job:
         return jsonify({"status": "not_found"}), 404
-
     response = {
         "status": job["status"],
         "input_filename": job["input_filename"],
@@ -341,69 +433,65 @@ def job_status(job_id: str):
 
 @app.get("/api/download/<job_id>")
 def download_output(job_id: str):
-    with jobs_lock:
-        job = jobs.get(job_id)
+    with state.jobs_lock:
+        job = state.jobs.get(job_id)
     if not job or job["status"] != "done" or not job.get("output_path"):
         abort(404)
-
     output_path = Path(job["output_path"])
     if not output_path.exists():
         abort(404)
-
     return send_file(output_path, as_attachment=True, download_name=job["output_filename"])
 
-
-# --- Media upload routes (new) ---
 
 @app.post("/api/media/upload")
 def upload_media():
     file = request.files.get("file")
     if not file or not file.filename:
-        return jsonify({"error": "no file uploaded"}), 400
-
+        return _json_error("no file uploaded")
     safe_name = secure_filename(file.filename)
-    media_type = _classify_media(safe_name)
+    ext = Path(safe_name).suffix.lower()
+    normalized_name = normalize_media_basename(Path(safe_name).stem)
+    if not normalized_name:
+        return _json_error("invalid filename; provide a file name with letters or numbers")
+    normalized_filename = f"{normalized_name}{ext}"
+    media_type = _classify_media(normalized_filename)
     if not media_type:
-        return jsonify({"error": f"unsupported file type; accepted: {', '.join(sorted(IMAGE_EXTENSIONS | VIDEO_EXTENSIONS))}"}), 400
-
+        return _json_error(f"unsupported file type; accepted: {', '.join(sorted(IMAGE_EXTENSIONS | VIDEO_EXTENSIONS))}")
+    if _media_name_in_use(normalized_name, media_type):
+        return _json_error(
+            f"media name '{normalized_name}' is already in use; rename the upload before submitting",
+            409,
+        )
     job_id = str(uuid.uuid4())
-    name = Path(safe_name).stem
-    # Prefix with job_id to avoid collisions in media-source
-    input_path = UPLOAD_DIR / f"{job_id}_{safe_name}"
+    input_path = config.upload_dir / f"{job_id}_{normalized_filename}"
     file.save(input_path)
-
-    created_at = datetime.now(timezone.utc).isoformat()
-    with jobs_lock:
-        media_jobs[job_id] = {
+    metadata = extract_media_metadata(input_path, media_type, geocoder_user_agent=config.geocoder_user_agent)
+    with state.jobs_lock:
+        state.media_jobs[job_id] = {
             "status": "pending",
             "media_type": media_type,
-            "input_filename": safe_name,
-            "name": name,
+            "input_filename": normalized_filename,
+            "input_path": str(input_path),
+            "name": normalized_name,
             "output_path": None,
             "poster_path": None,
             "final_url": None,
             "poster_url": None,
             "error": None,
-            "created_at": created_at,
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "completed_at": None,
+            **metadata,
         }
-
-    threading.Thread(
-        target=transcode_media_job,
-        args=(job_id, input_path, media_type, name),
-        daemon=True,
-    ).start()
-
-    return jsonify({"job_id": job_id, "media_type": media_type, "name": name})
+    threading.Thread(target=transcode_media_job, args=(job_id, input_path, media_type, normalized_name), daemon=True).start()
+    return jsonify({"job_id": job_id, "media_type": media_type, "name": normalized_name, **metadata})
 
 
 @app.get("/api/media/jobs/<job_id>")
 def media_job_status(job_id: str):
-    with jobs_lock:
-        job = media_jobs.get(job_id)
+    with state.jobs_lock:
+        job = state.media_jobs.get(job_id)
     if not job:
         return jsonify({"status": "not_found"}), 404
-
     return jsonify({
         "status": job["status"],
         "media_type": job["media_type"],
@@ -414,34 +502,29 @@ def media_job_status(job_id: str):
         "error": job["error"],
         "created_at": job["created_at"],
         "completed_at": job["completed_at"],
+        "captured_at": job.get("captured_at"),
+        "time_of_day": job.get("time_of_day"),
+        "location_name": job.get("location_name"),
+        "gps": job.get("gps"),
+        "metadata_status": job.get("metadata_status"),
+        "warnings": job.get("metadata_warnings", []),
     })
 
 
 @app.get("/api/media/list")
 def list_media():
-    """List all transcoded media available for article insertion."""
-    images = []
-    for f in sorted(IMAGES_DIR.glob("*.avif")):
-        images.append({
-            "name": f.stem,
-            "url": f"/media/images/{f.name}",
-            "type": "image",
-        })
-
+    images = [{"name": f.stem, "url": f"/media/images/{f.name}", "type": "image"} for f in sorted(config.images_dir.glob("*.avif"))]
     videos = []
-    for f in sorted(VIDEO_DIR.glob("*.mp4")):
-        poster = VIDEO_DIR / f"{f.stem}.jpg"
+    for f in sorted(config.video_dir.glob("*.mp4")):
+        poster = config.video_dir / f"{f.stem}.jpg"
         videos.append({
             "name": f.stem,
             "url": f"/media/video/{f.name}",
             "poster_url": f"/media/video/{f.stem}.jpg" if poster.exists() else None,
             "type": "video",
         })
-
     return jsonify({"images": images, "videos": videos})
 
-
-# --- Article routes (new) ---
 
 @app.get("/admin/articles")
 def articles_hub():
@@ -453,58 +536,12 @@ def new_article():
     return render_template("author-article.html")
 
 
-def _split_tags(tags_value: str) -> list[str]:
-    return [t.strip() for t in tags_value.split(",") if t.strip()]
-
-
-def _read_article_metadata(article_path: Path) -> dict:
-    date_value = None
-    tags_value = ""
-    try:
-        raw = article_path.read_text(encoding="utf-8", errors="ignore")
-    except OSError:
-        return {"date": None, "tags": []}
-
-    for line in raw.splitlines():
-        if not line.strip():
-            break
-        if ":" not in line:
-            continue
-        key, value = line.split(":", 1)
-        key = key.strip().lower()
-        value = value.strip()
-        if key == "date":
-            date_value = value
-        elif key == "tags":
-            tags_value = value
-
-    parsed_date = None
-    if date_value:
-        try:
-            parsed_date = datetime.strptime(date_value[:10], "%Y-%m-%d").date()
-        except ValueError:
-            parsed_date = None
-    return {"date": parsed_date, "tags": _split_tags(tags_value)}
-
-
 @app.get("/api/article/tags/suggestions")
 def suggested_tags():
-    max_recent = 6
-    max_common = 6
-
     articles = []
-    for article_path in ARTICLES_DIR.rglob("*.md"):
-        meta = _read_article_metadata(article_path)
-        articles.append({
-            "date": meta["date"],
-            "tags": meta["tags"],
-        })
-
-    sorted_articles = sorted(
-        articles,
-        key=lambda a: a["date"] or datetime.min.date(),
-        reverse=True,
-    )
+    for article_path in config.articles_dir.rglob("*.md"):
+        articles.append(_read_article_metadata(article_path))
+    sorted_articles = sorted(articles, key=lambda item: item["date"] or datetime.min.date(), reverse=True)
 
     recent_tags = []
     recent_keys = set()
@@ -513,45 +550,35 @@ def suggested_tags():
             key = tag.lower()
             if key in recent_keys:
                 continue
-            recent_tags.append(tag)
             recent_keys.add(key)
-            if len(recent_tags) >= max_recent:
+            recent_tags.append(tag)
+            if len(recent_tags) >= 6:
                 break
-        if len(recent_tags) >= max_recent:
+        if len(recent_tags) >= 6:
             break
 
     counts = Counter()
     last_used = {}
     display = {}
     for article in sorted_articles:
-        seen_in_article = set()
+        seen = set()
         for tag in article["tags"]:
             key = tag.lower()
-            if key in seen_in_article:
+            if key in seen:
                 continue
-            seen_in_article.add(key)
+            seen.add(key)
             counts[key] += 1
-            if key not in display:
-                display[key] = tag
+            display.setdefault(key, tag)
             if key not in last_used or (article["date"] and article["date"] > last_used[key]):
                 last_used[key] = article["date"]
-
-    common_candidates = sorted(
-        counts.keys(),
-        key=lambda key: (
-            -counts[key],
-            -(last_used.get(key) or datetime.min.date()).toordinal(),
-            key,
-        ),
-    )
+    common_candidates = sorted(counts.keys(), key=lambda key: (-counts[key], -(last_used.get(key) or datetime.min.date()).toordinal(), key))
     common_tags = []
     for key in common_candidates:
         if key in recent_keys:
             continue
         common_tags.append(display[key])
-        if len(common_tags) >= max_common:
+        if len(common_tags) >= 6:
             break
-
     return jsonify({"recent": recent_tags, "common": common_tags})
 
 
@@ -559,158 +586,127 @@ def suggested_tags():
 def save_draft():
     data = request.get_json(silent=True)
     if not data:
-        return jsonify({"error": "invalid JSON body"}), 400
-
+        return _json_error("invalid JSON body")
     draft_id = data.get("draft_id") or str(uuid.uuid4())
-    with jobs_lock:
-        drafts[draft_id] = {
+    with state.jobs_lock:
+        state.drafts[draft_id] = {
             "title": data.get("title", ""),
             "summary": data.get("summary", ""),
             "category": data.get("category", ""),
             "tags": data.get("tags", ""),
             "thumbnail": data.get("thumbnail", ""),
+            "existing_media_paths": data.get("existing_media_paths", ""),
             "content": data.get("content", ""),
             "media_jobs": data.get("media_jobs", []),
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
-
     return jsonify({"draft_id": draft_id, "status": "saved"})
 
 
 @app.get("/api/article/draft/<draft_id>")
 def get_draft(draft_id: str):
-    with jobs_lock:
-        draft = drafts.get(draft_id)
+    with state.jobs_lock:
+        draft = state.drafts.get(draft_id)
     if not draft:
         return jsonify({"error": "draft not found"}), 404
     return jsonify({"draft_id": draft_id, **draft})
+
+
+@app.post("/api/article/generate")
+def generate_article():
+    data = request.get_json(silent=True)
+    if not data:
+        return _json_error("invalid JSON body")
+    media_job_ids = data.get("media_jobs", []) or []
+    media_paths = data.get("media_paths", []) or []
+    if not isinstance(media_job_ids, list) or not isinstance(media_paths, list):
+        return _json_error("media_jobs and media_paths must be arrays")
+    try:
+        generated = generate_article_from_sources(
+            config=config,
+            generator=generator,
+            media_job_ids=media_job_ids,
+            media_paths=media_paths,
+            state=state,
+        )
+    except ValueError as err:
+        return _json_error(str(err))
+    except Exception as err:
+        message = str(err)
+        status = 502 if "OpenAI" in message or "OPENAI" in message else 500
+        return _json_error(message or "generation failed", status)
+    return jsonify(generated.to_dict())
 
 
 @app.post("/api/article/publish")
 def publish_article():
     data = request.get_json(silent=True)
     if not data:
-        return jsonify({"error": "invalid JSON body"}), 400
-
+        return _json_error("invalid JSON body")
     title = (data.get("title") or "").strip()
-    if not title:
-        return jsonify({"error": "title is required"}), 400
-
     content = (data.get("content") or "").strip()
+    if not title:
+        return _json_error("title is required")
     if not content:
-        return jsonify({"error": "content is required"}), 400
+        return _json_error("content is required")
 
-    summary = (data.get("summary") or "").strip()
-    category = (data.get("category") or "").strip()
-    tags = (data.get("tags") or "").strip()
-    thumbnail = (data.get("thumbnail") or "").strip()
     media_job_ids = data.get("media_jobs", [])
-
-    # Check all media jobs are done
+    existing_media_paths = data.get("media_paths", []) or []
+    if not isinstance(media_job_ids, list) or not isinstance(existing_media_paths, list):
+        return _json_error("media_jobs and media_paths must be arrays")
     media_paths = []
-    with jobs_lock:
-        for mjid in media_job_ids:
-            mj = media_jobs.get(mjid)
-            if not mj:
-                return jsonify({"error": f"unknown media job: {mjid}"}), 400
-            if mj["status"] != "done":
-                return jsonify({"error": f"media job {mjid} not complete (status: {mj['status']})"}), 400
-            if mj.get("output_path"):
-                media_paths.append(Path(mj["output_path"]))
-            if mj.get("poster_path"):
-                media_paths.append(Path(mj["poster_path"]))
+    with state.jobs_lock:
+        for job_id in media_job_ids:
+            job = state.media_jobs.get(job_id)
+            if not job:
+                return _json_error(f"unknown media job: {job_id}")
+            if job["status"] != "done":
+                return _json_error(f"media job {job_id} not complete (status: {job['status']})")
+            if job.get("output_path"):
+                media_paths.append(Path(job["output_path"]))
+            if job.get("poster_path"):
+                media_paths.append(Path(job["poster_path"]))
 
-    # Build media syntax prefix
-    media_prefix = _build_media_prefix(media_job_ids, title)
-
-    # Build markdown
     date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    slug = slugify(title)
-    article_path = unique_article_path(slug, date_str)
-
-    lines = [
-        f"Title: {title}",
-        f"Date: {date_str}",
-    ]
-    if summary:
-        lines.append(f"Summary: {summary}")
-    if category:
-        lines.append(f"Category: {category}")
-    if tags:
-        lines.append(f"Tags: {tags}")
+    article_path = unique_article_path(slugify(title), date_str)
+    lines = [f"Title: {title}", f"Date: {date_str}"]
+    for key, field in (("Summary", "summary"), ("Category", "category"), ("Tags", "tags")):
+        value = (data.get(field) or "").strip()
+        if value:
+            lines.append(f"{key}: {value}")
+    thumbnail = (data.get("thumbnail") or "").strip()
     if thumbnail:
         lines.append(f"thumbnail: {thumbnail}")
-
-    lines.append("")  # blank line after metadata
+    lines.append("")
+    try:
+        media_prefix = _build_media_prefix(media_job_ids, title, existing_media_paths)
+    except ValueError as err:
+        return _json_error(str(err))
     if media_prefix:
         lines.append(media_prefix)
         lines.append("")
     lines.append(content)
-    lines.append("")  # trailing newline
-
+    lines.append("")
     article_path.write_text("\n".join(lines), encoding="utf-8")
-
-    # Optional git push
     push_error = git_push_article(article_path, media_paths)
-
     return jsonify({
         "status": "published",
-        "slug": slug,
-        "path": str(article_path.relative_to(REPO_ROOT)),
+        "slug": article_path.stem,
+        "path": str(article_path.relative_to(config.repo_root)),
         "push_error": push_error,
     })
-
-
-def _build_media_prefix(media_job_ids: list[str], title: str) -> str:
-    """Generate [[video:]] and [[carousel:]] syntax from completed media jobs."""
-    videos = []
-    images = []
-
-    with jobs_lock:
-        for mjid in media_job_ids:
-            mj = media_jobs.get(mjid)
-            if not mj or mj["status"] != "done":
-                continue
-            if mj["media_type"] == "video":
-                videos.append(mj["name"])
-            elif mj["media_type"] == "image":
-                images.append(mj)
-
-    parts = []
-    for v in videos:
-        parts.append(f"[[video:{v}]]")
-
-    if len(images) == 1:
-        # Single image: plain Markdown image (no carousel needed)
-        url = images[0]["final_url"]
-        if url.startswith("/"):
-            url = url[1:]
-        parts.append(f"![]({url})")
-    elif len(images) > 1:
-        label = f"{title} Gallery"
-        entries = []
-        for img in images:
-            url = img["final_url"]
-            if url.startswith("/"):
-                url = url[1:]
-            entries.append(url)
-        carousel_items = ";\n".join(entries)
-        parts.append(f"[[carousel:label={label};\n{carousel_items}]]")
-
-    return "\n\n".join(parts)
 
 
 @app.post("/api/article/preview")
 def preview_article():
     data = request.get_json(silent=True)
     if not data:
-        return jsonify({"error": "invalid JSON body"}), 400
-
+        return _json_error("invalid JSON body")
     content = data.get("content", "")
     try:
         import markdown
-        html = markdown.markdown(content, extensions=["extra", "codehilite"])
-        return jsonify({"html": html})
+
+        return jsonify({"html": markdown.markdown(content, extensions=["extra", "codehilite"])})
     except ImportError:
         return jsonify({"html": f"<pre>{content}</pre>", "warning": "markdown library not available"})
 

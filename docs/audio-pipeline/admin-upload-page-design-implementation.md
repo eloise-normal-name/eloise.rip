@@ -2,7 +2,7 @@
 
 This document is the canonical reference for the local admin app exposed at `admin.eloise.rip`.
 
-Last updated: March 15, 2026
+Last updated: March 17, 2026
 
 ## Overview
 
@@ -23,12 +23,26 @@ Current admin capabilities include:
 - Article generation API at `/api/article/generate`
 - Article publish API at `/api/article/publish`
 
+If you are making code changes rather than operating the stack, read these first:
+
+- [README.md](./README.md)
+- [agent-quick-reference.md](./agent-quick-reference.md)
+- [article-generation-contract.md](./article-generation-contract.md)
+- [openai-image-input-reference.md](./openai-image-input-reference.md)
+
+Media upload naming contract:
+- Uploaded media basenames are normalized to lowercase hyphenated names before publish paths are chosen.
+- The upload API rejects a media upload when that normalized basename is already in use for the same media type.
+- This is intentional: the admin flow requires the author to rename the upload explicitly instead of silently overwriting an existing published asset or auto-appending suffixes.
+- This check is intentionally a local authoring safeguard for normal single-author interactive use, not a cross-request transactional reservation guarantee.
+
 The public site at `eloise.rip` stays completely separate. It is static and hosted on Cloudflare Pages.
 
 Local environment contract for the admin app:
 - `ffmpeg` must be installed and available in `PATH`.
 - `exiftool` must be installed and available in `PATH` for image metadata preservation and fallback metadata reads.
 - Existing-media article flows assume referenced files under `content/media/` are already curated and committed.
+- Existing library video references also assume the matching poster JPG already exists when the site/theme expects `content/media/video/<stem>.jpg`.
 - These dependencies apply only to the local admin/content-manager machine. Cloudflare Pages only serves generated static files and does not execute this pipeline.
 
 ## Runtime Architecture
@@ -205,4 +219,8 @@ You are still responsible for:
 
 ## Related Docs
 
-- [audio-pipeline-docs.md](./audio-pipeline-docs.md) for the legacy path and pointer
+- [README.md](./README.md)
+- [agent-quick-reference.md](./agent-quick-reference.md)
+- [content-manager-architecture.md](./content-manager-architecture.md)
+- [article-generation-contract.md](./article-generation-contract.md)
+- [audio-pipeline-docs.md](./audio-pipeline-docs.md) for the compatibility entry point

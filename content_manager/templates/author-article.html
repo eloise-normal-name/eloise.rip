@@ -196,7 +196,57 @@
         .status-banner.show { display: block; }
         .status-banner.error { border-color: #f4c7c3; color: var(--error); background: #fff5f4; }
         .status-banner.success { border-color: #bbf7d0; color: var(--success); background: #f0fdf4; }
+        .status-banner.warning { border-color: #fcd34d; color: var(--warning); background: #fffbeb; }
         .status-banner a { color: var(--primary-strong); font-weight: 600; }
+        .metadata-panel {
+            margin-top: 14px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #f8fbff;
+            display: none;
+        }
+        .metadata-panel.show { display: block; }
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px 16px;
+            font-size: 0.9rem;
+        }
+        .metadata-grid strong {
+            display: block;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            margin-bottom: 2px;
+        }
+        .title-ideas {
+            display: none;
+            margin-top: 14px;
+        }
+        .title-ideas.show { display: block; }
+        .title-idea-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .title-idea-btn {
+            border: 1px solid var(--border);
+            background: #eef3ff;
+            color: #153a75;
+            border-radius: 999px;
+            padding: 6px 12px;
+            cursor: pointer;
+        }
+        .media-meta {
+            margin-left: auto;
+            font-size: 0.78rem;
+            color: var(--muted);
+            text-align: right;
+            line-height: 1.3;
+        }
 
         /* Preview pane */
         .preview-pane {
@@ -278,6 +328,19 @@
                 <option value="">No thumbnail selected</option>
             </select>
         </div>
+        <div class="field" style="margin-top:12px;">
+            <label for="existing-media-paths">Existing Media Paths <span class="hint">(optional, one per line, relative to content/media)</span></label>
+            <textarea id="existing-media-paths" rows="3" placeholder="video/bungle-babes-duo-choreo.mp4"></textarea>
+        </div>
+        <div class="metadata-panel" id="generation-metadata">
+            <div class="metadata-grid">
+                <div><strong>Location</strong><span id="metadata-location">Waiting for media metadata.</span></div>
+                <div><strong>Capture Time</strong><span id="metadata-captured-at">Waiting for media metadata.</span></div>
+                <div><strong>Time Of Day</strong><span id="metadata-time-of-day">Waiting for media metadata.</span></div>
+                <div><strong>Source Media</strong><span id="metadata-source-media">None yet.</span></div>
+            </div>
+            <div class="status-banner" id="generation-status"></div>
+        </div>
     </div>
 
     <!-- Section 3: Content Editor -->
@@ -296,7 +359,12 @@
             </div>
         </div>
         <div style="margin-top:8px;">
+            <button type="button" class="btn-secondary" id="generate-btn" style="font-size:0.85rem;padding:6px 12px;">Generate From Media</button>
             <button type="button" class="btn-secondary" id="toggle-preview" style="font-size:0.85rem;padding:6px 12px;">Toggle Preview</button>
+        </div>
+        <div class="title-ideas" id="title-ideas">
+            <label>Title Ideas <span class="hint">(click to apply)</span></label>
+            <div class="title-idea-list" id="title-idea-list"></div>
         </div>
     </div>
 
@@ -323,13 +391,23 @@
     const categoryEl = document.getElementById("category");
     const tagsEl = document.getElementById("tags");
     const thumbnailEl = document.getElementById("thumbnail");
+    const existingMediaPathsEl = document.getElementById("existing-media-paths");
     const contentEl = document.getElementById("content-editor");
     const dropZone = document.getElementById("drop-zone");
     const mediaInput = document.getElementById("media-input");
     const mediaListEl = document.getElementById("media-list");
     const publishBtn = document.getElementById("publish-btn");
     const saveDraftBtn = document.getElementById("save-draft-btn");
+    const generateBtn = document.getElementById("generate-btn");
     const publishStatus = document.getElementById("publish-status");
+    const generationStatus = document.getElementById("generation-status");
+    const generationMetadataEl = document.getElementById("generation-metadata");
+    const metadataLocationEl = document.getElementById("metadata-location");
+    const metadataCapturedAtEl = document.getElementById("metadata-captured-at");
+    const metadataTimeOfDayEl = document.getElementById("metadata-time-of-day");
+    const metadataSourceMediaEl = document.getElementById("metadata-source-media");
+    const titleIdeasEl = document.getElementById("title-ideas");
+    const titleIdeaListEl = document.getElementById("title-idea-list");
     const previewPane = document.getElementById("preview-pane");
     const togglePreviewBtn = document.getElementById("toggle-preview");
     const draftIndicator = document.getElementById("draft-indicator");
@@ -338,7 +416,7 @@
     const commonTagsEl = document.getElementById("common-tags");
 
     // State
-    let mediaUploads = [];  // {job_id, file, name, media_type, status, final_url, poster_url, error, el}
+    let mediaUploads = [];
     let draftId = null;
     let autoSaveTimer = null;
     let previewVisible = false;
@@ -349,6 +427,96 @@
         publishStatus.classList.remove("error", "success");
         if (type) publishStatus.classList.add(type);
         publishStatus.innerHTML = html;
+    }
+
+    function showGenerationStatus(html, type) {
+        generationStatus.classList.add("show");
+        generationStatus.classList.remove("error", "success", "warning");
+        if (type) generationStatus.classList.add(type);
+        generationStatus.innerHTML = html;
+    }
+
+    function clearGenerationStatus() {
+        generationStatus.classList.remove("show", "error", "success", "warning");
+        generationStatus.innerHTML = "";
+    }
+
+    function formatDateTime(value) {
+        if (!value) return "Unavailable";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString();
+    }
+
+    function updateMetadataPanel(payload = null) {
+        generationMetadataEl.classList.add("show");
+        if (!payload) {
+            metadataLocationEl.textContent = "Waiting for media metadata.";
+            metadataCapturedAtEl.textContent = "Waiting for media metadata.";
+            metadataTimeOfDayEl.textContent = "Waiting for media metadata.";
+            metadataSourceMediaEl.textContent = "None yet.";
+            return;
+        }
+        metadataLocationEl.textContent = payload.location || "No location metadata detected yet.";
+        metadataCapturedAtEl.textContent = formatDateTime(payload.captured_at);
+        metadataTimeOfDayEl.textContent = payload.time_of_day || "No time-of-day detected yet.";
+        metadataSourceMediaEl.textContent = payload.source_media || "No source media selected.";
+    }
+
+    function refreshMetadataFromUploads() {
+        const complete = mediaUploads.find(entry => entry.status === "done" && entry.location_name && entry.captured_at);
+        if (!complete) {
+            updateMetadataPanel({
+                location: null,
+                captured_at: null,
+                time_of_day: null,
+                source_media: mediaUploads.filter(entry => entry.status === "done").map(entry => entry.name).join(", "),
+            });
+            return;
+        }
+        updateMetadataPanel({
+            location: complete.location_name,
+            captured_at: complete.captured_at,
+            time_of_day: complete.time_of_day,
+            source_media: mediaUploads.filter(entry => entry.status === "done").map(entry => entry.name).join(", "),
+        });
+    }
+
+    function renderTitleIdeas(titles) {
+        titleIdeaListEl.innerHTML = "";
+        if (!Array.isArray(titles) || titles.length === 0) {
+            titleIdeasEl.classList.remove("show");
+            return;
+        }
+        for (const title of titles) {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "title-idea-btn";
+            button.textContent = title;
+            button.addEventListener("click", () => {
+                titleEl.value = title;
+                schedulAutoSave();
+            });
+            titleIdeaListEl.appendChild(button);
+        }
+        titleIdeasEl.classList.add("show");
+    }
+
+    function parseExistingMediaPaths() {
+        return existingMediaPathsEl.value
+            .split(/\r?\n/)
+            .map(value => value.trim())
+            .filter(Boolean);
+    }
+
+    function formatSourceMediaLabel(value) {
+        if (!value) return "";
+        return value.replace(/^library:/, "");
+    }
+
+    function formatSourceMediaList(values) {
+        if (!Array.isArray(values) || values.length === 0) return "";
+        return values.map(formatSourceMediaLabel).join(", ");
     }
 
     // --- Drop zone ---
@@ -448,6 +616,10 @@
             status: "ready",
             final_url: null,
             poster_url: null,
+            location_name: null,
+            captured_at: null,
+            time_of_day: null,
+            warnings: [],
             error: null,
             el: null,
         };
@@ -504,6 +676,10 @@
             entry.job_id = data.job_id;
             entry.media_type = data.media_type;
             entry.name = data.name;
+            entry.location_name = data.location_name;
+            entry.captured_at = data.captured_at;
+            entry.time_of_day = data.time_of_day;
+            entry.warnings = Array.isArray(data.warnings) ? data.warnings : [];
             entry.status = "pending";
             updateMediaItemUI(entry);
             pollMediaJob(entry);
@@ -523,6 +699,10 @@
                 entry.status = data.status;
                 entry.final_url = data.final_url;
                 entry.poster_url = data.poster_url;
+                entry.location_name = data.location_name;
+                entry.captured_at = data.captured_at;
+                entry.time_of_day = data.time_of_day;
+                entry.warnings = Array.isArray(data.warnings) ? data.warnings : [];
                 entry.error = data.error;
                 updateMediaItemUI(entry);
 
@@ -538,6 +718,7 @@
                     } else {
                         refreshThumbnailOptions();
                     }
+                    refreshMetadataFromUploads();
                     return;
                 }
             } catch {
@@ -564,6 +745,9 @@
         status.className = `status status-${entry.status}`;
         status.textContent = entry.status;
 
+        const meta = document.createElement("span");
+        meta.className = "media-meta";
+
         const uploadBtn = document.createElement("button");
         uploadBtn.className = "btn-secondary upload-btn";
         uploadBtn.type = "button";
@@ -575,7 +759,7 @@
         deleteBtn.title = "Remove";
         deleteBtn.textContent = "×";
 
-        li.append(badge, renameInput, status, uploadBtn, deleteBtn);
+        li.append(badge, renameInput, status, meta, uploadBtn, deleteBtn);
 
         renameInput.addEventListener("input", (event) => {
             entry.name = event.target.value;
@@ -595,6 +779,7 @@
             if (idx !== -1) mediaUploads.splice(idx, 1);
             li.remove();
             refreshThumbnailOptions();
+            refreshMetadataFromUploads();
         });
         return li;
     }
@@ -604,6 +789,7 @@
         const badge = entry.el.querySelector(".type-badge");
         const renameInput = entry.el.querySelector(".rename-input");
         const statusSpan = entry.el.querySelector(".status");
+        const metaSpan = entry.el.querySelector(".media-meta");
         const uploadBtn = entry.el.querySelector(".upload-btn");
 
         badge.className = `type-badge type-${entry.media_type || "unknown"}`;
@@ -614,6 +800,7 @@
         uploadBtn.disabled = lockName;
         statusSpan.className = `status status-${entry.status}`;
         statusSpan.textContent = entry.status === "error" ? `error: ${entry.error}` : entry.status;
+        metaSpan.innerHTML = `${escapeHtml(entry.location_name || "no location")}<br>${escapeHtml(entry.time_of_day || "no time")}`;
     }
 
     function parseCurrentTags() {
@@ -696,7 +883,7 @@
         autoSaveTimer = setTimeout(saveDraft, 30000);
     }
 
-    [titleEl, summaryEl, categoryEl, tagsEl, thumbnailEl, contentEl].forEach(el => {
+    [titleEl, summaryEl, categoryEl, tagsEl, thumbnailEl, existingMediaPathsEl, contentEl].forEach(el => {
         el.addEventListener("input", schedulAutoSave);
     });
     thumbnailEl.addEventListener("change", schedulAutoSave);
@@ -710,6 +897,7 @@
             category: categoryEl.value,
             tags: tagsEl.value,
             thumbnail: thumbnailEl.value,
+            existing_media_paths: existingMediaPathsEl.value,
             content: contentEl.value,
             media_jobs: mediaUploads.filter(m => m.job_id).map(m => m.job_id),
         };
@@ -731,6 +919,72 @@
         saveDraftBtn.disabled = true;
         await saveDraft();
         saveDraftBtn.disabled = false;
+    });
+
+    generateBtn.addEventListener("click", async () => {
+        const readyMedia = mediaUploads.filter(m => m.job_id && m.status === "done");
+        const existingMediaPaths = parseExistingMediaPaths();
+        if (readyMedia.length === 0 && existingMediaPaths.length === 0) {
+            showGenerationStatus("Upload media or provide at least one existing media path before generating.", "error");
+            return;
+        }
+
+        generateBtn.disabled = true;
+        clearGenerationStatus();
+        showGenerationStatus("Generating article draft from media...", "warning");
+
+        try {
+            const res = await fetch("/api/article/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    media_jobs: readyMedia.map(m => m.job_id),
+                    media_paths: existingMediaPaths,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                showGenerationStatus(data.error || "Generation failed.", "error");
+                return;
+            }
+
+            summaryEl.value = data.summary || summaryEl.value;
+            categoryEl.value = data.category || categoryEl.value;
+            if (Array.isArray(data.tags) && data.tags.length > 0) {
+                tagsEl.value = data.tags.join(", ");
+            }
+            contentEl.value = data.content_markdown || contentEl.value;
+            renderTitleIdeas(data.title_ideas || []);
+            updateMetadataPanel({
+                location: data.location,
+                captured_at: data.captured_at || null,
+                time_of_day: data.time_of_day,
+                source_media: Array.isArray(data.source_media)
+                    ? formatSourceMediaList(data.source_media)
+                    : readyMedia.map(m => m.name).join(", "),
+            });
+
+            const likelyLocations = Array.isArray(data.likely_named_locations) && data.likely_named_locations.length > 0
+                ? `Likely named locations: ${data.likely_named_locations.map(escapeHtml).join(", ")}`
+                : "";
+
+            if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+                const parts = [`Generated with warnings:<br>${data.warnings.map(escapeHtml).join("<br>")}`];
+                if (likelyLocations) parts.push(likelyLocations);
+                showGenerationStatus(parts.join("<br>"), "warning");
+            } else {
+                const msg = likelyLocations
+                    ? `Draft generated.<br>${likelyLocations}`
+                    : "Draft generated. Review the title ideas, summary, tags, and content before publishing.";
+                showGenerationStatus(msg, "success");
+            }
+            schedulAutoSave();
+            if (previewVisible) refreshPreview();
+        } catch (err) {
+            showGenerationStatus(`Network error: ${err.message}`, "error");
+        } finally {
+            generateBtn.disabled = false;
+        }
     });
 
     // --- Preview ---
@@ -798,6 +1052,7 @@
             thumbnail: thumbnailEl.value.trim(),
             content,
             media_jobs: mediaUploads.filter(m => m.job_id && m.status === "done").map(m => m.job_id),
+            media_paths: parseExistingMediaPaths(),
         };
 
         try {
@@ -835,6 +1090,7 @@
 
     loadSuggestedTags();
     refreshThumbnailOptions();
+    refreshMetadataFromUploads();
 
 })();
 </script>

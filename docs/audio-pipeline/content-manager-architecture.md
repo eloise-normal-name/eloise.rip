@@ -10,7 +10,7 @@ Local toolchain contract for this app:
 
 - `ffmpeg` must be available in `PATH` for audio, image, and video transcoding.
 - `exiftool` must be available in `PATH` on the authoring machine for image metadata preservation and fallback metadata extraction.
-- `Pillow` and `requests` from [requirements.txt](/C:/Users/Admin/eloise.rip/eloise.rip/requirements.txt) are required Python dependencies for metadata extraction and outbound API calls.
+- `Pillow`, `requests`, and `pytest` from [requirements.txt](/C:/Users/Admin/eloise.rip/eloise.rip/requirements.txt) are required Python dependencies for metadata extraction, local test execution, and outbound API calls.
 - `OPENAI_API_KEY` is required for `/api/article/generate` and `python -m content_manager.cli generate`.
 - Outbound HTTPS access is required for OpenAI Responses API calls and for Nominatim reverse geocoding when GPS metadata is present.
 - These binaries are required only where `content_manager` runs locally. Cloudflare Pages serves static output and does not run the content manager pipeline.
@@ -21,6 +21,13 @@ Primary entrypoints:
 - [app.py](/C:/Users/Admin/eloise.rip/eloise.rip/content_manager/app.py): HTTP routes and request orchestration
 - [cli.py](/C:/Users/Admin/eloise.rip/eloise.rip/content_manager/cli.py): CLI entrypoint for generation workflows
 - [author-article.html](/C:/Users/Admin/eloise.rip/eloise.rip/content_manager/templates/author-article.html): article authoring UI
+
+Canonical docs to read before editing:
+
+- [README.md](./README.md)
+- [agent-quick-reference.md](./agent-quick-reference.md)
+- [article-generation-contract.md](./article-generation-contract.md)
+- [openai-image-input-reference.md](./openai-image-input-reference.md)
 
 ## Runtime Structure
 
@@ -85,6 +92,11 @@ Flow:
    - tags
    - markdown body
 
+Additional contract details:
+
+- [article-generation-contract.md](./article-generation-contract.md)
+- [openai-image-input-reference.md](./openai-image-input-reference.md)
+
 ### Article Publish
 
 1. Browser posts form data to `/api/article/publish`
@@ -97,9 +109,17 @@ Existing library media contract:
 
 - `media_paths` is for assets that already exist under `content/media/` as part of the curated media library.
 - Those library assets are expected to already be committed before publish.
+- Existing library video references are expected to already include their companion poster JPG when the site/theme resolves video cards or embeds through `content/media/video/<stem>.jpg`.
 - `publish_article()` auto-commit behavior is intentionally scoped to the new article plus files produced by uploaded media jobs in the current session.
+- The publish flow is intentionally allowed to trust that curated-library contract instead of re-validating every existing-media dependency on publish.
 - It is acceptable that publish does not try to discover and auto-commit unrelated preexisting files under `content/media/`.
 - If uncommitted files are sitting in `content/media/`, that is considered a local workflow issue rather than a publish-path bug under the current contract.
+
+Media upload naming contract:
+
+- Uploaded media basenames are normalized before published paths are chosen.
+- `/api/media/upload` rejects a normalized basename that is already in use for the same media type during normal interactive use.
+- This is an authoring-flow safeguard, not a distributed lock or transactional reservation mechanism for concurrent multi-user uploads.
 
 ## Testability
 
@@ -119,3 +139,10 @@ python -m content_manager.cli generate --media-path video/bungle-babes-duo-chore
 - generation depends on metadata presence in source media
 - reverse geocoding and OpenAI calls are live network dependencies
 - location enrichment beyond raw geocoding is currently heuristic and curated, not globally authoritative
+
+## Related Docs
+
+- [README.md](./README.md)
+- [agent-quick-reference.md](./agent-quick-reference.md)
+- [article-generation-contract.md](./article-generation-contract.md)
+- [admin-upload-page-design-implementation.md](./admin-upload-page-design-implementation.md)

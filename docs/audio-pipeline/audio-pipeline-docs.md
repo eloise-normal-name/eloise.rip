@@ -2,11 +2,12 @@
 
 This file is kept as a compatibility entry point.
 
-The canonical admin runbook now lives at [admin-upload-page-design-implementation.md](./admin-upload-page-design-implementation.md).
+For current docs, start at [README.md](./README.md).
 
-It includes:
-- admin app overview
-- Cloudflare / tunnel / nginx setup
-- startup and restart commands
-- upload workflow notes
-- current verification status for `admin.eloise.rip`
+Most-used references:
+
+- [agent-quick-reference.md](./agent-quick-reference.md)
+- [content-manager-architecture.md](./content-manager-architecture.md)
+- [article-generation-contract.md](./article-generation-contract.md)
+- [openai-image-input-reference.md](./openai-image-input-reference.md)
+- [admin-upload-page-design-implementation.md](./admin-upload-page-design-implementation.md)

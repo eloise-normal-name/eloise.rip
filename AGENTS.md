@@ -14,7 +14,7 @@
 ## Known Content Manager Dependency Contract
 - The local `content_manager` app intentionally depends on AI/metadata tooling for article generation and media analysis.
 - Expected local binaries: `ffmpeg` and `exiftool` in `PATH`.
-- Expected Python packages: `Pillow` and `requests` from `requirements.txt`.
+- Expected Python packages: `Pillow`, `requests`, and `pytest` from `requirements.txt`.
 - Expected live services when using generation or reverse-geocoded metadata features: OpenAI API access and outbound HTTPS access to Nominatim/OpenStreetMap.
 - These are part of the accepted local authoring-machine contract, not accidental hidden dependencies.
 - Do not re-flag these same dependencies as novel bugs in review just because the app imports or uses them; only flag an issue if the code violates this documented contract or fails to document a new requirement.
@@ -28,9 +28,25 @@
 ## Known Existing Media Contract
 - `media_paths` in article generation and publish flows are for already-curated library assets under `content/media/`.
 - Those files are expected to already be committed before an article references them through the existing-media path flow.
+- Existing video library references are also expected to already include their companion poster JPG under `content/media/video/` when the site/theme expects one.
+- The publish path is intentionally allowed to trust that curated-library contract instead of re-validating every existing-media dependency at publish time.
 - Uncommitted media should not be hanging around in `content/media/` waiting for article publish to scoop it up.
 - Reviewers should not flag `publish_article()` for only auto-committing the article plus newly uploaded job outputs when this documented workflow is being followed.
+- Reviewers should not separately flag the lack of extra poster validation for curated `media_paths` unless the product requirement changes to support uncurated or user-supplied existing-library references.
 - Only flag this area if the product requirement changes to support publishing brand-new uncommitted library media via `media_paths`.
+
+## Known Media Upload Reservation Contract
+- The duplicate-name check for `/api/media/upload` is an authoring-flow safeguard, not a distributed lock or cross-request transactional reservation system.
+- The intended local usage is a single author driving the admin UI, where the duplicate-name check prevents accidental reuse during normal interactive uploads.
+- Reviewers should not keep re-flagging the lack of cross-request atomic reservation as a novel bug unless the deployment model changes to support concurrent multi-user uploads or stronger overwrite guarantees.
+
+## Agent Scratch File Discipline
+- Agents should explicitly assume they are prone to creating scratch files and directories with awkward ownership or permissions, especially when tests or tools run under a different execution context than the user's normal shell.
+- Do not create temporary directories in the repo root for tests, experiments, or one-off tooling. Prefer the system temp directory or framework-provided temp fixtures such as pytest `tmp_path`.
+- After creating any temporary files, directories, caches, or generated artifacts, agents must verify what was created and where it landed before finishing the task.
+- Before ending a task, agents should check for repo-root junk such as `tmp*`, `pytest-cache-files-*`, stray `__pycache__`, or similar scratch output they may have created.
+- If cleanup fails because permissions or ownership are broken, agents must say so plainly, explain which paths are affected, and avoid pretending the cleanup succeeded.
+- Agents should treat repo-root scratch creation as a workflow bug to fix, not as harmless clutter to ignore.
 
 ## Advice for Future Projects
 - Keep environment/setup guidance generic unless the tooling is guaranteed across all repos.
