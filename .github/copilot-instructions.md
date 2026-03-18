@@ -125,6 +125,10 @@ wrangler pages deploy output --project-name=eloise-rip  # Optional manual Cloudf
 .\scripts\restart-content-manager.ps1
 ```
 
+Metadata coverage note:
+- Not all media content currently includes complete capture-time/location metadata.
+- Partial or missing metadata on some assets is expected right now.
+
 ## Python Code Conventions
 
 **Type Annotations**: Use modern Python syntax - `list[str]`, `dict[str, int]`, `tuple[Path, Path]` - **NOT** the typing module (`List`, `Dict`, `Tuple`).

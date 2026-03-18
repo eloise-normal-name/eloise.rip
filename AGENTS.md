@@ -19,6 +19,12 @@
 - These are part of the accepted local authoring-machine contract, not accidental hidden dependencies.
 - Do not re-flag these same dependencies as novel bugs in review just because the app imports or uses them; only flag an issue if the code violates this documented contract or fails to document a new requirement.
 
+## Known Metadata Coverage Contract
+- Not all media content currently has complete metadata (capture time + location) across the existing library.
+- Missing or partial metadata for some assets is expected in the current state and should not be treated as a novel bug by default.
+- Article generation behavior that requires one canonical source with both time and location remains intentional.
+- Only flag metadata-related issues as defects when extraction regresses, contracts are violated, or product requirements explicitly change.
+
 ## Known Restart Behavior Contract
 - `scripts/restart-content-manager.ps1` is intentionally allowed to kill extra `waitress` processes whose command line targets `content_manager.app:app`, not just the listener on port `8000`.
 - This is an accepted local-operations tradeoff for this repo because stale Waitress launches for the same app have repeatedly survived pid-file and port-only cleanup on this machine.

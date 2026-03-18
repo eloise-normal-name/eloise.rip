@@ -86,6 +86,39 @@ class GenerationWorkflowTests(unittest.TestCase):
             self.assertEqual(result.category, "Pole Dance")
             self.assertEqual(generator.last_request.canonical_job["time_of_day"], "night")
             self.assertIn("Pole Dance", generator.last_request.allowed_categories)
+            self.assertIn("Trinity Pole Studio", result.likely_named_locations)
+
+    def test_generate_marks_home_when_gps_is_near_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            image_path = repo_root / "content" / "media" / "images" / "sample.jpg"
+            image_path.parent.mkdir(parents=True, exist_ok=True)
+            image_path.write_bytes(b"fake-image")
+
+            config = self.make_config(repo_root)
+            generator = FakeGenerator()
+
+            from content_manager.services import generation_workflow as workflow
+
+            original_extract = workflow.extract_media_metadata
+            workflow.extract_media_metadata = lambda *args, **kwargs: {
+                "captured_at": "2026-03-17T19:00:00",
+                "time_of_day": "night",
+                "gps": {"latitude": 47.6176, "longitude": -122.3507},
+                "location_name": "Seattle, Washington, United States",
+                "metadata_warnings": [],
+                "metadata_status": "ready",
+            }
+            try:
+                result = generate_article_from_sources(
+                    config=config,
+                    generator=generator,
+                    media_paths=["images/sample.jpg"],
+                )
+            finally:
+                workflow.extract_media_metadata = original_extract
+
+            self.assertIn("Home", result.likely_named_locations)
 
     def test_generate_rejects_media_paths_outside_content_media(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -333,7 +333,12 @@ def extract_video_metadata(
 
     try:
         tags = extract_video_tags(probe_reader(input_path))
-        for key in ("creation_time", "com.apple.quicktime.creationdate", "date"):
+        # Prefer local capture-time tags when multiple variants exist.
+        # Many cameras include both:
+        # - creation_time (commonly UTC)
+        # - com.apple.quicktime.creationdate (local with timezone offset)
+        # We should derive time_of_day from local capture hour, not UTC.
+        for key in ("com.apple.quicktime.creationdate", "date", "creation_time"):
             if captured_at is None:
                 captured_at = parse_capture_time(tags.get(key))
         for key in GPS_ALT_TAG_KEYS:

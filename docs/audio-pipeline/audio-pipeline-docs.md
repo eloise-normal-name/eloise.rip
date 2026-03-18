@@ -11,3 +11,4 @@ Most-used references:
 - [article-generation-contract.md](./article-generation-contract.md)
 - [openai-image-input-reference.md](./openai-image-input-reference.md)
 - [admin-upload-page-design-implementation.md](./admin-upload-page-design-implementation.md)
+- [media-metadata-coverage-status.md](./media-metadata-coverage-status.md)

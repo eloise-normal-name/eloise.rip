@@ -6,6 +6,12 @@ Last updated: March 17, 2026
 
 The content manager is a local Flask app used to upload media, draft articles, and publish markdown into the static site content tree.
 
+Metadata caveat (current state):
+
+- Not all media content has complete metadata right now.
+- Incomplete coverage across `content/media/` is expected in the current library.
+- See [media-metadata-coverage-status.md](./media-metadata-coverage-status.md).
+
 Local toolchain contract for this app:
 
 - `ffmpeg` must be available in `PATH` for audio, image, and video transcoding.
@@ -71,6 +77,9 @@ Canonical docs to read before editing:
    - images -> AVIF in `content/media/images/`
    - videos -> MP4 + JPG poster in `content/media/video/`
 5. The UI polls `/api/media/jobs/<id>`
+
+Note: extraction can return complete metadata, partial metadata, or no usable metadata,
+depending on what is embedded in the source file.
 
 ### Article Generation
 
@@ -139,6 +148,7 @@ python -m content_manager.cli generate --media-path video/bungle-babes-duo-chore
 - generation depends on metadata presence in source media
 - reverse geocoding and OpenAI calls are live network dependencies
 - location enrichment beyond raw geocoding is currently heuristic and curated, not globally authoritative
+- metadata coverage across the existing media library is incomplete and non-uniform
 
 ## Related Docs
 
@@ -146,3 +156,4 @@ python -m content_manager.cli generate --media-path video/bungle-babes-duo-chore
 - [agent-quick-reference.md](./agent-quick-reference.md)
 - [article-generation-contract.md](./article-generation-contract.md)
 - [admin-upload-page-design-implementation.md](./admin-upload-page-design-implementation.md)
+- [media-metadata-coverage-status.md](./media-metadata-coverage-status.md)

@@ -23,6 +23,13 @@ What it does not do:
 - run inside Cloudflare Pages
 - persist jobs/drafts across process restarts
 
+## Metadata Coverage Reality (Current)
+
+- Not all media content has complete metadata right now.
+- Partial or missing capture-time/location metadata is common in portions of the existing library.
+- Treat this as expected current state unless extraction behavior regresses on files that previously worked.
+- Reference: [media-metadata-coverage-status.md](./media-metadata-coverage-status.md)
+
 ## Local Dependency Contract
 
 These are intentional local-machine requirements, not surprising hidden dependencies:
@@ -90,6 +97,7 @@ See:
 - Do not assume publish should auto-commit arbitrary preexisting library media under `content/media/`.
 - Do not assume AVIF being valid site media means AVIF is valid OpenAI vision input.
 - Do not confuse local authoring safeguards with distributed concurrency guarantees.
+- Do not repeatedly raise generic "some media lacks metadata" comments as novel defects; that is a documented current-state constraint.
 
 ## When You Need More Detail
 

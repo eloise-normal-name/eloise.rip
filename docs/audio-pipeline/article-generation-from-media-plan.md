@@ -19,6 +19,12 @@ The generation must be grounded in:
 - extracted capture time
 - derived time of day
 
+Current library caveat:
+
+- not all media content has complete metadata right now
+- this plan assumes graceful handling of partial/missing metadata until coverage improves
+- see [media-metadata-coverage-status.md](./media-metadata-coverage-status.md)
+
 ## Non-Goals
 
 - auto-publishing generated content
@@ -89,6 +95,7 @@ Failure response:
 - Use that asset as the canonical location/time context.
 - Use all uploaded media as visual context.
 - If assets disagree on metadata, continue with the canonical asset and return warnings.
+- If no uploaded source has both required fields, return a clear validation error (expected when metadata is incomplete).
 
 ## Location Resolution And Time Of Day
 

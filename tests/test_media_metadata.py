@@ -94,6 +94,25 @@ class MediaMetadataTests(unittest.TestCase):
         self.assertEqual(metadata.metadata_warnings, [])
         self.assertEqual(metadata.metadata_status, "ready")
 
+    def test_extract_video_metadata_prefers_local_quicktime_creation_date(self):
+        probe_payload = {
+            "format": {
+                "tags": {
+                    "creation_time": "2026-03-17T02:30:00Z",
+                    "com.apple.quicktime.creationdate": "2026-03-16T18:30:00-08:00",
+                }
+            }
+        }
+
+        metadata = media_metadata.extract_video_metadata(
+            Path("sample.mov"),
+            geocoder_user_agent="test-agent",
+            probe_reader=lambda _: probe_payload,
+        )
+
+        self.assertEqual(metadata.captured_at, "2026-03-17T02:30:00+00:00")
+        self.assertEqual(metadata.time_of_day, "evening")
+
 
 if __name__ == "__main__":
     unittest.main()

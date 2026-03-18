@@ -23,6 +23,13 @@ Current admin capabilities include:
 - Article generation API at `/api/article/generate`
 - Article publish API at `/api/article/publish`
 
+Metadata caveat (current state):
+
+- Not all media content has complete metadata right now.
+- Some uploads and existing library files will surface partial/no metadata warnings.
+- This is expected in the current repository state.
+- See [media-metadata-coverage-status.md](./media-metadata-coverage-status.md).
+
 If you are making code changes rather than operating the stack, read these first:
 
 - [README.md](./README.md)
@@ -42,6 +49,7 @@ Local environment contract for the admin app:
 - `ffmpeg` must be installed and available in `PATH`.
 - `exiftool` must be installed and available in `PATH` for image metadata preservation and fallback metadata reads.
 - Existing-media article flows assume referenced files under `content/media/` are already curated and committed.
+- Existing-media article flows do not guarantee every referenced file has complete metadata for generation.
 - Existing library video references also assume the matching poster JPG already exists when the site/theme expects `content/media/video/<stem>.jpg`.
 - These dependencies apply only to the local admin/content-manager machine. Cloudflare Pages only serves generated static files and does not execute this pipeline.
 

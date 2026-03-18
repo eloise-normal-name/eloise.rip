@@ -6,6 +6,12 @@ Last updated: March 17, 2026
 
 This folder is the canonical documentation set for the local `content_manager` app and the related admin media/article pipeline.
 
+Important current caveat:
+
+- **Not all media content has complete metadata right now.**
+- Missing/partial metadata in parts of the library is expected in the current state.
+- See [media-metadata-coverage-status.md](./media-metadata-coverage-status.md).
+
 Future agents should start here before changing `content_manager/`, the admin UI, or the article-generation flow.
 
 ## Start Here
@@ -28,6 +34,8 @@ Future agents should start here before changing `content_manager/`, the admin UI
   - writing-style guidance for generated copy
 - [openai-image-input-reference.md](./openai-image-input-reference.md)
   - official OpenAI image-input constraints relevant to this repo
+- [media-metadata-coverage-status.md](./media-metadata-coverage-status.md)
+  - current metadata coverage reality and review expectations
 
 ## Why These Docs Exist
 

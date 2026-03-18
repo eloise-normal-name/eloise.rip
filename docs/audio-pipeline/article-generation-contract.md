@@ -13,6 +13,12 @@ Use this when:
 - changing generation source resolution
 - deciding whether a reviewer comment reflects an actual bug or a documented contract
 
+Current metadata caveat:
+
+- Not all media content has complete metadata right now.
+- Missing/partial metadata in some existing assets is expected in the current repo state.
+- See [media-metadata-coverage-status.md](./media-metadata-coverage-status.md).
+
 ## Route Summary
 
 ### `POST /api/article/generate`
@@ -106,6 +112,10 @@ If multiple sources disagree, generation continues with:
 
 - the first source that has both required metadata
 - warnings describing metadata disagreements
+
+Coverage note:
+
+- metadata incompleteness in part of the library is normal right now; generation behavior above is the intended fallback contract.
 
 ## OpenAI Input Rules
 

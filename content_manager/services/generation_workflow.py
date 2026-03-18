@@ -185,6 +185,7 @@ def generate_article_from_sources(
         )
     likely_named_locations = find_likely_named_locations(
         canonical_job.get("location_name"),
+        gps=canonical_job.get("gps"),
         category_hint=fallback_category,
     )
     allowed_tags = taxonomy.tags
