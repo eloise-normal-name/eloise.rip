@@ -20,9 +20,16 @@ Current admin capabilities include:
 - Voice upload at `/admin/upload/voice`
 - Article authoring at `/admin/articles/new`
 - Media upload API at `/api/media/upload`
+- Article generation API at `/api/article/generate`
 - Article publish API at `/api/article/publish`
 
 The public site at `eloise.rip` stays completely separate. It is static and hosted on Cloudflare Pages.
+
+Local environment contract for the admin app:
+- `ffmpeg` must be installed and available in `PATH`.
+- `exiftool` must be installed and available in `PATH` for image metadata preservation and fallback metadata reads.
+- Existing-media article flows assume referenced files under `content/media/` are already curated and committed.
+- These dependencies apply only to the local admin/content-manager machine. Cloudflare Pages only serves generated static files and does not execute this pipeline.
 
 ## Runtime Architecture
 
@@ -158,6 +165,11 @@ Fast app restart only:
 ```powershell
 .\scripts\restart-content-manager.ps1
 ```
+
+Intentional restart behavior:
+- `scripts/restart-content-manager.ps1` may kill extra `python -m waitress ... content_manager.app:app` processes beyond the current `127.0.0.1:8000` listener.
+- This is a deliberate local-ops safeguard for this machine and repo because stale Waitress instances have survived pid-file and port-based cleanup.
+- Reviewers should treat that scope as an accepted operational contract unless the script broadens beyond `content_manager.app:app` or the deployment model changes.
 
 Runtime artifacts:
 - `.run/content-manager/waitress.pid`
