@@ -121,7 +121,7 @@ The voice recorder uses two pitch detection engines:
 **⚠️ Critical:** JavaScript relies on specific HTML element IDs. Always keep HTML and JavaScript in sync.
 
 - See [voice-recorder-dom-elements.md](voice-recorder-dom-elements.md) for complete mapping
-- GitHub Actions validates DOM elements on every PR
+- Keep HTML IDs and JavaScript references in sync when changing the page
 - When removing elements, update constructor and validation check
 
 ### Testing

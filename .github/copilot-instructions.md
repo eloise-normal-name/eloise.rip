@@ -119,6 +119,8 @@ python validate_output.py --check-external # Include external link validation (s
 wrangler pages deploy output --project-name=eloise-rip  # Optional manual Cloudflare Pages deployment of output/
 ```
 
+Cloudflare Pages is connected directly to GitHub for production deploys from `main`. GitHub Actions workflows are not part of the site deploy path.
+
 ### Content Manager Stack
 ```powershell
 .\scripts\start-content-manager.ps1 -TunnelName audio-app

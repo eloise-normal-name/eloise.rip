@@ -153,6 +153,32 @@
             margin-bottom: 6px;
             font-size: 0.9rem;
         }
+        .media-item .media-thumb {
+            width: 56px;
+            height: 56px;
+            flex: 0 0 56px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .media-item .media-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        .media-item .media-thumb.has-preview img { display: block; }
+        .media-item .media-thumb .media-thumb-fallback {
+            font-size: 0.64rem;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
         .media-item .rename-input {
             flex: 1;
             min-width: 0;
@@ -266,6 +292,26 @@
 
         @media (max-width: 700px) {
             .editor-row { flex-direction: column; }
+        }
+
+        @media (max-width: 700px) and (orientation: portrait) {
+            .media-item {
+                flex-wrap: wrap;
+                align-items: flex-start;
+                row-gap: 8px;
+            }
+            .media-item .rename-input {
+                order: 10;
+                flex: 1 1 100%;
+                width: 100%;
+                min-width: 100%;
+            }
+            .media-item .media-meta {
+                order: 11;
+                margin-left: 0;
+                text-align: left;
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -696,6 +742,7 @@
             time_of_day: null,
             warnings: [],
             error: null,
+            preview_url: null,
             el: null,
         };
         mediaUploads.push(entry);
@@ -723,6 +770,7 @@
                 time_of_day: item.time_of_day,
                 warnings: Array.isArray(item.warnings) ? item.warnings : [],
                 error: item.status === "missing" ? (item.warnings || ["uploaded media job is no longer available"]).join("; ") : null,
+                preview_url: null,
                 el: null,
             };
             mediaUploads.push(entry);
@@ -840,6 +888,18 @@
         const li = document.createElement("li");
         li.className = "media-item";
 
+        const thumb = document.createElement("div");
+        thumb.className = "media-thumb";
+
+        const thumbImg = document.createElement("img");
+        thumbImg.alt = "";
+        thumbImg.loading = "lazy";
+
+        const thumbFallback = document.createElement("span");
+        thumbFallback.className = "media-thumb-fallback";
+
+        thumb.append(thumbImg, thumbFallback);
+
         const badge = document.createElement("span");
         badge.className = `type-badge type-${entry.media_type || "unknown"}`;
         badge.textContent = entry.media_type || "unknown";
@@ -868,7 +928,7 @@
         deleteBtn.title = "Remove";
         deleteBtn.textContent = "×";
 
-        li.append(badge, renameInput, status, meta, uploadBtn, deleteBtn);
+        li.append(thumb, badge, renameInput, status, meta, uploadBtn, deleteBtn);
 
         renameInput.addEventListener("input", (event) => {
             entry.name = event.target.value;
@@ -886,6 +946,7 @@
         deleteBtn.addEventListener("click", () => {
             const idx = mediaUploads.indexOf(entry);
             if (idx !== -1) mediaUploads.splice(idx, 1);
+            releasePreviewUrl(entry);
             li.remove();
             refreshThumbnailOptions();
             refreshMetadataFromUploads();
@@ -894,13 +955,56 @@
         return li;
     }
 
+    function releasePreviewUrl(entry) {
+        if (!entry.preview_url) return;
+        URL.revokeObjectURL(entry.preview_url);
+        entry.preview_url = null;
+    }
+
+    function getPreviewUrl(entry) {
+        if (entry.media_type === "image") {
+            if (entry.final_url) return entry.final_url;
+            if (entry.preview_url) return entry.preview_url;
+            if (entry.file instanceof File) {
+                entry.preview_url = URL.createObjectURL(entry.file);
+                return entry.preview_url;
+            }
+            return "";
+        }
+        if (entry.media_type === "video") {
+            if (entry.poster_url) return entry.poster_url;
+            return "";
+        }
+        return "";
+    }
+
     function updateMediaItemUI(entry) {
         if (!entry.el) return;
+        const thumb = entry.el.querySelector(".media-thumb");
+        const thumbImg = entry.el.querySelector(".media-thumb img");
+        const thumbFallback = entry.el.querySelector(".media-thumb-fallback");
         const badge = entry.el.querySelector(".type-badge");
         const renameInput = entry.el.querySelector(".rename-input");
         const statusSpan = entry.el.querySelector(".status");
         const metaSpan = entry.el.querySelector(".media-meta");
         const uploadBtn = entry.el.querySelector(".upload-btn");
+
+        const previewUrl = getPreviewUrl(entry);
+        if (previewUrl) {
+            thumb.classList.add("has-preview");
+            thumbImg.src = previewUrl;
+            thumbFallback.textContent = "";
+        } else {
+            thumb.classList.remove("has-preview");
+            thumbImg.removeAttribute("src");
+            if (entry.media_type === "video") {
+                thumbFallback.textContent = "video";
+            } else if (entry.media_type === "image") {
+                thumbFallback.textContent = "image";
+            } else {
+                thumbFallback.textContent = "file";
+            }
+        }
 
         badge.className = `type-badge type-${entry.media_type || "unknown"}`;
         badge.textContent = entry.media_type || "unknown";

@@ -67,9 +67,13 @@ When modifying the voice recorder UI:
 - [ ] Test page loads without console errors
 - [ ] Verify functionality works as expected
 
-## Automated Validation
+## Validation
 
-A GitHub Actions workflow validates that all `getElementById()` calls in JavaScript match existing HTML elements. See `.github/workflows/validate-dom-elements.yml`.
+There is no GitHub Actions workflow for this check anymore. When editing the voice recorder UI, validate DOM/JS consistency locally by:
+
+- updating `voice-recorder.md` and `voice-recorder.js` together
+- rebuilding the site with `pelican`
+- loading the page and checking for console errors
 
 ## Related Documentation
 
