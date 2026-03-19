@@ -19,6 +19,9 @@ Future agents should start here before changing `content_manager/`, the admin UI
 - [agent-quick-reference.md](./agent-quick-reference.md)
   - shortest path to the repo's actual contracts
   - use this first during reviews or small fixes
+- [article-authoring-lifecycle.md](./article-authoring-lifecycle.md)
+  - canonical article drafting/save-load/generation/publish lifecycle
+  - includes metadata-aware diagrams and validation boundaries
 - [content-manager-architecture.md](./content-manager-architecture.md)
   - code structure, service boundaries, and main flows
 - [admin-upload-page-design-implementation.md](./admin-upload-page-design-implementation.md)
